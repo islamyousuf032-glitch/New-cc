@@ -9,7 +9,7 @@
 - `tests/unit`: portable host unit tests.
 - `app/`: Kotlin Activity with SAF video picker, persisted URI grant attempt, background metadata read, aspect-ratio MediaPlayer preview/playback, clip-list selection and edit/history controls, background project I/O, and debounced autosave/explicit recovery. This is an early UI shell, not the processed timeline preview.
 - `platform/android/jni`: synchronized, coarse-grained JNI calls for session lifetime, media-reference clip insertion, batched JSON timeline snapshots, split/trim/delete/ripple, undo/redo, project save/load, autosave, and status summary. Project file operations are invoked on the Activity's single-thread scheduled I/O executor.
-- Android external-native build packages the portable engine in `libowncut_android.so`. Preview uses the Android MediaPlayer platform pipeline and bounds playback to one selected clip's source range; it does not sequence the timeline. No shared render/export graph, independent audio engine/mixer, effect renderer, or export path is implemented. Android code is not yet built/device-verified.
+- Android external-native build packages the portable engine in `libowncut_android.so`. Preview uses separate Android MediaPlayer instances, bounds each segment to that clip's source range, and auto-advances only to an exactly adjacent clip on the same track; a timeline gap stops playback. This is not a compositor or shared render/export graph and may have decode handoff gaps. No independent audio engine/mixer, effect renderer, or export path is implemented. Android code is not yet built/device-verified.
 
 ## Intended boundaries
 

@@ -41,6 +41,7 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
     private var projectIoBusy = false
     private var selectedMediaLoading = false
     private var handingOffEngine = false
+    @Volatile private var resumeAfterSelection = false
     private lateinit var projectPath: String
     private val mainHandler = Handler(Looper.getMainLooper())
     private val mediaThread = HandlerThread("OwncutMediaPlayer").apply { start() }
@@ -70,9 +71,7 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
                         val (position, reachedClipEnd) = tick
                         if (!isSeeking) seekBar.progress = position
                         if (reachedClipEnd) {
-                            mainHandler.removeCallbacks(this)
-                            playButton.text = "চালান"
-                            statusText.text = "Selected clip preview শেষ"
+                            advanceOrStopTimeline(generation, current)
                         } else {
                             statusText.text = "Playback ${formatTime(position.toLong())} / ${formatTime(durationMs)}"
                             mainHandler.postDelayed(this, 200L)
@@ -317,8 +316,9 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
         } ?: "Timeline · ${clips.size} clip(s) · কোনো clip নির্বাচিত নয়"
     }
 
-    private fun selectClip(clip: ClipSnapshot) {
+    private fun selectClip(clip: ClipSnapshot, resumePlayback: Boolean = false) {
         if (projectIoBusy) return
+        resumeAfterSelection = resumePlayback
         selectedClipId = clip.id
         releasePlayer()
         val uri = Uri.parse(clip.mediaId)
@@ -330,6 +330,26 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
     }
 
     private fun currentSelectedClip(): ClipSnapshot? = engine?.clips()?.firstOrNull { it.id == selectedClipId }
+
+    private fun advanceOrStopTimeline(expectedGeneration: Int, completedPlayer: MediaPlayer?) {
+        if (expectedGeneration != playerGeneration || player !== completedPlayer) return
+        val finishedClip = currentSelectedClip()
+        val timelineEnd = finishedClip?.let { it.startFrame + it.durationFrames }
+        val nextClip = if (finishedClip != null && timelineEnd != null) {
+            engine?.clips()?.firstOrNull {
+                it.trackId == finishedClip.trackId && it.startFrame == timelineEnd
+            }
+        } else null
+        if (nextClip != null) {
+            statusText.text = "পরের clip প্রস্তুত হচ্ছে…"
+            selectClip(nextClip, resumePlayback = true)
+        } else {
+            mainHandler.removeCallbacks(playbackTicker)
+            seekBar.progress = previewEndMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            playButton.text = "চালান"
+            statusText.text = "Timeline playback শেষ"
+        }
+    }
 
     private fun showFirstClip(session: EngineSession) {
         val first = session.clips().sortedBy { it.startFrame }.firstOrNull()
@@ -361,7 +381,7 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
             refreshTimeline()
             scheduleAutosave()
             engineStatusText.text = session.status()
-            engine?.clips()?.firstOrNull { it.id == rightId }?.let(::selectClip)
+            engine?.clips()?.firstOrNull { it.id == rightId }?.let { selectClip(it) }
         } catch (error: Exception) { showError(error) }
     }
 
@@ -374,7 +394,7 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
             refreshTimeline()
             scheduleAutosave()
             engineStatusText.text = session.status()
-            engine?.clips()?.firstOrNull { it.id == clip.id }?.let(::selectClip)
+            engine?.clips()?.firstOrNull { it.id == clip.id }?.let { selectClip(it) }
         } catch (error: Exception) { showError(error) }
     }
 
@@ -389,7 +409,7 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
             refreshTimeline()
             scheduleAutosave()
             engineStatusText.text = session.status()
-            remaining.firstOrNull()?.let(::selectClip) ?: run {
+            remaining.firstOrNull()?.let { selectClip(it) } ?: run {
                 selectedUri = null
                 previewStartMs = 0L
                 previewEndMs = 0L
@@ -413,7 +433,7 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
             refreshTimeline()
             scheduleAutosave()
             engineStatusText.text = session.status()
-            clips.firstOrNull { it.id == selectedClipId }?.let(::selectClip)
+            clips.firstOrNull { it.id == selectedClipId }?.let { selectClip(it) }
         } catch (error: Exception) { showError(error) }
     }
 
@@ -635,6 +655,7 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
                     mediaText.text = "এই ভিডিও খোলা যায়নি: ${error.message ?: "unsupported media"}"
                     statusText.text = "সমর্থিত SDR ভিডিও নির্বাচন করে আবার চেষ্টা করুন।"
                     if (existingClipId != null) {
+                        resumeAfterSelection = false
                         previewEndMs = 0L
                         playButton.isEnabled = false
                         releasePlayer()
@@ -698,30 +719,46 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
                     playerPrepared = true
                     val readyDuration = ready.duration
                     val startPosition = previewStartMs.coerceIn(0L, readyDuration.toLong().coerceAtLeast(0L))
+                    val shouldResume = resumeAfterSelection
+                    resumeAfterSelection = false
                     if (startPosition > 0L) ready.seekTo(startPosition.toInt())
+                    if (shouldResume) {
+                        try {
+                            ready.start()
+                        } catch (error: IllegalStateException) {
+                            playerPrepared = false
+                            resumeAfterSelection = false
+                            mainHandler.post {
+                                if (generation == playerGeneration && player === ready) {
+                                    playButton.isEnabled = false
+                                    statusText.text = "পরের clip চালু হয়নি: ${error.message}"
+                                }
+                            }
+                            return@setOnPreparedListener
+                        }
+                    }
                     mainHandler.post {
                         if (generation == playerGeneration && player === ready) {
                             durationMs = readyDuration.toLong()
                             seekBar.max = readyDuration.coerceAtLeast(1)
                             seekBar.progress = startPosition.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                             playButton.isEnabled = true
-                            statusText.text = "Preview প্রস্তুত · ${formatTime(durationMs)}"
+                            if (shouldResume) {
+                                playButton.text = "থামান"
+                                mainHandler.removeCallbacks(playbackTicker)
+                                mainHandler.post(playbackTicker)
+                            } else statusText.text = "Preview প্রস্তুত · ${formatTime(durationMs)}"
                         }
                     }
                 }
                 candidate.setOnCompletionListener { completed ->
                     if (generation == playerGeneration && player === completed) {
-                        val completedDuration = completed.duration
-                        mainHandler.post {
-                            mainHandler.removeCallbacks(playbackTicker)
-                            playButton.text = "আবার চালান"
-                            seekBar.progress = completedDuration
-                            statusText.text = "প্লেব্যাক শেষ"
-                        }
+                        mainHandler.post { advanceOrStopTimeline(generation, completed) }
                     }
                 }
                 candidate.setOnErrorListener { failed, what, extra ->
                     if (generation == playerGeneration && player === failed) {
+                        resumeAfterSelection = false
                         player = null
                         playerPrepared = false
                         failed.release()
@@ -736,6 +773,7 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
                 candidate.setDataSource(this, uri)
                 candidate.prepareAsync()
             } catch (error: Exception) {
+                if (generation == playerGeneration) resumeAfterSelection = false
                 if (player === candidate) {
                     player = null
                     playerPrepared = false
