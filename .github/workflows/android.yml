@@ -19,7 +19,16 @@ jobs:
       - name: Install pinned Android SDK components
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platforms;android-35" "ndk;28.2.13676358" "cmake;3.22.1" "system-images;android-35;google_apis;x86_64"
       - name: Build APK and run lint before emulator startup
-        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug
+        run: |
+          mkdir -p app/build/diagnostics
+          set -o pipefail
+          ./gradlew --no-daemon --stacktrace :app:assembleDebug :app:lintDebug 2>&1 | tee app/build/diagnostics/gradle-build.log
+      - name: Surface Gradle failure details in check annotations
+        if: failure()
+        run: |
+          if [ -f app/build/diagnostics/gradle-build.log ]; then
+            grep -E '^(FAILURE:|\* What went wrong:|Execution failed for task|e: |Could not resolve|Could not find|> Task .* FAILED|Caused by:)' app/build/diagnostics/gradle-build.log | tail -n 30 | while IFS= read -r line; do echo "::error::$line"; done
+          fi
       - name: Verify APK zip alignment
         run: |
           "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 -v 4 app/build/outputs/apk/debug/app-debug.apk
@@ -43,5 +52,6 @@ jobs:
             app/build/outputs/apk/debug/app-debug.apk
             app/build/reports/lint-results-debug.html
             app/build/outputs/androidTest-results/connected/**
+            app/build/diagnostics/gradle-build.log
           if-no-files-found: warn
           retention-days: 14
