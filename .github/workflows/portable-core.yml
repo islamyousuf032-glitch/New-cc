@@ -9,7 +9,7 @@ jobs:
   host-tests:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install CMake and Ninja
         run: sudo apt-get update && sudo apt-get install --yes cmake ninja-build
       - name: Configure
