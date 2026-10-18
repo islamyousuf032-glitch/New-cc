@@ -18,15 +18,21 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Install pinned Android SDK components
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platforms;android-35" "ndk;28.2.13676358" "cmake;3.22.1" "system-images;android-35;google_apis;x86_64"
-      - name: Build, lint, and run native JNI instrumentation smoke test
+      - name: Build APK and run lint before emulator startup
+        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug
+      - name: Verify APK zip alignment
+        run: "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 -v 4 app/build/outputs/apk/debug/app-debug.apk
+      - name: Run native JNI instrumentation smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
+          target: google_apis
           arch: x86_64
+          profile: pixel_7
+          emulator-boot-timeout: 900
+          ram-size: 2048M
           disable-animations: true
-          script: |
-            ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:connectedDebugAndroidTest
-            "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 -v 4 app/build/outputs/apk/debug/app-debug.apk
+          script: ./gradlew --no-daemon :app:connectedDebugAndroidTest
       - name: Upload debug APK and Android reports for device testing
         if: always()
         uses: actions/upload-artifact@v5
