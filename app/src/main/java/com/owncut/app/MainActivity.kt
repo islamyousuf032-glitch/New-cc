@@ -109,7 +109,7 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val retained = lastCustomNonConfigurationInstance as? RetainedEditorState
+        val retained = lastNonConfigurationInstance as? RetainedEditorState
         if (retained != null) {
             engine = retained.engine
             projectPath = retained.projectPath
