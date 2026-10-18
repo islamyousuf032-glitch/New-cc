@@ -13,7 +13,7 @@ For each real device record manufacturer/model, SoC/GPU, Android build/API, ABI,
 
 ## Initial phone smoke-test checklist
 
-After a successful Android CI build, install the `owncut-debug-android-test` APK artifact (it includes arm64-v8a and x86_64) on the phone. This is an early-shell test, not release acceptance.
+After a successful build stage on the fixed Arena branch, install the APK from the private `phone-test-*` prerelease (arm64-v8a and x86_64; verify the accompanying SHA-256 file). If Actions artifact storage is available, the same APK is also attached as `owncut-debug-android-test`. This is an early-shell test, not release acceptance.
 
 1. Pick a locally accessible SDR video using the system document picker; verify the preview aspect ratio, duration, play/pause and seek.
 2. Confirm a clip appears in the timeline; select it and verify preview seeks to and stops at that clip's source range. Try split, left/right trim, delete, ripple delete, undo and redo. Check that invalid cut/trim positions show an actionable message rather than crashing.

@@ -4,7 +4,7 @@ on:
   pull_request:
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   android-debug:
     runs-on: ubuntu-24.04
@@ -32,6 +32,20 @@ jobs:
       - name: Verify APK zip alignment
         run: |
           "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 -v 4 app/build/outputs/apk/debug/app-debug.apk
+      - name: Publish private phone-test APK release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/arena/6e511b63-new-cc'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=app/build/outputs/apk/debug/app-debug.apk
+          sha256sum "$apk" > "$apk.sha256"
+          tag="phone-test-${GITHUB_RUN_ID}"
+          gh release create "$tag" "$apk" "$apk.sha256" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Owncut phone-test build ${GITHUB_RUN_NUMBER}" \
+            --notes "Debug APK for manual phone testing. Not a production release. Includes arm64-v8a and x86_64. Built from ${GITHUB_SHA}."
+          echo "APK release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}" >> "$GITHUB_STEP_SUMMARY"
       - name: Run native JNI instrumentation smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -45,6 +59,7 @@ jobs:
           script: ./gradlew --no-daemon :app:connectedDebugAndroidTest
       - name: Upload debug APK and Android reports for device testing
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v5
         with:
           name: owncut-debug-android-test
