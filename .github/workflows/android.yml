@@ -46,6 +46,12 @@ jobs:
             --title "Owncut phone-test build ${GITHUB_RUN_NUMBER}" \
             --notes "Debug APK for manual phone testing. Not a production release. Includes arm64-v8a and x86_64. Built from ${GITHUB_SHA}."
           echo "APK release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Enable KVM acceleration for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -r /dev/kvm && test -w /dev/kvm
       - name: Run native JNI instrumentation smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
