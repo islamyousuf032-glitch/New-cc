@@ -22,7 +22,7 @@ jobs:
         run: |
           mkdir -p app/build/diagnostics
           set -o pipefail
-          ./gradlew --no-daemon --stacktrace :app:assembleDebug :app:lintDebug 2>&1 | tee app/build/diagnostics/gradle-build.log
+          ./gradlew --no-daemon --stacktrace :app:assembleDebug :app:lintDebug :app:compileDebugAndroidTestKotlin 2>&1 | tee app/build/diagnostics/gradle-build.log
       - name: Surface Gradle failure details in check annotations
         if: failure()
         run: |

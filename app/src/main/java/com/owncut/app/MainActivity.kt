@@ -117,6 +117,17 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        try {
+            initializeEditor(savedInstanceState)
+        } catch (error: Exception) {
+            showStartupFailure(error)
+        } catch (error: LinkageError) {
+            showStartupFailure(error)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun initializeEditor(savedInstanceState: Bundle?) {
         val retained = lastNonConfigurationInstance as? RetainedEditorState
         if (retained != null) {
             engine = retained.engine
@@ -139,6 +150,27 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         }
         updateEngineStatus()
         refreshTimeline()
+    }
+
+    private fun showStartupFailure(error: Throwable) {
+        android.util.Log.e("OwncutStartup", "Owncut could not create its initial workspace", error)
+        try { engine?.close() } catch (_: Throwable) { }
+        engine = null
+        if (::preview.isInitialized) preview.surfaceTextureListener = null
+        val surfaceToRelease = previewSurface
+        previewSurface = null
+        if (surfaceToRelease != null) mediaHandler.post { surfaceToRelease.release() }
+        metadataExecutor.shutdownNow()
+        mediaThread.quitSafely()
+        val details = error.stackTraceToString().lineSequence().take(10).joinToString("\n")
+        val message = TextView(this).apply {
+            text = "Owncut চালু হতে পারেনি। এই পর্দার screenshot পাঠান।\n\n${error.javaClass.simpleName}: ${error.message ?: "কোনো বিবরণ নেই"}\n\n$details"
+            textSize = 15f
+            setTextColor(0xFFE5EEE8.toInt())
+            setTextIsSelectable(true)
+            setPadding(dp(20), dp(24), dp(20), dp(24))
+        }
+        setContentView(ScrollView(this).apply { addView(message) })
     }
 
     @Suppress("DEPRECATION")
@@ -930,9 +962,13 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private fun playButtonOrNull(): Button? = if (::playButton.isInitialized) playButton else null
 
     override fun onSurfaceTextureAvailable(texture: SurfaceTexture, width: Int, height: Int) {
-        previewSurface = Surface(texture)
-        surfaceReady = true
-        selectedUri?.let(::preparePlayer)
+        try {
+            previewSurface = Surface(texture)
+            surfaceReady = true
+            selectedUri?.let(::preparePlayer)
+        } catch (error: RuntimeException) {
+            showStartupFailure(error)
+        }
     }
 
     override fun onSurfaceTextureSizeChanged(texture: SurfaceTexture, width: Int, height: Int) {
@@ -1005,7 +1041,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     override fun onDestroy() {
         metadataRequestSequence += 1
         if (!handingOffEngine) pendingAutosave?.cancel(false)
-        preview.surfaceTextureListener = null
+        if (::preview.isInitialized) preview.surfaceTextureListener = null
         releasePlayer()
         val surfaceToRelease = previewSurface
         previewSurface = null
