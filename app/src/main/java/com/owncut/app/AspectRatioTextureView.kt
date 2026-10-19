@@ -1,11 +1,11 @@
 package com.owncut.app
 
 import android.content.Context
-import android.view.SurfaceView
+import android.view.TextureView
 import kotlin.math.roundToInt
 
 /** Keeps decoded preview pixels at their source aspect ratio inside the available workspace. */
-internal class AspectRatioSurfaceView(context: Context) : SurfaceView(context) {
+internal class AspectRatioTextureView(context: Context) : TextureView(context) {
     private var videoWidth = 0
     private var videoHeight = 0
 
