@@ -73,7 +73,9 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
                         if (reachedClipEnd) {
                             advanceOrStopTimeline(generation, current)
                         } else {
-                            statusText.text = "Playback ${formatTime(position.toLong())} / ${formatTime(durationMs)}"
+                            if (firstVideoFrameRendered) {
+                                statusText.text = "ভিডিও চলছে · ${formatTime(position.toLong())} / ${formatTime(durationMs)}"
+                            }
                             mainHandler.postDelayed(this, 200L)
                         }
                     }
@@ -86,6 +88,8 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
     private var selectedUri: Uri? = null
     @Volatile private var player: MediaPlayer? = null
     @Volatile private var playerPrepared = false
+    @Volatile private var firstVideoFrameRendered = false
+    private var firstFrameDiagnostic: Runnable? = null
     private var surfaceReady = false
     private var durationMs = 0L
     private var previewStartMs = 0L
@@ -179,14 +183,21 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
         timelineContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         timelineScroll.addView(timelineContainer)
         root.addView(timelineScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(92)))
+        val editHelpText = TextView(this).apply {
+            text = "ব্যবহার: clip-এ ট্যাপ করুন, seek bar টেনে কাটার জায়গা ঠিক করুন। বাম ছাঁটুন = playhead-এর আগের অংশ বাদ; ডান ছাঁটুন = পরের অংশ বাদ; কাটুন = দুই clip।"
+            textSize = 12f
+            setTextColor(0xFF91A99A.toInt())
+            setPadding(0, dp(2), 0, dp(6))
+        }
+        root.addView(editHelpText, matchWrap())
 
         val editScroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
         val editControls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        editControls.addView(actionButton("Split") { splitAtPlayhead() }, wrapButtonParams())
-        editControls.addView(actionButton("Trim L") { trimAtPlayhead(leftEdge = true) }, wrapButtonParams())
-        editControls.addView(actionButton("Trim R") { trimAtPlayhead(leftEdge = false) }, wrapButtonParams())
-        editControls.addView(actionButton("Delete") { deleteSelected(ripple = false) }, wrapButtonParams())
-        editControls.addView(actionButton("Ripple") { deleteSelected(ripple = true) }, wrapButtonParams())
+        editControls.addView(actionButton("কাটুন (Split)") { splitAtPlayhead() }, wrapButtonParams())
+        editControls.addView(actionButton("বাম ছাঁটুন") { trimAtPlayhead(leftEdge = true) }, wrapButtonParams())
+        editControls.addView(actionButton("ডান ছাঁটুন") { trimAtPlayhead(leftEdge = false) }, wrapButtonParams())
+        editControls.addView(actionButton("মুছুন") { deleteSelected(ripple = false) }, wrapButtonParams())
+        editControls.addView(actionButton("গ্যাপ বাদ") { deleteSelected(ripple = true) }, wrapButtonParams())
         editScroll.addView(editControls)
         root.addView(editScroll, matchWrap())
 
@@ -225,8 +236,9 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
             setOnClickListener { launchVideoPicker() }
         }
         playButton = Button(this).apply {
-            text = "চালান"
+            text = "ভিডিও চালান"
             isEnabled = false
+            contentDescription = "ভিডিও চালান বা বিরতি দিন"
             setOnClickListener { togglePlayback() }
         }
         controls.addView(importButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
@@ -346,7 +358,7 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
         } else {
             mainHandler.removeCallbacks(playbackTicker)
             seekBar.progress = previewEndMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-            playButton.text = "চালান"
+            playButton.text = "ভিডিও চালান"
             statusText.text = "Timeline playback শেষ"
         }
     }
@@ -744,12 +756,26 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
                             seekBar.progress = startPosition.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                             playButton.isEnabled = true
                             if (shouldResume) {
-                                playButton.text = "থামান"
+                                playButton.text = "বিরতি"
+                                scheduleFirstFrameDiagnostic(generation, ready)
                                 mainHandler.removeCallbacks(playbackTicker)
                                 mainHandler.post(playbackTicker)
-                            } else statusText.text = "Preview প্রস্তুত · ${formatTime(durationMs)}"
+                            } else statusText.text = "Preview প্রস্তুত · ${formatTime(durationMs)} · চালাতে ভিডিও চালান চাপুন"
                         }
                     }
+                }
+                candidate.setOnInfoListener { _, what, _ ->
+                    if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START &&
+                        generation == playerGeneration && player === candidate) {
+                        mainHandler.post {
+                            if (generation == playerGeneration && player === candidate) {
+                                firstVideoFrameRendered = true
+                                clearFirstFrameDiagnostic()
+                                statusText.text = "ভিডিও চলছে · decoder frame পাঠাচ্ছে"
+                            }
+                        }
+                    }
+                    false
                 }
                 candidate.setOnCompletionListener { completed ->
                     if (generation == playerGeneration && player === completed) {
@@ -763,9 +789,11 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
                         playerPrepared = false
                         failed.release()
                         mainHandler.post {
+                            clearFirstFrameDiagnostic()
                             mainHandler.removeCallbacks(playbackTicker)
                             playButton.isEnabled = false
-                            statusText.text = "Decoder error ($what/$extra); এই device-এ format সমর্থিত নাও হতে পারে।"
+                            playButton.text = "ভিডিও চালান"
+                            statusText.text = "ভিডিও decode হয়নি ($what/$extra)। 1080p SDR ফাইল দিয়ে চেষ্টা করুন; 4K/HDR/codec support ফোনভেদে আলাদা।"
                         }
                     }
                     true
@@ -786,9 +814,29 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
         }
     }
 
+    private fun scheduleFirstFrameDiagnostic(generation: Int, expectedPlayer: MediaPlayer) {
+        clearFirstFrameDiagnostic()
+        val check = Runnable {
+            if (generation == playerGeneration && player === expectedPlayer && !firstVideoFrameRendered) {
+                statusText.text = "ভিডিও চালু, কিন্তু frame আসেনি। 1080p SDR ভিডিও দিয়ে চেষ্টা করুন; 4K/HDR/codec support ফোনভেদে আলাদা।"
+            }
+        }
+        firstFrameDiagnostic = check
+        mainHandler.postDelayed(check, 2_500L)
+    }
+
+    private fun clearFirstFrameDiagnostic() {
+        val pending = firstFrameDiagnostic
+        if (pending != null) mainHandler.removeCallbacks(pending)
+        firstFrameDiagnostic = null
+    }
+
     private fun togglePlayback() {
         val current = player
-        if (!playerPrepared || current == null) return
+        if (!playerPrepared || current == null) {
+            statusText.text = "ভিডিও এখনো প্রস্তুত নয়—clip নির্বাচন করে একটু অপেক্ষা করুন।"
+            return
+        }
         val generation = playerGeneration
         mediaHandler.post {
             if (generation != playerGeneration || player !== current) return@post
@@ -796,8 +844,9 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
                 if (current.isPlaying) {
                     current.pause()
                     mainHandler.post {
+                        clearFirstFrameDiagnostic()
                         mainHandler.removeCallbacks(playbackTicker)
-                        playButton.text = "চালান"
+                        playButton.text = "ভিডিও চালান"
                         statusText.text = "বিরতি"
                     }
                 } else {
@@ -807,7 +856,11 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
                     }
                     current.start()
                     mainHandler.post {
-                        playButton.text = "থামান"
+                        playButton.text = "বিরতি"
+                        if (!firstVideoFrameRendered) {
+                            statusText.text = "ভিডিও frame-এর অপেক্ষা করছি…"
+                            scheduleFirstFrameDiagnostic(generation, current)
+                        }
                         mainHandler.removeCallbacks(playbackTicker)
                         mainHandler.post(playbackTicker)
                     }
@@ -820,11 +873,13 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
 
     private fun releasePlayer() {
         mainHandler.removeCallbacks(playbackTicker)
+        clearFirstFrameDiagnostic()
+        firstVideoFrameRendered = false
         val old = player
         player = null
         playerPrepared = false
         playerGeneration += 1
-        playButtonOrNull()?.let { it.isEnabled = false; it.text = "চালান" }
+        playButtonOrNull()?.let { it.isEnabled = false; it.text = "ভিডিও চালান" }
         if (old != null) mediaHandler.post {
             try { old.setDisplay(null) } catch (_: IllegalStateException) { }
             try { old.release() } catch (_: IllegalStateException) { }
@@ -838,7 +893,23 @@ class MainActivity : Activity(), SurfaceHolder.Callback {
         selectedUri?.let(::preparePlayer)
     }
 
-    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) = Unit
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        val current = player ?: return
+        val generation = playerGeneration
+        mediaHandler.post {
+            if (generation == playerGeneration && player === current) {
+                try {
+                    current.setDisplay(holder)
+                } catch (_: IllegalStateException) {
+                    mainHandler.post {
+                        if (generation == playerGeneration && player === current) {
+                            statusText.text = "Preview surface পুনরায় যুক্ত করা যায়নি; clip আবার নির্বাচন করুন।"
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         surfaceReady = false

@@ -16,7 +16,7 @@ Gate: host build/tests pass; Android debug build, lint, JNI instrumentation, and
 
 - [x] SAF picker, metadata extraction, platform decode/playback surface, basic seek controls, and JNI media-reference insertion authored.
 - [x] Batched native timeline snapshot bridge; clip selection, split/trim/delete/ripple/undo/redo UI; background save/load, explicit recovery, and autosave scheduling authored.
-- [ ] Android build/CI and device/emulator validation (code is not yet compiled here).
+- [ ] Android/device acceptance: the latest APK build, Kotlin lint, and 16 KB zip alignment passed CI, but emulator boot still times out; a phone user has reported a black preview for a 3840×1632 clip. Current first-frame diagnostics and Bengali edit help still need a fresh build and physical-device verification.
 - [ ] One timeline must drive preview and export; playback scheduling, project reopen/recovery, robust cancellation/errors and A/V sync validation.
 - [ ] Edited output export on a supported device.
 

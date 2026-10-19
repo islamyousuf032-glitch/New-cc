@@ -3,39 +3,34 @@
 ## Implemented
 
 - Added a portable C++20 rational-time, non-destructive timeline, edit-command/history, and versioned project store with host tests.
-- Added JNI session ownership, synchronized edit/project methods, and an escaped JSON timeline-snapshot API with a Kotlin parser.
-- Added an Android Activity shell for SAF video import, background metadata extraction, aspect-ratio MediaPlayer preview, clip selection, split/trim/delete/ripple/undo/redo, background save/load, debounced autosave, and explicit recovery.
-- The Activity retains the native session over configuration changes, gates edits during project I/O/media metadata work, and provides clip-range preview. The current in-worktree change also chains exactly adjacent clips on the same track; it has not yet been built in CI.
-- Project I/O is app-private filesystem based, with confirmation before loading/recovering. Manual phone-test checklist and scoped CI release path are documented.
+- Added JNI session ownership, synchronized edit/project methods, and a timeline snapshot API with a Kotlin parser.
+- Added an Android Activity shell for SAF import, metadata reading, MediaPlayer preview/playback, clip selection, split/trim/delete/ripple/undo/redo, project save/load, and autosave recovery.
+- Preview follows a selected clip's source range and advances only across exactly adjacent clips on the same track. Gaps stop this preliminary preview; this is not a composed timeline renderer.
+- The user installed a phone-test APK and reported that a 3840×1632, 7-second video imports but the preview remains black after tapping Play. The user also found the trim controls unclear. The current working-tree change reattaches the prepared player when the preview Surface changes, adds a first-frame/render diagnostic, and provides concise Bengali edit instructions/button labels; it is not yet built or device-tested.
 
 ## In progress / not complete
 
-- Phase 0/1 acceptance gates are not met. A GitHub Actions Android run successfully built and linted the app and passed 16 KB APK zip alignment on commit `a8ccd10`; later run `39136892378` also passed those three steps and published a private prerelease APK, but the emulator smoke test timed out during boot. A KVM-permission setup fix is now pushed; its latest CI outcome is not yet known.
-- The current same-track adjacent-clip preview change is uncommitted/unbuilt. The existing release APK does not include that change; wait for the next successful build before choosing which version to test.
-- There is no shared full-timeline render/export graph, effects/transitions, robust multi-track A/V scheduling, or exported output. Timeline gaps stop the preliminary clip-sequence preview.
+- Latest published APK before the current UI/diagnostic change is prerelease `phone-test-39137894514` from commit `cf6e0f3`. Build, Kotlin lint, 16 KB APK alignment, and release publication succeeded. Emulator instrumentation failed because the emulator timed out while booting; KVM setup itself succeeded. Artifact upload also reports the repository's Actions storage quota is full.
+- The user's black-preview report is not yet reproduced here. MediaPlayer metadata preparation may succeed without a rendered frame; the pending UI change will indicate whether Android reports a video-rendering-start event and show a codec/resolution hint if it does not. Do not claim this fixes the user's device until a new APK is installed and verified.
+- No full edited-timeline render/export graph, effects/transitions, multi-track A/V scheduling, or exported output exists.
 
 ## Environment limitations
 
-- This workspace has no local JDK/Java, Android SDK/NDK, emulator, or device; Gradle cannot run locally. Android build/lint evidence below is from GitHub Actions, not this machine.
-- Phone/device behavior is not verified here. The user plans to perform phone testing after an appropriate build is ready.
-- ProjectStore writes app-private filesystem paths, not SAF project documents. URI relinking, crash-safe journaling/fsync, export, and production media capability validation remain open.
+- This workspace has no local JDK/Java, Android SDK/NDK, emulator, or device; Android verification must use GitHub Actions and a real phone.
+- The user performs physical-phone testing. This agent cannot verify Samsung decoder output or claim a device test passed.
+- Project storage is app-private filesystem based; SAF project storage, media relinking, crash-safe journaling/fsync, export, and broad codec capability validation remain open.
 
 ## Tests actually run
 
-- `make test` — passed with GCC 12.2.0; output: `All core, command-history, and project tests passed`.
-- Direct GCC AddressSanitizer + UndefinedBehaviorSanitizer build/run — passed.
-- Strict host build using `-Wconversion -Wsign-conversion -Werror` and full test executable — passed.
-- JNI C++ translation unit passed host syntax-only with strict warnings and a temporary minimal JNI declaration stub; this is not NDK/ABI validation.
-- `git diff --check`, Android XML parsing, and whitespace scan — passed.
-- GitHub portable-core CI — passed on the session branch.
-- GitHub Android CI run `39135320736`: APK build, Kotlin lint, and 16 KB zipalign passed; emulator instrumentation timed out waiting for boot.
-- GitHub Android CI run `39136892378`: APK build, lint, and zipalign passed; phone-test prerelease `phone-test-39136892378` was published with APK and SHA-256. Emulator instrumentation was still pending/booting at last check; do not report it as passed. Actions artifact upload was blocked by the GitHub account's Actions artifact storage quota.
-- An earlier Android CI attempt exposed a Kotlin Gradle `jvmTarget` configuration error; this was corrected by migrating to typed `compilerOptions`, and the later APK/lint steps passed.
-- Local `./gradlew` attempt failed before Gradle startup because `JAVA_HOME`/`java` is absent.
+- Host C++ core tests, sanitizer build/run, strict-warning build, JNI syntax-only check, and `git diff --check` passed in earlier checkpoints.
+- Latest portable-core CI run `39137894529` passed.
+- Android CI run `39137894514` built/linted the app, passed 16 KB APK zip alignment, and published `phone-test-39137894514`; emulator JNI instrumentation failed with `Timeout waiting for emulator to boot`. The KVM permission step succeeded. Artifact upload failed due storage quota.
+- Earlier Android runs also produced private debug APK releases; emulator boot has not passed. These APKs are debug/manual-test builds, not production releases.
+- The current Bengali UI and first-frame diagnostic edits have not yet been Android-built. Local Gradle is unavailable without Java/Android SDK.
 
 ## Next steps
 
-1. Build the current adjacent-clip preview change in CI and obtain the current phone-test APK release.
-2. Keep improving emulator boot reliability with KVM enabled; run JNI instrumentation when the emulator boots.
-3. Implement the shared edited-timeline render/export vertical slice and SAF project/media relinking before claiming Phase 1 complete.
-4. Once the desired test scope/build is ready, the user can install the private phone-test APK and report device details/results using `DEVICE_TEST_MATRIX.md`.
+1. Build and lint the current black-preview diagnostic and Bengali edit-help changes; publish a fresh debug APK.
+2. Have the user retry with a locally playable 1080p SDR sample and the reported 3840×1632 file; capture the app status shown after Play, and compare the file's playback in the phone's native gallery.
+3. Investigate actual decoder/render behavior from that evidence; do not equate metadata import or MediaPlayer prepared state with visible video frames.
+4. Address emulator boot reliability separately, then continue shared timeline render/export and project/media relinking work.
