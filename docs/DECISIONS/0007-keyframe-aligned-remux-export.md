@@ -9,7 +9,7 @@ The app needs an output path, but it does not yet have a shared decoder/composit
 
 ## Decision
 
-Use Android's platform `MediaExtractor` and `MediaMuxer` for a lossless stream-copy MP4 export of a deliberately narrow plan: one video track, all clips referencing the same original media URI, clips contiguous from timeline frame zero, source/timeline duration matching within 1 ms, and each clip's source-in exactly on a video sync sample. At most one audio track is copied. Timestamp monotonicity is checked. Unsupported edits fail with an actionable message; there is no re-encoding, compositing, effects, cross-track mixing, subtitle/caption preservation, or arbitrary-frame-accurate cut.
+Use Android's platform `MediaExtractor` and `MediaMuxer` for a lossless stream-copy MP4 export of a deliberately narrow plan: one video track, all clips referencing the same original media URI, clips contiguous from timeline frame zero, source/timeline duration matching within 1 ms, and each clip's source-in exactly on a video sync sample. At most one audio track is copied. Timestamp monotonicity is checked, and extractor sample flags are translated to muxer flags; encrypted and partial-frame samples are rejected. Unsupported edits fail with an actionable message; there is no re-encoding, compositing, effects, cross-track mixing, subtitle/caption preservation, or arbitrary-frame-accurate cut.
 
 Output is staged in app cache before copying to a SAF document. Cancellation is checked while muxing and copying. A canceled/failed copy to the selected provider may leave an empty or partial destination document; provider deletion/atomic replacement is not assumed.
 

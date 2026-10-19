@@ -2,6 +2,7 @@ package com.owncut.app
 
 import android.content.Context
 import android.media.MediaCodec
+import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMuxer
@@ -133,7 +134,7 @@ internal object TimelineRemuxExporter {
                                 }
                                 lastAudioPtsUs = outputPtsUs
                             }
-                            info.set(0, size, outputPtsUs, extractor.sampleFlags)
+                            info.set(0, size, outputPtsUs, toMuxerFlags(extractor.sampleFlags))
                             val destinationTrack = if (sourceTrack == tracks.videoIndex) outputVideo else outputAudio
                             muxer.writeSampleData(destinationTrack, sampleBuffer, info)
                         }
@@ -218,6 +219,20 @@ internal object TimelineRemuxExporter {
             throw IllegalArgumentException("Clip-এর শুরুতে নির্ভরযোগ্য video keyframe পাওয়া যায়নি")
         } finally {
             extractor.release()
+        }
+    }
+
+    private fun toMuxerFlags(sampleFlags: Int): Int {
+        require(sampleFlags and MediaExtractor.SAMPLE_FLAG_ENCRYPTED == 0) {
+            "DRM/encrypted sample stream-copy-তে সমর্থিত নয়"
+        }
+        require(sampleFlags and MediaExtractor.SAMPLE_FLAG_PARTIAL_FRAME == 0) {
+            "Fragmented sample stream-copy-তে সমর্থিত নয়"
+        }
+        return if (sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) {
+            MediaCodec.BUFFER_FLAG_KEY_FRAME
+        } else {
+            0
         }
     }
 

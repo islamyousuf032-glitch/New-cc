@@ -13,8 +13,8 @@
 
 ## In progress / not complete
 
-- Latest published APK is private prerelease `phone-test-39250035336` from commit `5eb8834`. Android APK build/lint, AndroidTest source compilation, 16 KB zip alignment, and release publication passed. Emulator JNI instrumentation was skipped because KVM was unavailable. The Galaxy F23 user tested the crash-fixed APK and confirmed visible playback and working editing controls; the newer drag/relink flows have not been phone-tested.
-- SAF project Save As/Open source has been added after that APK was built and still needs Android CI compilation and a real Documents-provider save/reopen test.
+- Latest published APK is private prerelease `phone-test-39251452651` from commit `a22c56a`. Android APK build/lint, AndroidTest source compilation, 16 KB zip alignment and publication passed; emulator instrumentation was skipped because KVM was unavailable. SAF Save As/Open, same-track drag/reorder, selected/group relink, and Linux/Android fsync are included. The Galaxy F23 user tested the earlier crash-fixed APK; these newer flows remain untested on the phone.
+- The first Android build for the exporter (`39260757726`) failed at lint: extractor sample flags were passed directly to `MediaCodec.BufferInfo`. The exporter now maps sync samples to muxer keyframe flags and rejects encrypted/partial samples; an Android build/lint rerun is pending. The APK release remains `phone-test-39251452651` until that succeeds. Real Documents-provider save/reopen and actual media output still need physical-device tests.
 - The limited remux exporter does not satisfy the general render/export gate: no decoder/compositor/re-encoder graph, arbitrary-frame cuts, multiple source files, gap rendering, cross-track A/V scheduling/mixing, effects, transitions, or color pipeline exists. Linux/Android local saves use file+directory fsync, but power-loss behavior is not fault-injected and SAF provider writes are not atomic.
 - Multi-clip playback has decoder handoffs and only advances across exactly adjacent clips on the same track; no A/V sync or gap-free playback guarantee exists.
 
@@ -22,19 +22,19 @@
 
 - Host tests do not verify Android UI, SAF provider behavior, Samsung codec/GPU behavior, media synchronization, lifecycle, or output rendering.
 - User-reported Galaxy F23 results are recorded separately from CI/emulator results. No independent physical-device measurement or export check has been performed.
-- An earlier Android CI job compiled tests and built APK successfully but its emulator startup/instrumentation did not pass. The most recent workflow also marked instrumentation failed after successful build/lint/alignment/publication; inspect the run/job for exact failure details before asserting an emulator launch result.
+- Android emulator instrumentation has not passed in this workspace: recent runs either failed while booting or skipped execution because KVM was unavailable. Do not treat AndroidTest source compilation as an executed smoke test.
 
 ## Tests actually run
 
 - Portable C++ core tests, sanitizer build/run, strict-warning build, JNI syntax-only check, and `git diff --check` passed in earlier checkpoints.
-- Latest portable-core CI run `39250035441` passed.
-- Android run `39250035336`: build/lint, AndroidTest source compilation, APK zip alignment, and private prerelease publication passed; emulator JNI instrumentation was skipped because KVM was unavailable.
-- SAF project-document adapter was Android-built in run `39247694047`; provider behavior still needs a phone test. Same-track drag/reorder and media relink are included in `39250035336`; instrumentation source compilation passed, but Android test execution was skipped and phone UI validation remains outstanding.
-- Linux/Android local save fsync changes in the current working tree passed `make test`, ASan/UBSan host run, and `git diff --check`; they still need Android CI build after commit.
+- Latest portable-core CI run `39251452587` passed.
+- Android run `39251452651`: build/lint, AndroidTest source compilation, APK zip alignment, and private prerelease publication passed; emulator JNI instrumentation was skipped because KVM was unavailable.
+- SAF project-document source was Android-built in runs `39247694047` and later. Drag/reorder, selected/group relink and Linux/Android fsync were built in `39251452651`; provider and phone behavior remain untested.
+- Exporter/planner source was added after that run. First exporter Android CI run `39260757726` failed at `:app:lintDebug` because MediaExtractor sample flags were forwarded as MediaCodec flags; corrected mapping has not yet been Android-built. Portable `make test` and `git diff --check` pass; no actual Android sample export has been run.
 
 ## Next steps
 
-1. Build/lint the new local fsync durability implementation and publish the next debug APK.
-2. Verify project Save As/Open, drag/reorder, and relink on the Galaxy F23; test malformed/revoked documents and split sibling relinking.
-3. Design and test a shared timeline render/export pipeline with cancellation, failure cleanup, audio/video synchronization, and codec capability gating. This remains the largest unmet Phase 1 acceptance gate.
-4. Continue multitrack scheduling, write-ahead recovery journaling, and lifecycle/device validation.
+1. Re-run Android build/lint/source compilation after the sample-flag correction; publish a fresh debug APK if successful.
+2. On the Galaxy F23, test Save As/Open, long-press drag, group relink, and the keyframe-aligned MP4 output; verify output in Gallery, audio continuity, cancellation and failure cleanup.
+3. Build the general decoder/compositor/re-encoder graph for arbitrary frame cuts, multiple media sources, gaps and cross-track audio. The remux subset does not satisfy this acceptance gate.
+4. Continue multitrack scheduling, provider-safe atomic replacement, power-loss fault testing, and lifecycle/device validation.
