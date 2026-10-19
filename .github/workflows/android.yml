@@ -46,13 +46,24 @@ jobs:
             --title "Owncut phone-test build ${GITHUB_RUN_NUMBER}" \
             --notes "Debug APK for manual phone testing. Not a production release. Includes arm64-v8a and x86_64. Built from ${GITHUB_SHA}."
           echo "APK release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}" >> "$GITHUB_STEP_SUMMARY"
-      - name: Enable KVM acceleration for the emulator
+      - name: Check KVM availability for the emulator
+        id: kvm
         run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-          test -r /dev/kvm && test -w /dev/kvm
+          if [[ -e /dev/kvm ]]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --name-match=kvm || true
+          fi
+          if [[ -r /dev/kvm && -w /dev/kvm ]]; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+            echo 'KVM is available; emulator instrumentation will run.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+            echo '::warning::KVM is unavailable on this runner; skipping emulator instrumentation. APK build, lint, alignment, and release checks still ran.'
+            echo 'KVM unavailable; emulator instrumentation skipped. APK build, lint, alignment, and release checks still ran.' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Run native JNI instrumentation smoke test
+        if: steps.kvm.outputs.available == 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -60,6 +71,7 @@ jobs:
           arch: x86_64
           profile: pixel_7
           emulator-boot-timeout: 900
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -no-metrics
           ram-size: 2048M
           disable-animations: true
           script: ./gradlew --no-daemon :app:connectedDebugAndroidTest

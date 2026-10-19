@@ -10,7 +10,7 @@
 
 ## In progress / not complete
 
-- Latest published APK before the current UI/diagnostic change is prerelease `phone-test-39137894514` from commit `cf6e0f3`. Build, Kotlin lint, 16 KB APK alignment, and release publication succeeded. Emulator instrumentation failed because the emulator timed out while booting; KVM setup itself succeeded. Artifact upload also reports the repository's Actions storage quota is full.
+- Latest published APK is prerelease `phone-test-39205497170` from commit `01c7cd9`; build, Kotlin lint, 16 KB APK alignment, and release publication succeeded. KVM setup failed on that runner, so instrumentation was skipped. An earlier run passed KVM setup but timed out while booting the emulator. The workflow is being changed to skip emulator instrumentation with a clear warning when KVM is unavailable, rather than failing before collecting the emulator result. Artifact upload reports the repository's Actions storage quota is full.
 - The user's black-preview report is not yet reproduced here. MediaPlayer metadata preparation may succeed without a rendered frame; the pending UI change will indicate whether Android reports a video-rendering-start event and show a codec/resolution hint if it does not. Do not claim this fixes the user's device until a new APK is installed and verified.
 - No full edited-timeline render/export graph, effects/transitions, multi-track A/V scheduling, or exported output exists.
 
