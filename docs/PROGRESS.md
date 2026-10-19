@@ -2,37 +2,36 @@
 
 ## Implemented
 
-- Added a portable C++20 rational-time, non-destructive timeline, edit-command/history, and versioned project store with host tests.
-- Added JNI session ownership, synchronized edit/project methods, and a timeline snapshot API with a Kotlin parser.
-- Added an Android Activity shell for SAF import, metadata reading, MediaPlayer preview/playback, clip selection, split/trim/delete/ripple/undo/redo, project save/load, and autosave recovery.
-- Preview follows a selected clip's source range and advances only across exactly adjacent clips on the same track. Gaps stop this preliminary preview; this is not a composed timeline renderer.
-- The user supplied the Galaxy F23 / Android 14 startup crash stack: `UnsupportedOperationException: TextureView doesn't support displaying a background drawable`, at `MainActivity.buildWorkspace`. The current unbuilt fix removes `setBackgroundColor()` from TextureView, makes the startup-error screen high-contrast, and includes a launch smoke test that requires the preview TextureView to exist.
-- AndroidX Test/JUnit instrumentation dependencies are test-only, official stable artifacts under Apache-2.0. Run `39225580353` successfully resolved and compiled Android instrumentation sources; APK build, lint, and 16 KB alignment also passed. The UI launch smoke test did not run because emulator boot timed out.
-- The user also reports audio with black video on 3840×1632 and 1920×1080 sources. The previous SurfaceView reattachment/diagnostic did not solve it. Current unbuilt source migrates preview output to TextureView and uses texture-update callbacks to detect frames. It also provides position/width-scaled per-track timeline blocks, a playhead directly beneath them, and clearer trim actions. These are hypotheses, not verified fixes; blocks cannot yet be dragged/reordered.
+- Portable C++20 rational-time timeline, non-destructive edit commands/history, versioned project serialization/store, v0 migration reader, and host tests.
+- Android shell with SAF video import, metadata extraction, MediaPlayer/TextureView preview, and play/pause/seek. The user confirmed the preview and editing UI work on a Galaxy F23 (Android 14, 6 GB RAM, Snapdragon 750G); screenshot shows a visible frame from a 3840×1632, 9-second source and timeline clips. This confirms that phone/sample smoke test only; it does not establish A/V sync, all-device codec support, or export.
+- Timeline UI with clip selection, split, left/right trim, delete, ripple delete, undo/redo and playback over directly adjacent same-track clips. Timeline gaps stop the preliminary preview; blocks cannot yet be dragged/reordered, and preview is not a compositor.
+- JNI session ownership, timeline snapshot bridge, background app-private project save/load, debounced autosave and explicit recovery UI.
+- Added SAF project Save As/Open actions. The adapter serializes to/from a temporary app-cache file because the native project codec accepts filesystem paths, then streams bytes through `ContentResolver`. This is not an atomic provider-side replacement and does not persist document grants; users can choose the project document again when reopening.
+- Removed the unsupported `TextureView.setBackgroundColor()` startup crash and improved startup-error contrast.
 
 ## In progress / not complete
 
-- Latest published APK is prerelease `phone-test-39225580353` from commit `ed8030d`; build, Kotlin lint, AndroidTest source compilation, 16 KB APK alignment, and release publication succeeded. Emulator instrumentation timed out while booting despite KVM setup passing; Actions artifact storage quota is full. This APK contains the TextureView background-color call that the user has now identified as the launch crash.
-- The user's audio-only/black-preview report is not reproduced here. Current source uses TextureView texture-update callbacks to detect frames, but this remains unverified on the user's device. Do not claim it fixes playback until a new APK is installed and tested.
-- No full edited-timeline render/export graph, effects/transitions, multi-track A/V scheduling, or exported output exists.
+- Latest APK is private prerelease `phone-test-39243277355` from commit `2e6d398`. Android APK build/lint, AndroidTest source compilation and 16 KB zip alignment passed; release publication succeeded. The emulator JNI instrumentation step failed, so no emulator launch/JNI test is claimed. See the run for current details. The Galaxy F23 user has now confirmed successful visible playback and working editing controls.
+- SAF project Save As/Open source has been added after that APK was built and still needs Android CI compilation and a real Documents-provider save/reopen test.
+- No single timeline-driven compositor/export graph, edited output export, cross-track A/V scheduling, media relinking, or robust crash-recovery journal/fsync exists. Effects, transitions, audio mixing, and color management are also absent.
+- Multi-clip playback has decoder handoffs and only advances across exactly adjacent clips on the same track; no A/V sync or gap-free playback guarantee exists.
 
-## Environment limitations
+## Environment and verification limits
 
-- This workspace has no local JDK/Java, Android SDK/NDK, emulator, or device; Android verification must use GitHub Actions and a real phone.
-- The user performs physical-phone testing. This agent cannot verify Samsung decoder output or claim a device test passed.
-- Project storage is app-private filesystem based; SAF project storage, media relinking, crash-safe journaling/fsync, export, and broad codec capability validation remain open.
+- Host tests do not verify Android UI, SAF provider behavior, Samsung codec/GPU behavior, media synchronization, lifecycle, or output rendering.
+- User-reported Galaxy F23 results are recorded separately from CI/emulator results. No independent physical-device measurement or export check has been performed.
+- An earlier Android CI job compiled tests and built APK successfully but its emulator startup/instrumentation did not pass. The most recent workflow also marked instrumentation failed after successful build/lint/alignment/publication; inspect the run/job for exact failure details before asserting an emulator launch result.
 
 ## Tests actually run
 
-- Host C++ core tests, sanitizer build/run, strict-warning build, JNI syntax-only check, and `git diff --check` passed in earlier checkpoints.
-- Latest portable-core CI run `39137894529` passed.
-- Android CI run `39137894514` built/linted the app, passed 16 KB APK zip alignment, and published `phone-test-39137894514`; emulator JNI instrumentation failed with `Timeout waiting for emulator to boot`. The KVM permission step succeeded. Artifact upload failed due storage quota.
-- Earlier Android runs also produced private debug APK releases; emulator boot has not passed. These APKs are debug/manual-test builds, not production releases.
-- The current Bengali UI and first-frame diagnostic edits have not yet been Android-built. Local Gradle is unavailable without Java/Android SDK.
+- Portable C++ core tests, sanitizer build/run, strict-warning build, JNI syntax-only check, and `git diff --check` passed in earlier checkpoints.
+- Latest portable-core CI run `39243277200` passed.
+- Android run `39243277355`: build/lint passed; instrumentation Kotlin source compiled; APK zip alignment passed; private prerelease published; instrumentation smoke-test step failed. The user successfully ran that release on Galaxy F23 and reports visible video and working editing features.
+- SAF project-document adapter edits in the current working tree have not yet been Android-built or device-tested. Run `git diff --check` and host tests before committing; CI can verify Kotlin compilation/build but not provider behavior.
 
 ## Next steps
 
-1. Build and lint the current black-preview diagnostic and Bengali edit-help changes; publish a fresh debug APK.
-2. Have the user retry with a locally playable 1080p SDR sample and the reported 3840×1632 file; capture the app status shown after Play, and compare the file's playback in the phone's native gallery.
-3. Investigate actual decoder/render behavior from that evidence; do not equate metadata import or MediaPlayer prepared state with visible video frames.
-4. Address emulator boot reliability separately, then continue shared timeline render/export and project/media relinking work.
+1. Build/lint and compile the new SAF project document flow; add focused Android tests where a reliable document-provider test fixture is practical.
+2. Verify Save As/Open and malformed/revoked documents on a physical Android device; document provider-specific error behavior.
+3. Design and test a shared timeline render/export pipeline with cancellation, failure cleanup, audio/video synchronization, and codec capability gating. This is the largest unmet Phase 1 acceptance gate.
+4. Continue media relinking, crash-safe persistence, timeline drag/reorder and multitrack behavior as separate acceptance-gated changes.

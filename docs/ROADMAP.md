@@ -1,30 +1,33 @@
 # Roadmap and acceptance gates
 
-## Phase 0 — Foundation (current partial checkpoint)
+## Phase 0 — Foundation (implemented with remaining hardening)
 
 - [x] Repository/environment audit recorded.
-- [x] Portable C++20 time/timeline foundation, tests, CMake and host CI workflow.
-- [x] Minimal Kotlin Android shell, pinned Gradle/AGP/Kotlin/SDK/NDK/CMake, owned JNI session, and emulator smoke-test workflow added (not yet run locally or by remote CI).
+- [x] Portable C++20 rational-time/timeline foundation, edit-command/history, project codec/store, host tests, CMake and host CI.
+- [x] Kotlin Android shell, pinned Gradle/AGP/Kotlin/SDK/NDK/CMake, owned JNI session, Android build/lint/alignment workflow, and instrumentation sources.
 - [x] Versioned project schema (v1) and v0 migration reader; move/split/trim/delete/single-track ripple-delete commands with undo/redo.
-- [x] C++ autosave snapshot API with explicit recovery/clear; undo depth cap.
-- [x] Activity-side debounced background autosave, final best-effort shutdown save, explicit recovery confirmation, and clip-edit/history controls authored (Android uncompiled/unverified).
-- [ ] SAF project-storage adapter, crash-recovery journal, and broader command/history UX.
+- [x] C++ autosave snapshot API; debounced Activity autosave, best-effort shutdown save, and explicit recovery confirmation.
+- [x] SAF video import and Android-visible preview/editing shell. Galaxy F23 user reports playback and editing features work; see device matrix for the scope of that evidence.
+- [x] App-private project save/load and SAF project-document Save As/Open adapter (new adapter requires Android build and physical-provider test).
+- [ ] Crash-safe journal/fsync, relink workflow, provider-safe atomic replacement, broad instrumentation and recovery failure tests.
 
-Gate: host build/tests pass; Android debug build, lint, JNI instrumentation, and APK alignment CI all pass once remote CI runs; instructions are reproducible.
+Gate: host tests pass; Android debug build/lint/alignment pass; instrumentation must execute successfully; device checks and reproducible instructions are documented. The latest Android build checks passed but instrumentation failed, so the full gate is not met.
 
-## Phase 1 — End-to-end vertical slice (partial implementation; acceptance gate not met)
+## Phase 1 — End-to-end vertical slice (partial; acceptance gate not met)
 
-- [x] SAF picker, metadata extraction, platform decode/playback surface, basic seek controls, and JNI media-reference insertion authored.
-- [x] Batched native timeline snapshot bridge; clip selection, split/trim/delete/ripple/undo/redo UI; background save/load, explicit recovery, and autosave scheduling authored.
-- [ ] Android/device acceptance: APK build, Kotlin lint, and 16 KB zip alignment passed; the latest emulator job could not enable KVM, and an earlier emulator boot timed out. A phone user confirmed audio but black video at 1920×1080 and 3840×1632. The prior SurfaceView diagnostic did not fix rendering; a TextureView migration is being built and needs physical-device verification.
-- [ ] One timeline must drive preview and export; playback scheduling, project reopen/recovery, robust cancellation/errors and A/V sync validation.
-- [ ] Edited output export on a supported device.
+- [x] SAF media picker, metadata extraction, visible platform preview/playback surface, seek controls, JNI media-reference insertion, and user-visible split/trim/delete/history controls.
+- [x] Per-track timeline blocks, selected clip, playhead, background project save/load, autosave/recovery, and initial playback across directly adjacent same-track clips.
+- [x] Galaxy F23 user smoke test reports visible video and working editing controls. This does not establish A/V sync, broad 4K/codec support, save/reopen correctness or export.
+- [ ] Android build/test of the new SAF project document adapter and real provider save/reopen/revocation tests.
+- [ ] One timeline-driven preview and export graph, multitrack A/V scheduling, gap handling and sync validation.
+- [ ] Edited output export on supported device, cancellation/error cleanup and output correctness.
+- [ ] Timeline drag/reorder, media relinking, robust recovery and lifecycle/surface-recreation test coverage.
 
-Acceptance: meet the Android/device criteria in `PRODUCT_SPEC.md`, including same timeline for preview/export, persistence, A/V sync, error/cancel and lifecycle tests.
+Acceptance: meet Android/device criteria in `PRODUCT_SPEC.md`, including same timeline for preview/export, persistence, A/V sync, error/cancel and lifecycle tests. No export implementation is claimed yet.
 
 ## Phase 2 — Usable MVP
 
-Multiple clips/tracks, thumbnails/waveforms, multi-track-aware ripple semantics, basic transforms/text/transitions/audio mixing, autosave and robust cancellable export. Require deterministic command round trips, serialization/migration/recovery tests, render comparisons and device profiling before gate. Current core commands are not UI-integrated and the basic codec is local-path only.
+Multiple clips/tracks, thumbnails/waveforms, multi-track-aware ripple semantics, basic transforms/text/transitions/audio mixing, autosave and robust cancellable export. Require deterministic command round trips, serialization/migration/recovery tests, render comparisons and device profiling before gate.
 
 ## Phase 3 — Advanced editing
 

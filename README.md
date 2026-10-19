@@ -4,10 +4,14 @@ Owncut is an original, offline-first Android video-editing project. Its product 
 
 ## Current checkpoint
 
-The repository contains a portable C++20 engine foundation (rational timeline, edit-command history, and versioned project codec/store) and an Android Kotlin/JNI integration shell. The Android Activity implements SAF video import, metadata/preview/playback, a horizontally scrollable per-track clip timeline with selection and split/trim/delete/ripple/undo/redo controls, background project save/load, explicit autosave recovery, and debounced autosave scheduling. Android build/lint/alignment CI passed for the last published debug APK, but emulator validation remains unverified (KVM setup failed in the latest run; an earlier emulator boot timed out). A phone user supplied the Galaxy F23 / Android 14 startup exception: `TextureView` rejects the background color set during workspace creation. The current unbuilt fix removes that call and improves the error screen contrast; the TextureView migration and timeline still need a new APK and phone verification. This is an early editing shell, not a professional/full editor: preview is not driven by the edited render graph, project files use app-private filesystem paths rather than SAF, media relinking is absent, and render/export and production audio/color pipelines remain incomplete.
+The Android shell imports media through SAF, displays and plays a video preview, and exposes a timeline with split/trim/delete/ripple/undo/redo. The user has now confirmed on a Galaxy F23 (Android 14, 6 GB RAM, Snapdragon 750G) that preview is visible and the editing features work; the attached screenshot shows a 3840×1632 source and timeline. This is a user-reported smoke test, not independent codec, A/V-sync, or export validation.
+
+This checkpoint also adds project Save As/Open through the Android Storage Access Framework. A C++20 engine owns rational-time timeline/history and versioned project serialization. Android build/lint and APK alignment passed for the latest release, while emulator instrumentation failed; see [progress](docs/PROGRESS.md) and [build/test](docs/BUILD_AND_TEST.md) for exact limitations.
+
+Owncut remains an early editing shell, not a complete professional editor. Preview still uses platform MediaPlayer clip handoffs rather than one timeline-driven composition graph; edited video render/export, robust multi-track scheduling, media relinking, crash-safe journaling/fsync, and production audio/color/effects are not implemented. Project file Save As/Open does not rewrite original media.
 
 ## Build and test
 
-Host core: a C++20 compiler (GCC or Clang); fast check: `make test`. CMake 3.20+ is supported. Android setup and commands use the pinned Gradle wrapper; see [Build and test](docs/BUILD_AND_TEST.md). Android builds/device checks cannot be run from environments without the JDK and Android SDK/NDK.
+Host core: a C++20 compiler (GCC or Clang); fast check: `make test`. CMake 3.20+ is supported. Android setup and commands use the pinned Gradle wrapper; see [Build and test](docs/BUILD_AND_TEST.md).
 
-Read [the product specification](docs/PRODUCT_SPEC.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), and [progress](docs/PROGRESS.md) before treating planned work as implemented.
+Read [the product specification](docs/PRODUCT_SPEC.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md), [project format](docs/PROJECT_FORMAT.md), and [progress](docs/PROGRESS.md) before treating planned work as implemented.

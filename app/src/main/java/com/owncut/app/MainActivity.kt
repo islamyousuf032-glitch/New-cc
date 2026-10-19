@@ -268,6 +268,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         projectButtons.addView(actionButton("Redo") { runHistory(undo = false) }, wrapButtonParams())
         projectButtons.addView(actionButton("Save") { saveProject() }, wrapButtonParams())
         projectButtons.addView(actionButton("Open saved") { confirmLoadProject() }, wrapButtonParams())
+        projectButtons.addView(actionButton("Save project as…") { launchProjectSavePicker() }, wrapButtonParams())
+        projectButtons.addView(actionButton("Open project…") { launchProjectOpenPicker() }, wrapButtonParams())
         projectButtons.addView(actionButton("Recover autosave") { confirmRecoverAutosave() }, wrapButtonParams())
         projectControls.addView(projectButtons)
         root.addView(projectControls, matchWrap())
@@ -681,6 +683,109 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     private fun frameToMs(frames: Long): Long = ((frames.coerceAtLeast(0L).toDouble() * 1000.0) / 30.0).toLong()
 
+    private fun launchProjectSavePicker() {
+        if (projectIoBusy || blockWhileMediaLoads()) return
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/octet-stream"
+            putExtra(Intent.EXTRA_TITLE, "Owncut-project.owncut")
+        }
+        startActivityForResult(intent, REQUEST_PROJECT_SAVE)
+    }
+
+    private fun launchProjectOpenPicker() {
+        if (projectIoBusy || blockWhileMediaLoads()) return
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*" // SAF providers do not consistently register the .owncut extension MIME type.
+        }
+        startActivityForResult(intent, REQUEST_PROJECT_OPEN)
+    }
+
+    private fun saveProjectToDocument(uri: Uri) {
+        val session = engine ?: return
+        pendingAutosave?.cancel(false)
+        projectIoBusy = true
+        projectIoOperation = ProjectIoOperation.SAVE
+        val generationAtSave = editGeneration
+        statusText.text = "Project ফাইলে লেখা হচ্ছে…"
+        metadataExecutor.execute {
+            val temporary = File(cacheDir, "project-export-${System.nanoTime()}.owncut")
+            try {
+                session.saveProject(temporary.absolutePath)
+                if (temporary.length() > ProjectDocumentIo.MAX_PROJECT_BYTES) throw IllegalStateException("Project ফাইল 96 MiB সীমা ছাড়িয়েছে")
+                contentResolver.openOutputStream(uri, "wt")?.use { output ->
+                    temporary.inputStream().buffered().use { input -> ProjectDocumentIo.copy(input, output) }
+                } ?: throw IllegalStateException("নির্বাচিত document-এ লেখা যাচ্ছে না")
+                session.clearAutosave(projectPath)
+                temporary.delete()
+                mainHandler.post {
+                    if (!isDestroyed) {
+                        projectIoBusy = false
+                        projectIoOperation = null
+                        if (editGeneration == generationAtSave) hasUnsavedChanges = false
+                        statusText.text = "Project Documents-এ save হয়েছে"
+                    }
+                }
+            } catch (error: Exception) {
+                temporary.delete()
+                mainHandler.post {
+                    if (!isDestroyed) {
+                        projectIoBusy = false
+                        projectIoOperation = null
+                        statusText.text = "Project ফাইলে save ব্যর্থ: ${error.message}"
+                    }
+                }
+            }
+        }
+    }
+
+    private fun confirmOpenProjectDocument(uri: Uri) {
+        AlertDialog.Builder(this)
+            .setTitle("Project খুলবেন?")
+            .setMessage("বর্তমান editor session বদলে যাবে। আগে unsaved পরিবর্তন autosave করা হবে।")
+            .setNegativeButton("বাতিল", null)
+            .setPositiveButton("Open") { _, _ ->
+                val session = engine ?: return@setPositiveButton
+                pendingAutosave?.cancel(false)
+                projectIoBusy = true
+                projectIoOperation = ProjectIoOperation.LOAD
+                statusText.text = "Project document পড়া হচ্ছে…"
+                metadataExecutor.execute {
+                    val temporary = File(cacheDir, "project-import-${System.nanoTime()}.owncut")
+                    try {
+                        session.saveAutosave(projectPath)
+                        contentResolver.openInputStream(uri)?.buffered()?.use { input ->
+                            temporary.outputStream().buffered().use { output -> ProjectDocumentIo.copy(input, output) }
+                        } ?: throw IllegalStateException("নির্বাচিত document পড়া যাচ্ছে না")
+                        session.loadProject(temporary.absolutePath)
+                        session.clearAutosave(projectPath)
+                        temporary.delete()
+                        mainHandler.post {
+                            if (!isDestroyed) {
+                                projectIoBusy = false
+                                projectIoOperation = null
+                                hasUnsavedChanges = false
+                                updateEngineStatus()
+                                showFirstClip(session)
+                                statusText.text = "Project document খোলা হয়েছে"
+                            }
+                        }
+                    } catch (error: Exception) {
+                        temporary.delete()
+                        mainHandler.post {
+                            if (!isDestroyed) {
+                                projectIoBusy = false
+                                projectIoOperation = null
+                                statusText.text = "Project খোলা যায়নি: ${error.message}"
+                            }
+                        }
+                    }
+                }
+            }
+            .show()
+    }
+
     private fun launchVideoPicker() {
         if (projectIoBusy) return
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -694,11 +799,17 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     @Deprecated("Uses platform Activity result API to avoid adding an AndroidX runtime dependency in the bootstrap.")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != REQUEST_VIDEO || resultCode != RESULT_OK) return
+        if (resultCode != RESULT_OK) return
         val resultData = data ?: return
         val uri = resultData.data ?: return
-        val takeGrant = resultData.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0
-        readMetadataAndRegister(uri, takeGrant)
+        when (requestCode) {
+            REQUEST_VIDEO -> {
+                val takeGrant = resultData.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0
+                readMetadataAndRegister(uri, takeGrant)
+            }
+            REQUEST_PROJECT_SAVE -> saveProjectToDocument(uri)
+            REQUEST_PROJECT_OPEN -> confirmOpenProjectDocument(uri)
+        }
     }
 
     private fun readMetadataAndRegister(
@@ -1088,6 +1199,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     companion object {
         private const val REQUEST_VIDEO = 4101
+        private const val REQUEST_PROJECT_SAVE = 4102
+        private const val REQUEST_PROJECT_OPEN = 4103
         private const val TIMELINE_DP_PER_SECOND = 48.0
         private const val MAX_TIMELINE_DP = 10_000
     }
