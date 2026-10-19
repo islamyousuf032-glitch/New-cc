@@ -40,15 +40,16 @@ void RelinkClipMediaCommand::apply(Timeline& timeline) {
         previous_media_id_ = timeline.locate_clip(clip_id_).clip.media_id;
         if (previous_media_id_ == replacement_media_id_)
             throw std::invalid_argument("clip already references the selected media");
+        affected_clip_ids_ = timeline.clips_referencing_media(previous_media_id_);
         captured_ = true;
     }
-    timeline.relink_clip_media(clip_id_, replacement_media_id_);
+    timeline.relink_media_references(affected_clip_ids_, previous_media_id_, replacement_media_id_);
     applied_ = true;
 }
 
 void RelinkClipMediaCommand::undo(Timeline& timeline) {
     if (!captured_ || !applied_) throw std::logic_error("relink command is not applied");
-    timeline.relink_clip_media(clip_id_, previous_media_id_);
+    timeline.relink_media_references(affected_clip_ids_, replacement_media_id_, previous_media_id_);
     applied_ = false;
 }
 

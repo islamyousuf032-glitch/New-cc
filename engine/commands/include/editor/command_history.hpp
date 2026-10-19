@@ -41,6 +41,7 @@ private:
     std::string clip_id_;
     std::string replacement_media_id_;
     std::string previous_media_id_;
+    std::vector<std::string> affected_clip_ids_;
     bool captured_{false};
     bool applied_{false};
 };

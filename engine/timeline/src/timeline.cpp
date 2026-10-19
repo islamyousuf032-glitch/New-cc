@@ -47,16 +47,37 @@ ClipLocation Timeline::remove_clip(const std::string& clip_id) {
     throw std::invalid_argument("unknown clip id");
 }
 
-void Timeline::relink_clip_media(const std::string& clip_id, const std::string& media_id) {
-    if (media_id.empty()) throw std::invalid_argument("replacement media reference must not be empty");
-    for (auto& track : tracks_) {
-        auto clip = std::ranges::find_if(track.clips, [&](const Clip& value) { return value.id == clip_id; });
-        if (clip == track.clips.end()) continue;
-        if (track.locked) throw std::logic_error("cannot edit a locked track");
-        clip->media_id = media_id;
-        return;
+std::vector<std::string> Timeline::clips_referencing_media(const std::string& media_id) const {
+    std::vector<std::string> result;
+    for (const auto& track : tracks_)
+        for (const auto& clip : track.clips)
+            if (clip.media_id == media_id) result.push_back(clip.id);
+    return result;
+}
+
+void Timeline::relink_media_references(const std::vector<std::string>& clip_ids,
+                                       const std::string& expected_media_id,
+                                       const std::string& replacement_media_id) {
+    if (clip_ids.empty() || expected_media_id.empty() || replacement_media_id.empty())
+        throw std::invalid_argument("media relink requires affected clips and non-empty media ids");
+    if (expected_media_id == replacement_media_id)
+        throw std::invalid_argument("replacement media is unchanged");
+    auto updated = tracks_; // Allocate before changing live state for an all-or-nothing operation.
+    for (const auto& clip_id : clip_ids) {
+        bool found = false;
+        for (auto& track : updated) {
+            auto clip = std::ranges::find_if(track.clips, [&](const Clip& value) { return value.id == clip_id; });
+            if (clip == track.clips.end()) continue;
+            if (found) throw std::logic_error("duplicate clip id while relinking media");
+            found = true;
+            if (track.locked) throw std::logic_error("cannot edit a locked track");
+            if (clip->media_id != expected_media_id)
+                throw std::logic_error("media reference changed before relink");
+            clip->media_id = replacement_media_id;
+        }
+        if (!found) throw std::invalid_argument("unknown clip id while relinking media");
     }
-    throw std::invalid_argument("unknown clip id");
+    tracks_.swap(updated);
 }
 
 void Timeline::replace_clip(const Clip& replacement) {

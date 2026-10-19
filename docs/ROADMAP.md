@@ -22,7 +22,7 @@ Gate: host tests pass; Android debug build/lint/alignment pass; instrumentation 
 - [x] SAF project-document source compiles in Android build and its bounded-copy instrumentation source compiles; [ ] execute test on emulator and real Documents-provider save/reopen/revocation tests.
 - [ ] One timeline-driven preview and export graph, multitrack A/V scheduling, gap handling and sync validation.
 - [ ] Edited output export on supported device, cancellation/error cleanup and output correctness.
-- [ ] Android build/device acceptance for the newly authored same-track timeline drag/reorder and selected-clip media relink flows; cross-track movement, group relinking for split siblings, robust recovery and lifecycle/surface-recreation test coverage.
+- [ ] Android build/device acceptance for same-track timeline drag/reorder and media relink, including the new group-relink command; cross-track movement, robust recovery and lifecycle/surface-recreation test coverage.
 
 Acceptance: meet Android/device criteria in `PRODUCT_SPEC.md`, including same timeline for preview/export, persistence, A/V sync, error/cancel and lifecycle tests. No export implementation is claimed yet.
 

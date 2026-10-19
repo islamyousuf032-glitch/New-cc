@@ -115,14 +115,19 @@ int main() {
     check(timeline.locate_clip("clip-v").clip.timeline_start.ticks == 60);
     history.execute(timeline, std::make_unique<RelinkClipMediaCommand>("clip-v", "media-2"));
     check(timeline.locate_clip("clip-v").clip.media_id == "media-2");
+    check(timeline.locate_clip("clip-a").clip.media_id == "media-2"); // Shared source is relinked together.
     check(history.undo(timeline));
     check(timeline.locate_clip("clip-v").clip.media_id == "media-1");
+    check(timeline.locate_clip("clip-a").clip.media_id == "media-1");
     check(history.redo(timeline));
     check(timeline.locate_clip("clip-v").clip.media_id == "media-2");
+    check(timeline.locate_clip("clip-a").clip.media_id == "media-2");
     check(history.undo(timeline));
     expect_failure([&] { history.execute(timeline, std::make_unique<RelinkClipMediaCommand>("clip-v", "")); });
     timeline.set_track_state("v1", false, true);
     expect_failure([&] { history.execute(timeline, std::make_unique<RelinkClipMediaCommand>("clip-v", "media-locked")); });
+    check(timeline.locate_clip("clip-v").clip.media_id == "media-1");
+    check(timeline.locate_clip("clip-a").clip.media_id == "media-1"); // Failed group relink is all-or-nothing.
     timeline.set_track_state("v1", false, false);
     expect_failure([&] { history.execute(timeline, std::make_unique<MoveClipCommand>("clip-v", "absent", Timestamp{0, ntsc_frame})); });
     timeline.set_track_state("a1", false, true);
