@@ -46,6 +46,7 @@ public:
     void add_clip(const std::string& track_id, Clip clip);
     [[nodiscard]] ClipLocation remove_clip(const std::string& clip_id);
     void replace_clip(const Clip& replacement);
+    void relink_clip_media(const std::string& clip_id, const std::string& media_id);
     [[nodiscard]] Clip split_clip(const std::string& clip_id, Timestamp cut_at,
                                   const std::string& right_clip_id);
     [[nodiscard]] RippleDeleteResult ripple_delete(const std::string& clip_id);

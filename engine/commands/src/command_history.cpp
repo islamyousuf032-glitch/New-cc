@@ -28,6 +28,28 @@ void MoveClipCommand::undo(Timeline& timeline) {
     applied_ = false;
 }
 
+RelinkClipMediaCommand::RelinkClipMediaCommand(std::string clip_id, std::string replacement_media_id)
+    : clip_id_(std::move(clip_id)), replacement_media_id_(std::move(replacement_media_id)) {
+    if (clip_id_.empty() || replacement_media_id_.empty())
+        throw std::invalid_argument("relink command requires clip and media ids");
+}
+
+void RelinkClipMediaCommand::apply(Timeline& timeline) {
+    if (applied_) throw std::logic_error("relink command is already applied");
+    if (!captured_) {
+        previous_media_id_ = timeline.locate_clip(clip_id_).clip.media_id;
+        captured_ = true;
+    }
+    timeline.relink_clip_media(clip_id_, replacement_media_id_);
+    applied_ = true;
+}
+
+void RelinkClipMediaCommand::undo(Timeline& timeline) {
+    if (!captured_ || !applied_) throw std::logic_error("relink command is not applied");
+    timeline.relink_clip_media(clip_id_, previous_media_id_);
+    applied_ = false;
+}
+
 SplitClipCommand::SplitClipCommand(std::string clip_id, Timestamp cut_at, std::string right_clip_id)
     : clip_id_(std::move(clip_id)), cut_at_(cut_at), right_clip_id_(std::move(right_clip_id)) {
     if (clip_id_.empty() || right_clip_id_.empty() || clip_id_ == right_clip_id_)

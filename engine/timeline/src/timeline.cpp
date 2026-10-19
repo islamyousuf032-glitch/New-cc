@@ -47,6 +47,18 @@ ClipLocation Timeline::remove_clip(const std::string& clip_id) {
     throw std::invalid_argument("unknown clip id");
 }
 
+void Timeline::relink_clip_media(const std::string& clip_id, const std::string& media_id) {
+    if (media_id.empty()) throw std::invalid_argument("replacement media reference must not be empty");
+    for (auto& track : tracks_) {
+        auto clip = std::ranges::find_if(track.clips, [&](const Clip& value) { return value.id == clip_id; });
+        if (clip == track.clips.end()) continue;
+        if (track.locked) throw std::logic_error("cannot edit a locked track");
+        clip->media_id = media_id;
+        return;
+    }
+    throw std::invalid_argument("unknown clip id");
+}
+
 void Timeline::replace_clip(const Clip& replacement) {
     for (auto& track : tracks_) {
         auto clip = std::ranges::find_if(track.clips, [&](const Clip& value) { return value.id == replacement.id; });

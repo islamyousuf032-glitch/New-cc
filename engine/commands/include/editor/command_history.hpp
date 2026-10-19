@@ -31,6 +31,20 @@ private:
     bool applied_{false};
 };
 
+class RelinkClipMediaCommand final : public EditCommand {
+public:
+    RelinkClipMediaCommand(std::string clip_id, std::string replacement_media_id);
+    void apply(Timeline& timeline) override;
+    void undo(Timeline& timeline) override;
+
+private:
+    std::string clip_id_;
+    std::string replacement_media_id_;
+    std::string previous_media_id_;
+    bool captured_{false};
+    bool applied_{false};
+};
+
 class SplitClipCommand final : public EditCommand {
 public:
     SplitClipCommand(std::string clip_id, Timestamp cut_at, std::string right_clip_id);

@@ -22,6 +22,13 @@ class EngineJniSmokeTest {
             requireTestEquals(mediaIdWithJsonEscapes, engine.clips().single().mediaId)
             requireTestEquals(300L, engine.clips().single().durationFrames)
 
+            engine.relinkClipMedia(clipId, "content://test.local/video/relinked")
+            requireTestEquals("content://test.local/video/relinked", engine.clips().single().mediaId)
+            requireTest(engine.undo(), "media relink undo should succeed")
+            requireTestEquals(mediaIdWithJsonEscapes, engine.clips().single().mediaId)
+            requireTest(engine.redo(), "media relink redo should succeed")
+            requireTest(engine.undo(), "media relink redo should be undoable")
+
             engine.moveClip(clipId, "v1", 30L)
             requireTestEquals(30L, engine.clips().single().startFrame)
             requireTest(engine.undo(), "move undo should succeed")

@@ -92,6 +92,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     }
     private lateinit var seekBar: SeekBar
     private lateinit var playButton: Button
+    private lateinit var relinkButton: Button
     private var selectedUri: Uri? = null
     @Volatile private var player: MediaPlayer? = null
     @Volatile private var playerPrepared = false
@@ -281,6 +282,12 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             text = "ভিডিও নিন"
             setOnClickListener { launchVideoPicker() }
         }
+        relinkButton = Button(this).apply {
+            text = "মিডিয়া বদল"
+            isEnabled = false
+            contentDescription = "Selected clip-এর original media পুনরায় নির্বাচন করুন"
+            setOnClickListener { launchRelinkPicker() }
+        }
         playButton = Button(this).apply {
             text = "ভিডিও চালান"
             isEnabled = false
@@ -288,6 +295,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             setOnClickListener { togglePlayback() }
         }
         controls.addView(importButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        controls.addView(relinkButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         controls.addView(playButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         root.addView(controls, matchWrap())
 
@@ -445,6 +453,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             ).apply { bottomMargin = dp(4) })
         }
         val selected = clips.firstOrNull { it.id == selectedClipId }
+        if (::relinkButton.isInitialized) relinkButton.isEnabled = selected != null && !projectIoBusy && !selectedMediaLoading
         selectedClipText.text = selected?.let {
             "Timeline · ${it.id} · source ${formatTime(it.sourceInMs)}–${formatTime(it.sourceOutMs)}"
         } ?: "Timeline · ${clips.size} clip(s) · কোনো clip নির্বাচিত নয়"
@@ -760,6 +769,21 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     private fun frameToMs(frames: Long): Long = ((frames.coerceAtLeast(0L).toDouble() * 1000.0) / 30.0).toLong()
 
+    private fun launchRelinkPicker() {
+        if (projectIoBusy || blockWhileMediaLoads()) return
+        val clipId = selectedClipId ?: run {
+            Toast.makeText(this, "আগে timeline clip নির্বাচন করুন", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (engine?.clips()?.any { it.id == clipId } != true) return
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "video/*"
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        }
+        startActivityForResult(intent, REQUEST_RELINK_MEDIA)
+    }
+
     private fun launchProjectSavePicker() {
         if (projectIoBusy || blockWhileMediaLoads()) return
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
@@ -884,6 +908,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 val takeGrant = resultData.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0
                 readMetadataAndRegister(uri, takeGrant)
             }
+            REQUEST_RELINK_MEDIA -> {
+                val takeGrant = resultData.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0
+                selectedClipId?.let { clipId -> readMetadataAndRegister(uri, takeGrant, relinkClipId = clipId) }
+            }
             REQUEST_PROJECT_SAVE -> saveProjectToDocument(uri)
             REQUEST_PROJECT_OPEN -> confirmOpenProjectDocument(uri)
         }
@@ -893,6 +921,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         uri: Uri,
         takePersistableGrant: Boolean = false,
         existingClipId: String? = null,
+        relinkClipId: String? = null,
     ) {
         val request = ++metadataRequestSequence
         selectedMediaLoading = true
@@ -952,11 +981,18 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     selectedMediaLoading = false
                     val session = engine ?: throw IllegalStateException("Editor engine is unavailable")
                     val existing = existingClipId?.let { id -> session.clips().firstOrNull { it.id == id } }
-                    val clipId = existing?.id ?: session.addMediaClip(uri.toString(), duration)
-                    val addedNewClip = existing == null
+                    if (existingClipId != null && existing == null) throw IllegalStateException("Preview-র নির্বাচিত clip আর নেই")
+                    val relinkTarget = relinkClipId?.let { id -> session.clips().firstOrNull { it.id == id } }
+                    if (relinkClipId != null && relinkTarget == null) throw IllegalStateException("যে clip-টি relink করতে চেয়েছেন সেটি আর নেই")
+                    if (relinkTarget != null && relinkTarget.sourceOutMs > duration) {
+                        throw IllegalArgumentException("নতুন media-এর duration পুরনো source range-এর চেয়ে কম; এই clip-এ এটি relink করা যাবে না")
+                    }
+                    if (relinkTarget != null) session.relinkClipMedia(relinkTarget.id, uri.toString())
+                    val clipId = relinkTarget?.id ?: existing?.id ?: session.addMediaClip(uri.toString(), duration)
+                    val addedNewClip = existing == null && relinkTarget == null
                     selectedClipId = clipId
-                    previewStartMs = existing?.sourceInMs ?: 0L
-                    previewEndMs = existing?.sourceOutMs ?: duration
+                    previewStartMs = relinkTarget?.sourceInMs ?: existing?.sourceInMs ?: 0L
+                    previewEndMs = relinkTarget?.sourceOutMs ?: existing?.sourceOutMs ?: duration
                     selectedUri = uri
                     durationMs = duration
                     preview.setVideoSize(displayWidth, displayHeight)
@@ -971,9 +1007,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     if (surfaceReady) preparePlayer(uri)
                     updateEngineStatus()
                     refreshTimeline()
-                    if (addedNewClip) scheduleAutosave()
+                    if (addedNewClip || relinkTarget != null) scheduleAutosave()
                 } catch (error: Exception) {
-                    mediaText.text = "ভিডিও timeline-এ যোগ হয়নি: ${error.message}"
+                    if (relinkClipId != null) statusText.text = "Media relink হয়নি: ${error.message}"
+                    else mediaText.text = "ভিডিও timeline-এ যোগ হয়নি: ${error.message}"
                 }
             }
         }
@@ -1278,6 +1315,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         private const val REQUEST_VIDEO = 4101
         private const val REQUEST_PROJECT_SAVE = 4102
         private const val REQUEST_PROJECT_OPEN = 4103
+        private const val REQUEST_RELINK_MEDIA = 4104
         private const val TIMELINE_DP_PER_SECOND = 48.0
         private const val MAX_TIMELINE_DP = 10_000
     }

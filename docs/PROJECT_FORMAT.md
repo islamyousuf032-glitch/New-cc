@@ -2,7 +2,7 @@
 
 ## Status
 
-The portable C++ project codec is wired to app-private filesystem paths for background save/load and autosave recovery. The Android Activity now also has a SAF project-document Save As/Open adapter: it writes/reads the codec's file representation through an app-cache temporary file, then streams to/from a user-selected `content://` document. This Kotlin adapter still requires Android build and physical Documents-provider validation. Provider-side atomic replacement, persisted project-document grants, media relinking, crash-recovery journaling, fsync guarantees, and storage-space checks are not implemented. Original media is referenced by opaque `media_id` values and is never rewritten by project serialization.
+The portable C++ project codec is wired to app-private filesystem paths for background save/load and autosave recovery. The Android Activity now also has a SAF project-document Save As/Open adapter: it writes/reads the codec's file representation through an app-cache temporary file, then streams to/from a user-selected `content://` document. The Kotlin adapter was built in release `phone-test-39247694047`; its provider behavior still needs physical Documents-provider validation. A selected-clip SAF relink action is now authored with undo/redo and source-duration validation, but awaits Android build/device checks and split-sibling grouping. Provider-side atomic replacement, persisted project-document grants, crash-recovery journaling, fsync guarantees, and storage-space checks are not implemented. Original media is referenced by opaque `media_id` values and is never rewritten by project serialization.
 
 ## Current binary schema
 
