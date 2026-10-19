@@ -170,7 +170,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             setTextIsSelectable(true)
             setPadding(dp(20), dp(24), dp(20), dp(24))
         }
-        setContentView(ScrollView(this).apply { addView(message) })
+        setContentView(ScrollView(this).apply {
+            setBackgroundColor(0xFF101713.toInt())
+            addView(message)
+        })
     }
 
     @Suppress("DEPRECATION")
@@ -190,7 +193,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         root.addView(title, matchWrap())
 
         preview = AspectRatioTextureView(this).apply {
-            setBackgroundColor(0xFF080B09.toInt())
+            // TextureView rejects background drawables/colors; keep its empty surface as the placeholder.
             contentDescription = "Video preview"
         }
         val previewParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(240)).apply {
