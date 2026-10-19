@@ -15,7 +15,7 @@ class MainActivityLaunchTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { launchedActivity ->
                 check(!launchedActivity.isFinishing) { "MainActivity should remain open after launch" }
-                val preview = findView<TextureView>(launchedActivity.window.decorView)
+                val preview = findView(launchedActivity.window.decorView)
                     ?: throw AssertionError("Preview TextureView is missing from the initial workspace")
                 check(preview.surfaceTextureListener === launchedActivity) {
                     "Activity is not connected to the preview surface callbacks"
