@@ -22,6 +22,14 @@ class EngineJniSmokeTest {
             requireTestEquals(mediaIdWithJsonEscapes, engine.clips().single().mediaId)
             requireTestEquals(300L, engine.clips().single().durationFrames)
 
+            engine.moveClip(clipId, "v1", 30L)
+            requireTestEquals(30L, engine.clips().single().startFrame)
+            requireTest(engine.undo(), "move undo should succeed")
+            requireTestEquals(0L, engine.clips().single().startFrame)
+            requireTest(engine.redo(), "move redo should succeed")
+            requireTestEquals(30L, engine.clips().single().startFrame)
+            requireTest(engine.undo(), "move redo should be undoable")
+
             engine.splitClip(clipId, 150L, "right-test-clip")
             requireTest(engine.status().contains("clips=2"), "split should add a clip")
             val right = engine.clips().single { it.id == "right-test-clip" }

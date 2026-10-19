@@ -209,6 +209,21 @@ Java_com_owncut_app_EngineSession_nativeAddMediaClip(JNIEnv* env, jobject, jlong
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_com_owncut_app_EngineSession_nativeMoveClip(JNIEnv* env, jobject, jlong handle,
+                                                  jstring clip_id, jstring destination_track_id,
+                                                  jlong destination_start_frame) {
+    try {
+        auto& session = require_session(handle);
+        auto clip = from_java(env, clip_id);
+        auto destination = from_java(env, destination_track_id);
+        std::lock_guard lock(session.mutex);
+        session.history.execute(session.project.timeline,
+            std::make_unique<MoveClipCommand>(clip, destination,
+                                               Timestamp{destination_start_frame, kFrameTimeBase}));
+    } catch (const std::exception& error) { throw_java_argument(env, error.what()); }
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeSplitClip(JNIEnv* env, jobject, jlong handle,
                                                    jstring clip_id, jlong cut_frame, jstring right_clip_id) {
     try {

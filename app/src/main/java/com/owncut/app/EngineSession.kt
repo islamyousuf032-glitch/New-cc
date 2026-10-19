@@ -56,6 +56,12 @@ internal class EngineSession : AutoCloseable {
     }
 
     @Synchronized
+    fun moveClip(clipId: String, destinationTrackId: String, destinationStartFrame: Long) {
+        check(handle != 0L) { "Engine session is closed" }
+        nativeMoveClip(handle, clipId, destinationTrackId, destinationStartFrame)
+    }
+
+    @Synchronized
     fun splitClip(clipId: String, cutFrame: Long, rightClipId: String) {
         check(handle != 0L) { "Engine session is closed" }
         nativeSplitClip(handle, clipId, cutFrame, rightClipId)
@@ -128,6 +134,7 @@ internal class EngineSession : AutoCloseable {
     private external fun nativeGetStatus(handle: Long): String
     private external fun nativeGetTimelineSnapshot(handle: Long): String
     private external fun nativeAddMediaClip(handle: Long, mediaId: String, durationMs: Long): String
+    private external fun nativeMoveClip(handle: Long, clipId: String, destinationTrackId: String, destinationStartFrame: Long)
     private external fun nativeSplitClip(handle: Long, clipId: String, cutFrame: Long, rightClipId: String)
     private external fun nativeTrimClip(handle: Long, clipId: String, leftEdge: Boolean, sourceBoundaryMs: Long)
     private external fun nativeDeleteClip(handle: Long, clipId: String, ripple: Boolean)

@@ -13,6 +13,8 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
 import android.view.Surface
 import android.view.TextureView
 import android.view.WindowInsets
@@ -245,7 +247,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         root.addView(seekBar, matchWrap())
 
         val editHelpText = TextView(this).apply {
-            text = "Timeline clip-এ ট্যাপ করুন, bar টেনে playhead বসান। বাম ছাঁটুন = playhead-এর আগের অংশ বাদ; ডান ছাঁটুন = পরের অংশ বাদ; কাটুন = clip দুই ভাগ।"
+            text = "Clip নির্বাচন করতে ট্যাপ, একই track-এ সরাতে long-press করে drag; seek bar টেনে playhead বসান। বাম/ডান ছাঁটুন source range কমায়; কাটুন clip দুই ভাগ করে।"
             textSize = 12f
             setTextColor(0xFF91A99A.toInt())
             setPadding(0, dp(2), 0, dp(6))
@@ -385,10 +387,50 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     gravity = Gravity.CENTER
                     setTextColor(if (selected) 0xFFE5EEE8.toInt() else 0xFFB5C6BB.toInt())
                     setBackgroundColor(if (selected) 0xFF29634A.toInt() else 0xFF294638.toInt())
-                    contentDescription = "${clip.id}, ${formatTime(startMs)} থেকে ${formatTime(endClipMs)}; নির্বাচন করতে চাপুন"
+                    contentDescription = "${clip.id}, ${formatTime(startMs)} থেকে ${formatTime(endClipMs)}; নির্বাচন করতে চাপুন, একই track-এ সরাতে ধরে টানুন"
                     isClickable = true
                     isFocusable = true
                     setOnClickListener { selectClip(clip) }
+                }
+                var touchDownRawX = 0f
+                var dragStartFrame = clip.startFrame
+                var dragging = false
+                block.setOnLongClickListener {
+                    if (projectIoBusy) false else {
+                        dragging = true
+                        dragStartFrame = clip.startFrame
+                        block.alpha = 0.75f
+                        block.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        true
+                    }
+                }
+                block.setOnTouchListener { view, event ->
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> {
+                            touchDownRawX = event.rawX
+                            false // Preserve normal scrolling and click selection until a long-press starts a move.
+                        }
+                        MotionEvent.ACTION_MOVE -> if (dragging) {
+                            view.translationX = event.rawX - touchDownRawX
+                            true
+                        } else false
+                        MotionEvent.ACTION_UP -> if (dragging) {
+                            val deltaFrames = ((event.rawX - touchDownRawX) /
+                                (resources.displayMetrics.density.toDouble() * TIMELINE_DP_PER_SECOND) * 30.0).roundToInt()
+                            view.translationX = 0f
+                            view.alpha = 1f
+                            dragging = false
+                            moveClipToFreeSlot(clip, trackId, (dragStartFrame + deltaFrames).coerceAtLeast(0L))
+                            true
+                        } else false
+                        MotionEvent.ACTION_CANCEL -> if (dragging) {
+                            view.translationX = 0f
+                            view.alpha = 1f
+                            dragging = false
+                            true
+                        } else false
+                        else -> dragging
+                    }
                 }
                 strip.addView(block, FrameLayout.LayoutParams(width, dp(58), Gravity.TOP or Gravity.START).apply {
                     leftMargin = left
@@ -413,6 +455,41 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             .roundToInt()
             .coerceIn(0, MAX_TIMELINE_DP)
         return dp(scaledDp)
+    }
+
+    private fun moveClipToFreeSlot(clip: ClipSnapshot, trackId: String, proposedStart: Long) {
+        if (projectIoBusy || selectedMediaLoading) return
+        val session = engine ?: return
+        try {
+            val others = session.clips().filter { it.trackId == trackId && it.id != clip.id }
+            val duration = clip.durationFrames
+            fun isFree(start: Long): Boolean = others.none { other ->
+                start < other.startFrame + other.durationFrames &&
+                    other.startFrame < start + duration
+            }
+            val slots = buildList {
+                add(proposedStart)
+                add(0L)
+                for (other in others) {
+                    add((other.startFrame - duration).coerceAtLeast(0L))
+                    add(other.startFrame + other.durationFrames)
+                }
+            }.distinct().filter(::isFree)
+            val destination = slots.minByOrNull { kotlin.math.abs(it - proposedStart) }
+            if (destination == clip.startFrame) return
+            if (destination == null) {
+                statusText.text = "এই track-এ clip রাখার ফাঁকা জায়গা নেই।"
+                return
+            }
+            session.moveClip(clip.id, trackId, destination)
+            selectedClipId = clip.id
+            refreshTimeline()
+            scheduleAutosave()
+            updateEngineStatus()
+            statusText.text = if (destination == proposedStart) "Timeline clip সরানো হয়েছে" else "Clip সংঘর্ষ এড়াতে নিকটতম ফাঁকা স্থানে বসানো হয়েছে"
+        } catch (error: Exception) {
+            showError(error)
+        }
     }
 
     private fun selectClip(clip: ClipSnapshot, resumePlayback: Boolean = false) {
