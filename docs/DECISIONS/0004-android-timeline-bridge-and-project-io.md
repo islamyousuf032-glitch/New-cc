@@ -18,5 +18,5 @@ The Activity needs to display native-owned timeline clips and invoke existing C+
 
 - The JSON snapshot adds allocation/parsing overhead and uses the bootstrap's fixed 30 fps timebase for display. A typed JNI batch or event-based snapshot may be justified after profiling.
 - Project media IDs remain URI strings; reopening requires the Android document grant to remain valid. There is no relink UI or portable project bundle yet.
-- Saving on destruction is best effort, not a crash-safe journal or fsync guarantee. Autosave recovery is explicit and never silently overwrites the saved project.
+- Saving on destruction is best effort, not a crash-safe journal. Linux/Android local replacements now fsync the temporary file and containing directory, but power-loss behavior is not fault-tested and SAF provider writes are not atomic. Autosave recovery is explicit and never silently overwrites the saved project.
 - The Activity, JNI ABI, Android storage behavior, and media lifecycle still require Gradle/NDK and physical-device validation.

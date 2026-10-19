@@ -38,6 +38,8 @@ void RelinkClipMediaCommand::apply(Timeline& timeline) {
     if (applied_) throw std::logic_error("relink command is already applied");
     if (!captured_) {
         previous_media_id_ = timeline.locate_clip(clip_id_).clip.media_id;
+        if (previous_media_id_ == replacement_media_id_)
+            throw std::invalid_argument("clip already references the selected media");
         captured_ = true;
     }
     timeline.relink_clip_media(clip_id_, replacement_media_id_);

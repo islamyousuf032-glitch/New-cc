@@ -8,17 +8,18 @@
 - [x] Versioned project schema (v1) and v0 migration reader; move/split/trim/delete/single-track ripple-delete commands with undo/redo.
 - [x] C++ autosave snapshot API; debounced Activity autosave, best-effort shutdown save, and explicit recovery confirmation.
 - [x] SAF video import and Android-visible preview/editing shell. Galaxy F23 user reports playback and editing features work; see device matrix for the scope of that evidence.
-- [x] App-private project save/load and SAF project-document Save As/Open adapter (new adapter requires Android build and physical-provider test).
-- [ ] Crash-safe journal/fsync, relink workflow, provider-safe atomic replacement, broad instrumentation and recovery failure tests.
+- [x] App-private project save/load and SAF project-document Save As/Open adapter; Android build/lint/AndroidTest-source compilation passed in run `39247694047` (real provider test still pending).
+- [x] Linux/Android local project replace now syncs temporary file and parent directory after rename.
+- [ ] Write-ahead crash-recovery journal, provider-safe atomic replacement, power-loss fault injection, broad instrumentation and recovery failure tests.
 
-Gate: host tests pass; Android debug build/lint/alignment pass; instrumentation must execute successfully; device checks and reproducible instructions are documented. The latest Android build checks passed but instrumentation failed, so the full gate is not met.
+Gate: host tests pass; Android debug build/lint/alignment pass; instrumentation must execute successfully; device checks and reproducible instructions are documented. Latest Android build/lint/alignment passed, but emulator instrumentation was skipped because KVM was unavailable; the full gate is not met.
 
 ## Phase 1 — End-to-end vertical slice (partial; acceptance gate not met)
 
 - [x] SAF media picker, metadata extraction, visible platform preview/playback surface, seek controls, JNI media-reference insertion, and user-visible split/trim/delete/history controls.
 - [x] Per-track timeline blocks, selected clip, playhead, background project save/load, autosave/recovery, and initial playback across directly adjacent same-track clips.
 - [x] Galaxy F23 user smoke test reports visible video and working editing controls. This does not establish A/V sync, broad 4K/codec support, save/reopen correctness or export.
-- [ ] Android build/test of the new SAF project document adapter and real provider save/reopen/revocation tests.
+- [x] SAF project-document source compiles in Android build and its bounded-copy instrumentation source compiles; [ ] execute test on emulator and real Documents-provider save/reopen/revocation tests.
 - [ ] One timeline-driven preview and export graph, multitrack A/V scheduling, gap handling and sync validation.
 - [ ] Edited output export on supported device, cancellation/error cleanup and output correctness.
 - [ ] Android build/device acceptance for the newly authored same-track timeline drag/reorder and selected-clip media relink flows; cross-track movement, group relinking for split siblings, robust recovery and lifecycle/surface-recreation test coverage.

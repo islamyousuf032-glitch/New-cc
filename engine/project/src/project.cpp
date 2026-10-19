@@ -13,6 +13,12 @@
 #include <system_error>
 #include <utility>
 
+#if defined(__linux__) || defined(__ANDROID__)
+#include <cerrno>
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
 namespace editor {
 namespace {
 constexpr char kMagic[] = {'O', 'W', 'N', 'C', 'U', 'T', 'P', 'J'};
@@ -120,6 +126,42 @@ std::filesystem::path make_temp_path(const std::filesystem::path& target) {
     temp += ".tmp." + std::to_string(now) + "." + std::to_string(sequence.fetch_add(1));
     return temp;
 }
+
+#if defined(__linux__) || defined(__ANDROID__)
+void sync_descriptor(int descriptor, const char* operation) {
+    while (::fsync(descriptor) != 0) {
+        if (errno == EINTR) continue;
+        throw std::system_error(errno, std::generic_category(), operation);
+    }
+}
+
+void sync_file(const std::filesystem::path& path) {
+    const int descriptor = ::open(path.c_str(), O_WRONLY | O_CLOEXEC);
+    if (descriptor < 0) throw std::system_error(errno, std::generic_category(), "could not open project file for sync");
+    try {
+        sync_descriptor(descriptor, "could not sync project file");
+    } catch (...) {
+        (void)::close(descriptor);
+        throw;
+    }
+    if (::close(descriptor) != 0)
+        throw std::system_error(errno, std::generic_category(), "could not close synced project file");
+}
+
+void sync_parent_directory(const std::filesystem::path& path) {
+    const auto parent = path.has_parent_path() ? path.parent_path() : std::filesystem::path{"."};
+    const int descriptor = ::open(parent.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    if (descriptor < 0) throw std::system_error(errno, std::generic_category(), "could not open project directory for sync");
+    try {
+        sync_descriptor(descriptor, "could not sync project directory");
+    } catch (...) {
+        (void)::close(descriptor);
+        throw;
+    }
+    if (::close(descriptor) != 0)
+        throw std::system_error(errno, std::generic_category(), "could not close synced project directory");
+}
+#endif
 } // namespace
 
 Project::Project(std::string project_id, std::string project_name, TimeBase frame_time_base)
@@ -220,9 +262,15 @@ void ProjectStore::save_atomic(const std::filesystem::path& path, const Project&
             output.close();
             if (!output) throw std::runtime_error("could not close temporary project file");
         }
+#if defined(__linux__) || defined(__ANDROID__)
+        sync_file(temp_path);
+#endif
         std::error_code error;
         std::filesystem::rename(temp_path, path, error);
         if (error) throw std::filesystem::filesystem_error("could not atomically replace project", temp_path, path, error);
+#if defined(__linux__) || defined(__ANDROID__)
+        sync_parent_directory(path);
+#endif
     } catch (...) {
         std::error_code ignored;
         std::filesystem::remove(temp_path, ignored);
