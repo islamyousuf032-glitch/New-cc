@@ -1,12 +1,17 @@
 package com.owncut.app
 
-import android.test.InstrumentationTestCase
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
+import org.junit.Test
+import org.junit.runner.RunWith
 
-class EngineJniSmokeTest : InstrumentationTestCase() {
-    fun testNativeEditingUndoRedoProjectAndAutosaveRoundTrip() {
+@RunWith(AndroidJUnit4::class)
+class EngineJniSmokeTest {
+    @Test
+    fun nativeEditingUndoRedoProjectAndAutosaveRoundTrip() {
         val engine = EngineSession()
-        val projectFile = File(instrumentation.targetContext.filesDir, "jni-roundtrip.owncut")
+        val projectFile = File(InstrumentationRegistry.getInstrumentation().targetContext.filesDir, "jni-roundtrip.owncut")
         val projectPath = projectFile.toString()
         val autosaveFile = File("$projectPath.autosave")
         try {

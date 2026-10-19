@@ -5,7 +5,9 @@
 - Engine uses the C++ standard library only; no third-party runtime/library dependency is currently added.
 - Host core: CMake 3.20+ is optional; GCC/Clang C++20 compiler is required. GitHub Actions uses `ubuntu-24.04`, `actions/checkout@v4`, and distro CMake/Ninja packages.
 - Android build-time pins: Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin Gradle Plugin 2.3.21, JDK 17, SDK API 36, NDK 28.2.13676358, CMake 3.22.1. Compatibility and wrapper checksums are recorded in ADR 0002 and Gradle files. Gradle wrapper scripts/JAR are upstream Gradle v8.13.0 under Gradle's Apache-2.0 distribution; wrapper JAR SHA-256 is checked against Gradle's published reference.
-- Android runtime: no external runtime library dependency yet; the app uses platform Android APIs and its own native library. CI actions are pinned by major release tags, not immutable commit SHAs; review/pin action SHAs as part of release hardening.
+- Android runtime: no external runtime library dependency; the app uses platform Android APIs and its own native library.
+- Android instrumentation tests only: AndroidX Test core/runner 1.7.0 and JUnit extension 1.3.0. These are test-scope dependencies, not packaged in the app APK. The official [AndroidX Test release page](https://developer.android.com/jetpack/androidx/releases/test) lists these as stable (page updated 2026-01-14); upstream [`android/android-test`](https://github.com/android/android-test) is maintained by the Android team and its repository license is Apache-2.0. The current APK build will verify dependency resolution and instrumentation-source compilation.
+- CI actions are pinned by major release tags, not immutable commit SHAs; review/pin action SHAs as part of release hardening.
 - No app distribution, codec, or third-party binary is present. Repository code is not yet accompanied by a project-level license; determine the intended source/distribution license before publishing or accepting contributions.
 
 ## Before adding dependencies
