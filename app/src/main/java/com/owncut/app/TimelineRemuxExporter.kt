@@ -19,10 +19,16 @@ import kotlin.math.abs
  */
 internal object TimelineRemuxExporter {
     private const val FRAME_RATE = 30L
+    private const val FRAME_ALIGNMENT_TOLERANCE_US = 1_000_000L / (FRAME_RATE * 2L) + 1_000L
     private const val KEYFRAME_TOLERANCE_US = 1_000L
     private const val MAX_SAMPLE_BUFFER_BYTES = 32 * 1024 * 1024
 
-    data class Plan(val clips: List<ClipSnapshot>, val mediaId: String, val trackId: String)
+    data class Plan(
+        val clips: List<ClipSnapshot>,
+        val mediaId: String,
+        val trackId: String,
+        val omittedGapFrames: Long,
+    )
 
     fun makePlan(clips: List<ClipSnapshot>): Plan {
         require(clips.isNotEmpty()) { "Timeline-এ export করার মতো clip নেই" }
@@ -35,22 +41,28 @@ internal object TimelineRemuxExporter {
         require(ordered.all { it.trackId == track }) {
             "এই export সংস্করণে একটি video track সমর্থিত"
         }
-        var nextFrame = 0L
+        var previousTimelineEnd = 0L
+        var outputFrame = 0L
+        var omittedGapFrames = 0L
+        val normalized = ArrayList<ClipSnapshot>(ordered.size)
         for (clip in ordered) {
-            require(clip.startFrame == nextFrame) {
-                "Timeline-এ gap/overlap আছে; এই export সংস্করণ কেবল পরপর clip export করে"
+            require(clip.startFrame >= previousTimelineEnd) {
+                "Timeline clip-গুলো overlap করছে; overlap সরিয়ে আবার export করুন"
             }
+            omittedGapFrames = Math.addExact(omittedGapFrames, clip.startFrame - previousTimelineEnd)
             require(clip.durationFrames > 0L && clip.sourceOutMs > clip.sourceInMs) {
                 "Timeline clip-এর source range বৈধ নয়"
             }
-            val sourceDurationUs = (clip.sourceOutMs - clip.sourceInMs) * 1_000L
-            val timelineDurationUs = clip.durationFrames * 1_000_000L / FRAME_RATE
-            require(abs(sourceDurationUs - timelineDurationUs) <= 1_000L) {
-                "Clip-এর source/timeline duration sub-frame precision-এ মেলে না; এই lossless export নিরাপদ নয়"
+            val sourceDurationUs = Math.multiplyExact(clip.sourceOutMs - clip.sourceInMs, 1_000L)
+            val timelineDurationUs = Math.multiplyExact(clip.durationFrames, 1_000_000L) / FRAME_RATE
+            require(abs(sourceDurationUs - timelineDurationUs) <= FRAME_ALIGNMENT_TOLERANCE_US) {
+                "Clip-এর source duration timeline-এর কাছাকাছি frame boundary-তে round হয় না; trim range যাচাই করুন"
             }
-            nextFrame = Math.addExact(nextFrame, clip.durationFrames)
+            normalized += clip.copy(startFrame = outputFrame)
+            outputFrame = Math.addExact(outputFrame, clip.durationFrames)
+            previousTimelineEnd = Math.addExact(clip.startFrame, clip.durationFrames)
         }
-        return Plan(ordered, source, track)
+        return Plan(normalized, source, track, omittedGapFrames)
     }
 
     fun export(
@@ -103,14 +115,17 @@ internal object TimelineRemuxExporter {
                     if (tracks.audioIndex >= 0) extractor.selectTrack(tracks.audioIndex)
                     val sourceInUs = clip.sourceInMs * 1000L
                     val sourceOutUs = clip.sourceOutMs * 1000L
-                    val timelineStartUs = clip.startFrame * 1_000_000L / FRAME_RATE
+                    val timelineStartUs = Math.multiplyExact(clip.startFrame, 1_000_000L) / FRAME_RATE
+                    val timelineDurationUs = Math.multiplyExact(clip.durationFrames, 1_000_000L) / FRAME_RATE
                     extractor.seekTo(sourceInUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
                     var firstVideoSampleSeen = false
                     while (extractor.sampleTime >= 0L && extractor.sampleTime < sourceOutUs) {
                         ensureNotCancelled(cancelled)
                         val sourceTrack = extractor.sampleTrackIndex
                         val sampleTime = extractor.sampleTime
-                        if (sampleTime >= sourceInUs && (sourceTrack == tracks.videoIndex || sourceTrack == tracks.audioIndex)) {
+                        val clipRelativeUs = sampleTime - sourceInUs
+                        if (clipRelativeUs >= 0L && clipRelativeUs < timelineDurationUs &&
+                            (sourceTrack == tracks.videoIndex || sourceTrack == tracks.audioIndex)) {
                             if (sourceTrack == tracks.videoIndex && !firstVideoSampleSeen) {
                                 val isSync = extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
                                 require(isSync && abs(sampleTime - sourceInUs) <= KEYFRAME_TOLERANCE_US) {

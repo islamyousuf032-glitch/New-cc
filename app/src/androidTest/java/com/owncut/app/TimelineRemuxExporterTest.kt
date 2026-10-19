@@ -16,13 +16,32 @@ class TimelineRemuxExporterTest {
     }
 
     @Test
-    fun rejectsTimelineGapAndOverlap() {
+    fun roundsSubframeDurationDifferenceToNearestVideoFrame() {
+        val plan = TimelineRemuxExporter.makePlan(listOf(
+            clip("a", start = 0, duration = 180, sourceIn = 0, sourceOut = 6_007),
+        ))
+        assertEquals(180L, plan.clips.single().durationFrames)
+        assertEquals(0L, plan.omittedGapFrames)
+
         assertThrows(IllegalArgumentException::class.java) {
             TimelineRemuxExporter.makePlan(listOf(
-                clip("a", start = 0, duration = 120, sourceIn = 0, sourceOut = 4_000),
-                clip("b", start = 121, duration = 120, sourceIn = 4_000, sourceOut = 8_000),
+                clip("a", start = 0, duration = 180, sourceIn = 0, sourceOut = 6_020),
             ))
         }
+    }
+
+    @Test
+    fun compactsLeadingAndInteriorEmptyTimelineRanges() {
+        val plan = TimelineRemuxExporter.makePlan(listOf(
+            clip("a", start = 16, duration = 120, sourceIn = 0, sourceOut = 4_000),
+            clip("b", start = 150, duration = 120, sourceIn = 4_000, sourceOut = 8_000),
+        ))
+        assertEquals(30L, plan.omittedGapFrames)
+        assertEquals(listOf(0L, 120L), plan.clips.map { it.startFrame })
+    }
+
+    @Test
+    fun rejectsTimelineOverlap() {
         assertThrows(IllegalArgumentException::class.java) {
             TimelineRemuxExporter.makePlan(listOf(
                 clip("a", start = 0, duration = 120, sourceIn = 0, sourceOut = 4_000),

@@ -792,6 +792,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             showError(error)
             return
         }
+        launchExportDocumentPicker()
+    }
+
+    private fun launchExportDocumentPicker() {
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "video/mp4"
@@ -806,6 +810,21 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             showError(error)
             return
         }
+        if (plan.omittedGapFrames > 0L) {
+            val omittedGapMs = frameToMs(plan.omittedGapFrames)
+            AlertDialog.Builder(this)
+                .setTitle("Timeline-এ ফাঁকা অংশ আছে")
+                .setMessage("${plan.omittedGapFrames} frame (${omittedGapMs} ms) ফাঁকা অংশ বাদ দিয়ে clips পাশাপাশি জোড়া দিয়ে export হবে। Timeline project বদলাবে না। চালিয়ে যাবেন?")
+                .setNegativeButton("বাতিল", null)
+                .setPositiveButton("Gap বাদ দিয়ে export") { _, _ -> beginTimelineExport(destination, plan) }
+                .show()
+        } else {
+            beginTimelineExport(destination, plan)
+        }
+    }
+
+    private fun beginTimelineExport(destination: Uri, plan: TimelineRemuxExporter.Plan) {
+        if (projectIoBusy) return
         val cancellation = AtomicBoolean(false)
         exportCancellation = cancellation
         projectIoBusy = true
@@ -815,7 +834,11 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         statusText.text = "Export প্রস্তুত হচ্ছে…"
         exportExecutor.execute {
             val temporary = File(cacheDir, "owncut-export-${System.nanoTime()}.mp4")
-            var resultMessage = "Export সম্পন্ন · MP4 Documents-এ সংরক্ষিত"
+            var resultMessage = if (plan.omittedGapFrames > 0L) {
+                "Export সম্পন্ন · ফাঁকা timeline gap বাদ দেওয়া হয়েছে"
+            } else {
+                "Export সম্পন্ন · MP4 Documents-এ সংরক্ষিত"
+            }
             try {
                 TimelineRemuxExporter.export(this@MainActivity, plan, temporary, cancellation) { message ->
                     mainHandler.post { if (!isDestroyed) statusText.text = message }
