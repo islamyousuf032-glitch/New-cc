@@ -7,11 +7,12 @@ import android.view.TextureView
 class MainActivityLaunchTest : ActivityInstrumentationTestCase2<MainActivity>(MainActivity::class.java) {
     fun testEditorOpensAndCreatesPreviewTextureView() {
         val launchedActivity = getActivity()
-        assertNotNull("MainActivity must launch", launchedActivity)
-        assertFalse("MainActivity should remain open", launchedActivity.isFinishing)
+        check(!launchedActivity.isFinishing) { "MainActivity should remain open after launch" }
         val preview = findView<TextureView>(launchedActivity.window.decorView)
-        assertNotNull("Preview TextureView should be present in the initial workspace", preview)
-        assertTrue("Activity should be connected to the preview surface callbacks", preview?.surfaceTextureListener === launchedActivity)
+            ?: throw AssertionError("Preview TextureView is missing from the initial workspace")
+        check(preview.surfaceTextureListener === launchedActivity) {
+            "Activity is not connected to the preview surface callbacks"
+        }
     }
 
     private fun findView(root: android.view.View): TextureView? {

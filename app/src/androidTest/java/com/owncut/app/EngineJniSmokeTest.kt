@@ -7,45 +7,54 @@ class EngineJniSmokeTest : InstrumentationTestCase() {
     fun testNativeEditingUndoRedoProjectAndAutosaveRoundTrip() {
         val engine = EngineSession()
         val projectFile = File(instrumentation.targetContext.filesDir, "jni-roundtrip.owncut")
-        val autosaveFile = File("${projectFile.absolutePath}.autosave")
+        val projectPath = projectFile.toString()
+        val autosaveFile = File("$projectPath.autosave")
         try {
             val mediaIdWithJsonEscapes = "content://test.local/video/quote\"slash\\1"
             val clipId = engine.addMediaClip(mediaIdWithJsonEscapes, 10_000L)
-            assertTrue(engine.status().contains("clips=1"))
-            assertEquals(clipId, engine.clips().single().id)
-            assertEquals(mediaIdWithJsonEscapes, engine.clips().single().mediaId)
-            assertEquals(300L, engine.clips().single().durationFrames)
+            requireTest(engine.status().contains("clips=1"), "media insert should add one clip")
+            requireTestEquals(clipId, engine.clips().single().id)
+            requireTestEquals(mediaIdWithJsonEscapes, engine.clips().single().mediaId)
+            requireTestEquals(300L, engine.clips().single().durationFrames)
 
             engine.splitClip(clipId, 150L, "right-test-clip")
-            assertTrue(engine.status().contains("clips=2"))
+            requireTest(engine.status().contains("clips=2"), "split should add a clip")
             val right = engine.clips().single { it.id == "right-test-clip" }
-            assertEquals(150L, right.startFrame)
-            assertEquals(5_000L, right.sourceInMs)
-            assertTrue("split undo should succeed", engine.undo())
-            assertTrue(engine.status().contains("clips=1"))
-            assertTrue("split redo should succeed", engine.redo())
-            assertTrue(engine.status().contains("clips=2"))
+            requireTestEquals(150L, right.startFrame)
+            requireTestEquals(5_000L, right.sourceInMs)
+            requireTest(engine.undo(), "split undo should succeed")
+            requireTest(engine.status().contains("clips=1"), "expected one clip")
+            requireTest(engine.redo(), "split redo should succeed")
+            requireTest(engine.status().contains("clips=2"), "expected two clips")
 
             engine.trimClip("right-test-clip", true, 6_000L)
-            assertTrue("trim undo should succeed", engine.undo())
+            requireTest(engine.undo(), "trim undo should succeed")
             engine.deleteClip("right-test-clip", ripple = true)
-            assertTrue(engine.status().contains("clips=1"))
-            engine.saveProject(projectFile.absolutePath)
+            requireTest(engine.status().contains("clips=1"), "expected one clip")
+            engine.saveProject(projectPath)
             engine.addMediaClip("content://test.local/video/2", 2_000L)
-            assertTrue(engine.status().contains("clips=2"))
-            engine.saveAutosave(projectFile.absolutePath)
-            engine.loadProject(projectFile.absolutePath)
-            assertTrue(engine.status().contains("clips=1"))
-            assertFalse("loading a project resets transient undo history", engine.undo())
+            requireTest(engine.status().contains("clips=2"), "expected two clips")
+            engine.saveAutosave(projectPath)
+            engine.loadProject(projectPath)
+            requireTest(engine.status().contains("clips=1"), "expected one clip")
+            requireTest(!engine.undo(), "loading a project should reset transient undo history")
 
-            assertTrue("autosave snapshot should be available", engine.loadAutosave(projectFile.absolutePath))
-            assertTrue(engine.status().contains("clips=2"))
-            engine.clearAutosave(projectFile.absolutePath)
-            assertFalse("cleared autosave should not be offered", engine.loadAutosave(projectFile.absolutePath))
+            requireTest(engine.loadAutosave(projectPath), "autosave snapshot should be available")
+            requireTest(engine.status().contains("clips=2"), "expected two clips")
+            engine.clearAutosave(projectPath)
+            requireTest(!engine.loadAutosave(projectPath), "cleared autosave should not be offered")
         } finally {
             engine.close()
             projectFile.delete()
             autosaveFile.delete()
         }
+    }
+
+    private fun requireTest(condition: Boolean, message: String) {
+        if (!condition) throw AssertionError(message)
+    }
+
+    private fun requireTestEquals(expected: Any?, actual: Any?) {
+        if (expected != actual) throw AssertionError("Expected <$expected>, got <$actual>")
     }
 }
