@@ -14,7 +14,7 @@
 ## In progress / not complete
 
 - Latest published APK is private prerelease `phone-test-39251452651` from commit `a22c56a`. Android APK build/lint, AndroidTest source compilation, 16 KB zip alignment and publication passed; emulator instrumentation was skipped because KVM was unavailable. SAF Save As/Open, same-track drag/reorder, selected/group relink, and Linux/Android fsync are included. The Galaxy F23 user tested the earlier crash-fixed APK; these newer flows remain untested on the phone.
-- The first Android build for the exporter (`39260757726`) failed at lint: extractor sample flags were passed directly to `MediaCodec.BufferInfo`. The exporter now maps sync samples to muxer keyframe flags and rejects encrypted/partial samples; an Android build/lint rerun is pending. The APK release remains `phone-test-39251452651` until that succeeds. Real Documents-provider save/reopen and actual media output still need physical-device tests.
+- Android exporter CI run `39260757726` found a lint issue: extractor sample flags were passed directly to `MediaCodec.BufferInfo`; the exporter now maps sync samples to muxer keyframe flags and rejects encrypted/partial samples. The follow-up run `39261676160` then caught a duplicate `MediaCodec` import, now removed. A fresh Android build/lint rerun is pending. The APK release remains `phone-test-39251452651` until that succeeds. Real Documents-provider save/reopen and actual media output still need physical-device tests.
 - The limited remux exporter does not satisfy the general render/export gate: no decoder/compositor/re-encoder graph, arbitrary-frame cuts, multiple source files, gap rendering, cross-track A/V scheduling/mixing, effects, transitions, or color pipeline exists. Linux/Android local saves use file+directory fsync, but power-loss behavior is not fault-injected and SAF provider writes are not atomic.
 - Multi-clip playback has decoder handoffs and only advances across exactly adjacent clips on the same track; no A/V sync or gap-free playback guarantee exists.
 
@@ -30,7 +30,7 @@
 - Latest portable-core CI run `39251452587` passed.
 - Android run `39251452651`: build/lint, AndroidTest source compilation, APK zip alignment, and private prerelease publication passed; emulator JNI instrumentation was skipped because KVM was unavailable.
 - SAF project-document source was Android-built in runs `39247694047` and later. Drag/reorder, selected/group relink and Linux/Android fsync were built in `39251452651`; provider and phone behavior remain untested.
-- Exporter/planner source was added after that run. First exporter Android CI run `39260757726` failed at `:app:lintDebug` because MediaExtractor sample flags were forwarded as MediaCodec flags; corrected mapping has not yet been Android-built. Portable `make test` and `git diff --check` pass; no actual Android sample export has been run.
+- Exporter/planner Android run `39260757726` failed lint on sample-flag types; follow-up `39261676160` failed Kotlin compilation on a duplicate import, now fixed locally but not yet CI-verified. Portable `make test` and `git diff --check` pass; no actual Android sample export has been run. GitHub Actions artifact storage quota is currently full, so workflow artifacts may not upload; release publication is a separate step after a successful build.
 
 ## Next steps
 

@@ -2,7 +2,6 @@ package com.owncut.app
 
 import android.content.Context
 import android.media.MediaCodec
-import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMuxer
