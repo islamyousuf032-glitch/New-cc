@@ -21,7 +21,8 @@ Gate: host tests pass; Android debug build/lint/alignment pass; instrumentation 
 - [x] Galaxy F23 user smoke test reports visible video and working editing controls. This does not establish A/V sync, broad 4K/codec support, save/reopen correctness or export.
 - [x] SAF project-document source compiles in Android build and its bounded-copy instrumentation source compiles; [ ] execute test on emulator and real Documents-provider save/reopen/revocation tests.
 - [ ] One timeline-driven preview and export graph, multitrack A/V scheduling, gap handling and sync validation.
-- [ ] Edited output export on supported device, cancellation/error cleanup and output correctness.
+- [ ] Verify the newly authored keyframe-aligned same-source MP4 remux export on Android and a physical device, including cancellation, provider cleanup, audio continuity and output correctness.
+- [ ] General decoder/compositor/re-encoder export for arbitrary frame cuts, multiple sources, gaps and cross-track audio; shared render graph and A/V sync remain unimplemented.
 - [ ] Android build/device acceptance for same-track timeline drag/reorder and media relink, including the new group-relink command; cross-track movement, robust recovery and lifecycle/surface-recreation test coverage.
 
 Acceptance: meet Android/device criteria in `PRODUCT_SPEC.md`, including same timeline for preview/export, persistence, A/V sync, error/cancel and lifecycle tests. No export implementation is claimed yet.

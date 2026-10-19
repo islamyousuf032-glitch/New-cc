@@ -31,6 +31,8 @@ import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.CancellationException
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
 class MainActivity : Activity(), TextureView.SurfaceTextureListener {
@@ -54,6 +56,9 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private val mediaThread = HandlerThread("OwncutMediaPlayer").apply { start() }
     private val mediaHandler = Handler(mediaThread.looper)
     private val metadataExecutor = Executors.newSingleThreadScheduledExecutor()
+    private val exportExecutor = Executors.newSingleThreadExecutor()
+    @Volatile private var exportCancellation: AtomicBoolean? = null
+    private lateinit var cancelExportButton: Button
     private var pendingAutosave: ScheduledFuture<*>? = null
     private var metadataRequestSequence = 0
     @Volatile private var playerGeneration = 0
@@ -104,7 +109,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private var previewEndMs = 0L
     private var isSeeking = false
 
-    private enum class ProjectIoOperation { SAVE, LOAD, RECOVER }
+    private enum class ProjectIoOperation { SAVE, LOAD, RECOVER, EXPORT }
 
     private data class RetainedEditorState(
         val engine: EngineSession,
@@ -274,6 +279,16 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         projectButtons.addView(actionButton("Save project as…") { launchProjectSavePicker() }, wrapButtonParams())
         projectButtons.addView(actionButton("Open project…") { launchProjectOpenPicker() }, wrapButtonParams())
         projectButtons.addView(actionButton("Recover autosave") { confirmRecoverAutosave() }, wrapButtonParams())
+        projectButtons.addView(actionButton("Export MP4") { launchExportPicker() }, wrapButtonParams())
+        cancelExportButton = Button(this).apply {
+            text = "Export বাতিল"
+            isEnabled = false
+            setOnClickListener {
+                exportCancellation?.set(true)
+                text = "বাতিল হচ্ছে…"
+            }
+        }
+        projectButtons.addView(cancelExportButton, wrapButtonParams())
         projectControls.addView(projectButtons)
         root.addView(projectControls, matchWrap())
 
@@ -769,6 +784,82 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     private fun frameToMs(frames: Long): Long = ((frames.coerceAtLeast(0L).toDouble() * 1000.0) / 30.0).toLong()
 
+    private fun launchExportPicker() {
+        if (projectIoBusy || blockWhileMediaLoads()) return
+        try {
+            TimelineRemuxExporter.makePlan(engine?.clips().orEmpty())
+        } catch (error: Exception) {
+            showError(error)
+            return
+        }
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "video/mp4"
+            putExtra(Intent.EXTRA_TITLE, "Owncut-edited.mp4")
+        }
+        startActivityForResult(intent, REQUEST_EXPORT_VIDEO)
+    }
+
+    private fun startTimelineExport(destination: Uri) {
+        if (projectIoBusy) return
+        val plan = try { TimelineRemuxExporter.makePlan(engine?.clips().orEmpty()) } catch (error: Exception) {
+            showError(error)
+            return
+        }
+        val cancellation = AtomicBoolean(false)
+        exportCancellation = cancellation
+        projectIoBusy = true
+        projectIoOperation = ProjectIoOperation.EXPORT
+        cancelExportButton.text = "Export বাতিল"
+        cancelExportButton.isEnabled = true
+        statusText.text = "Export প্রস্তুত হচ্ছে…"
+        exportExecutor.execute {
+            val temporary = File(cacheDir, "owncut-export-${System.nanoTime()}.mp4")
+            var resultMessage = "Export সম্পন্ন · MP4 Documents-এ সংরক্ষিত"
+            try {
+                TimelineRemuxExporter.export(this@MainActivity, plan, temporary, cancellation) { message ->
+                    mainHandler.post { if (!isDestroyed) statusText.text = message }
+                }
+                copyExportToDocument(temporary, destination, cancellation)
+            } catch (_: CancellationException) {
+                resultMessage = "Export বাতিল হয়েছে; নির্বাচিত document অসম্পূর্ণ থাকতে পারে"
+            } catch (error: Exception) {
+                resultMessage = "Export ব্যর্থ: ${error.message ?: error.javaClass.simpleName}"
+            } finally {
+                temporary.delete()
+                exportCancellation = null
+                mainHandler.post {
+                    if (!isDestroyed) {
+                        projectIoBusy = false
+                        projectIoOperation = null
+                        cancelExportButton.isEnabled = false
+                        cancelExportButton.text = "Export বাতিল"
+                        statusText.text = resultMessage
+                    }
+                }
+            }
+        }
+    }
+
+    private fun copyExportToDocument(file: File, destination: Uri, cancellation: AtomicBoolean) {
+        if (cancellation.get()) throw CancellationException("Export বাতিল করা হয়েছে")
+        val output = contentResolver.openOutputStream(destination, "wt")
+            ?: throw IllegalStateException("নির্বাচিত document-এ লেখা যাচ্ছে না")
+        output.buffered().use { target ->
+            file.inputStream().buffered().use { input ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    if (cancellation.get() || Thread.currentThread().isInterrupted)
+                        throw CancellationException("Export বাতিল করা হয়েছে")
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    target.write(buffer, 0, count)
+                }
+                target.flush()
+            }
+        }
+    }
+
     private fun launchRelinkPicker() {
         if (projectIoBusy || blockWhileMediaLoads()) return
         val clipId = selectedClipId ?: run {
@@ -914,6 +1005,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             }
             REQUEST_PROJECT_SAVE -> saveProjectToDocument(uri)
             REQUEST_PROJECT_OPEN -> confirmOpenProjectDocument(uri)
+            REQUEST_EXPORT_VIDEO -> startTimelineExport(uri)
         }
     }
 
@@ -1290,6 +1382,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             }
         }
         metadataExecutor.shutdown()
+        exportCancellation?.set(true)
+        exportExecutor.shutdownNow()
         super.onDestroy()
     }
 
@@ -1316,6 +1410,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         private const val REQUEST_PROJECT_SAVE = 4102
         private const val REQUEST_PROJECT_OPEN = 4103
         private const val REQUEST_RELINK_MEDIA = 4104
+        private const val REQUEST_EXPORT_VIDEO = 4105
         private const val TIMELINE_DP_PER_SECOND = 48.0
         private const val MAX_TIMELINE_DP = 10_000
     }
