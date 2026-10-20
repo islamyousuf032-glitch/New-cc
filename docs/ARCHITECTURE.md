@@ -28,3 +28,7 @@ Use RAII and explicit ownership. Future engine session should have a serialized 
 ## Graphics/media feasibility
 
 No backend is selected. Before selection, measure Android MediaCodec-to-surface interoperability and representative 1080p SDR preview on target devices; compare OpenGL ES and Vulkan support, lifecycle behavior, synchronization, memory copies, and device matrix coverage. Reuse one processing graph for preview/export where feasible. Resolve Oboe/AAudio, MediaCodec/NDK API, and any FFmpeg dependency choice only after official docs, supported API levels, maintenance, ABI, license, and packaging review. See ADRs 0001 and 0002. Android versions are pinned in Gradle files and documented in ADR 0002; toolchain/API compatibility was checked against official release documentation.
+
+### Gallery publication follow-up
+
+Android 10+ export saves validated MP4s automatically to `Movies/Owncut` using a pending MediaStore row; no document picker is shown. Android 8–9 retain the SAF picker. Failed/cancelled copies attempt cleanup; provider deletion may fail. Existing empty files are not automatically removed. Device checks must cover successful Gallery thumbnail/playback, cancellation, unsupported-keyframe/format rejection without a new Gallery item, and storage/write failure cleanup. This does not add re-encoding or `.ccraw` decoding; the custom RAW format specification and sample footage are still required. Android/device verification of this publication change is pending.

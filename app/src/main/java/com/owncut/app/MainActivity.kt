@@ -2,6 +2,7 @@ package com.owncut.app
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.SurfaceTexture
 import android.media.MediaMetadataRetriever
@@ -12,6 +13,9 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import android.os.Environment
+import android.provider.MediaStore
+import android.provider.DocumentsContract
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
@@ -792,7 +796,11 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             showError(error)
             return
         }
-        launchExportDocumentPicker()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startTimelineExport(null)
+        } else {
+            launchExportDocumentPicker()
+        }
     }
 
     private fun launchExportDocumentPicker() {
@@ -804,7 +812,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         startActivityForResult(intent, REQUEST_EXPORT_VIDEO)
     }
 
-    private fun startTimelineExport(destination: Uri) {
+    private fun startTimelineExport(destination: Uri?) {
         if (projectIoBusy) return
         val plan = try { TimelineRemuxExporter.makePlan(engine?.clips().orEmpty()) } catch (error: Exception) {
             showError(error)
@@ -815,7 +823,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             AlertDialog.Builder(this)
                 .setTitle("Timeline-এ ফাঁকা অংশ আছে")
                 .setMessage("${plan.omittedGapFrames} frame (${omittedGapMs} ms) ফাঁকা অংশ বাদ দিয়ে clips পাশাপাশি জোড়া দিয়ে export হবে। Timeline project বদলাবে না। চালিয়ে যাবেন?")
-                .setNegativeButton("বাতিল", null)
+                .setNegativeButton("বাতিল") { _, _ -> destination?.let { deleteFailedExportDocument(it) } }
+                .setOnCancelListener { destination?.let { deleteFailedExportDocument(it) } }
                 .setPositiveButton("Gap বাদ দিয়ে export") { _, _ -> beginTimelineExport(destination, plan) }
                 .show()
         } else {
@@ -823,7 +832,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         }
     }
 
-    private fun beginTimelineExport(destination: Uri, plan: TimelineRemuxExporter.Plan) {
+    private fun beginTimelineExport(destination: Uri?, plan: TimelineRemuxExporter.Plan) {
         if (projectIoBusy) return
         val cancellation = AtomicBoolean(false)
         exportCancellation = cancellation
@@ -837,17 +846,29 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             var resultMessage = if (plan.omittedGapFrames > 0L) {
                 "Export সম্পন্ন · ফাঁকা timeline gap বাদ দেওয়া হয়েছে"
             } else {
-                "Export সম্পন্ন · MP4 Documents-এ সংরক্ষিত"
+                if (destination == null) "Export সম্পন্ন · Gallery / Movies/Owncut-এ সংরক্ষিত"
+                else "Export সম্পন্ন · MP4 Documents-এ সংরক্ষিত"
             }
             try {
                 TimelineRemuxExporter.export(this@MainActivity, plan, temporary, cancellation) { message ->
                     mainHandler.post { if (!isDestroyed) statusText.text = message }
                 }
-                copyExportToDocument(temporary, destination, cancellation)
+                if (destination == null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        publishExportToGallery(temporary, cancellation)
+                    } else {
+                        error("Gallery export-এর জন্য Android 10 বা নতুন সংস্করণ দরকার")
+                    }
+                }
+                else copyExportToDocument(temporary, destination, cancellation)
             } catch (_: CancellationException) {
-                resultMessage = "Export বাতিল হয়েছে; নির্বাচিত document অসম্পূর্ণ থাকতে পারে"
+                val cleaned = destination == null || deleteFailedExportDocument(destination)
+                resultMessage = if (cleaned) "Export বাতিল হয়েছে; নতুন output রাখা হয়নি"
+                    else "Export বাতিল; provider খালি/অসম্পূর্ণ document সরাতে পারেনি"
             } catch (error: Exception) {
-                resultMessage = "Export ব্যর্থ: ${error.message ?: error.javaClass.simpleName}"
+                val cleaned = destination == null || deleteFailedExportDocument(destination)
+                resultMessage = "Export ব্যর্থ: ${error.message ?: error.javaClass.simpleName}" +
+                    if (cleaned) "" else " · অসম্পূর্ণ document সরানো যায়নি"
             } finally {
                 temporary.delete()
                 exportCancellation = null
@@ -862,6 +883,41 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 }
             }
         }
+    }
+
+    /** Publish only a validated MP4; keep the Gallery row hidden until the copy closes. */
+    @android.annotation.RequiresApi(Build.VERSION_CODES.Q)
+    private fun publishExportToGallery(file: File, cancellation: AtomicBoolean) {
+        if (cancellation.get()) throw CancellationException("Export বাতিল করা হয়েছে")
+        val values = ContentValues().apply {
+            put(MediaStore.Video.Media.DISPLAY_NAME, "Owncut-edited-${System.currentTimeMillis()}.mp4")
+            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+            put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/Owncut")
+            put(MediaStore.Video.Media.IS_PENDING, 1)
+        }
+        val destination = contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)
+            ?: throw IllegalStateException("Gallery-তে output তৈরি করা যায়নি")
+        try {
+            copyExportToDocument(file, destination, cancellation)
+            if (cancellation.get()) throw CancellationException("Export বাতিল করা হয়েছে")
+            val published = contentResolver.update(destination, ContentValues().apply {
+                put(MediaStore.Video.Media.IS_PENDING, 0)
+            }, null, null)
+            check(published == 1) { "Gallery-তে output প্রকাশ করা যায়নি" }
+        } catch (error: Exception) {
+            try {
+                contentResolver.delete(destination, null, null)
+            } catch (cleanup: Exception) {
+                error.addSuppressed(cleanup)
+            }
+            throw error
+        }
+    }
+
+    private fun deleteFailedExportDocument(destination: Uri): Boolean = try {
+        DocumentsContract.deleteDocument(contentResolver, destination)
+    } catch (_: Exception) {
+        false
     }
 
     private fun copyExportToDocument(file: File, destination: Uri, cancellation: AtomicBoolean) {

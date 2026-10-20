@@ -40,3 +40,11 @@
 2. Install APK `phone-test-39420456732` on the Galaxy F23 and test one clip, three same-source clips, two/three compatible sources, incompatible-source rejection, and a gapped timeline with confirmation; verify Gallery playback, audio continuity, cancellation and failure cleanup.
 3. Build the general decoder/compositor/re-encoder graph for arbitrary frame cuts, multiple media sources, gaps and cross-track audio. The remux subset does not satisfy this acceptance gate.
 4. Continue multitrack scheduling, provider-safe atomic replacement, power-loss fault testing, and lifecycle/device validation.
+
+## Follow-up: zero-byte exports and automatic Gallery publication
+
+User screenshots show multiple 0 B SAF documents. The document picker creates these before remux validation, so their presence does not establish that muxing succeeded. Android 10+ now bypasses the export document picker: validate the app-cache MP4 first, then insert a hidden `IS_PENDING` MediaStore video under Movies/Owncut, copy/close it, and publish. Copy/cancel/update failure attempts row deletion. Android 8–9 retain SAF with best-effort deletion on failure/cancellation; providers may refuse deletion. Existing old zero-byte files are not removed.
+
+This is a publication fix, not a render pipeline: arbitrary split boundaries and incompatible sources remain unsupported by remux. User requests custom `.ccraw` camera footage support; a format specification, sample and/or writer implementation is needed before decoder design. No RAW support is claimed.
+
+Verification: local `make test` and `git diff --check` passed; Android CI and phone publication tests pending for this change. Earlier Android run 39420456732 built/linted/compiled AndroidTests and published the multi-source APK; do not confuse that APK with this new publication change.
