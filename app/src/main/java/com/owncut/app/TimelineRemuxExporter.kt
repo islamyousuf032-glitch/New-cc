@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import android.media.MediaMetadataRetriever
 import android.media.MediaMuxer
 import android.net.Uri
 import java.io.File
@@ -14,8 +15,8 @@ import kotlin.math.abs
 
 /**
  * Lossless stream-copy export for a deliberately narrow, verifiable subset of the editor timeline.
- * No frame rendering or re-encoding is performed: clips must be contiguous, share one source, and
- * begin on exact video sync samples. Unsupported edits fail instead of producing misleading output.
+ * No frame rendering or re-encoding is performed: clips must be non-overlapping, start on video sync
+ * samples, and share compatible codec formats. Explicitly accepted empty gaps are concatenated.
  */
 internal object TimelineRemuxExporter {
     private const val FRAME_RATE = 30L
@@ -25,7 +26,6 @@ internal object TimelineRemuxExporter {
 
     data class Plan(
         val clips: List<ClipSnapshot>,
-        val mediaId: String,
         val trackId: String,
         val omittedGapFrames: Long,
     )
@@ -33,10 +33,9 @@ internal object TimelineRemuxExporter {
     fun makePlan(clips: List<ClipSnapshot>): Plan {
         require(clips.isNotEmpty()) { "Timeline-এ export করার মতো clip নেই" }
         val ordered = clips.sortedBy { it.startFrame }
-        val source = ordered.first().mediaId
         val track = ordered.first().trackId
-        require(ordered.all { it.mediaId == source }) {
-            "এই export সংস্করণে সব clip একই original video থেকে হতে হবে"
+        require(ordered.all { it.mediaId.isNotBlank() }) {
+            "প্রতিটি clip-এর জন্য original media reference দরকার"
         }
         require(ordered.all { it.trackId == track }) {
             "এই export সংস্করণে একটি video track সমর্থিত"
@@ -62,7 +61,7 @@ internal object TimelineRemuxExporter {
             outputFrame = Math.addExact(outputFrame, clip.durationFrames)
             previousTimelineEnd = Math.addExact(clip.startFrame, clip.durationFrames)
         }
-        return Plan(normalized, source, track, omittedGapFrames)
+        return Plan(normalized, track, omittedGapFrames)
     }
 
     fun export(
@@ -72,35 +71,54 @@ internal object TimelineRemuxExporter {
         cancelled: AtomicBoolean,
         progress: (String) -> Unit,
     ) {
-        val sourceUri = Uri.parse(plan.mediaId)
-        val probe = newExtractor(context, sourceUri)
+        val firstMediaId = plan.clips.first().mediaId
+        val probe = newExtractor(context, Uri.parse(firstMediaId))
+        val tracksByMediaId = linkedMapOf<String, Tracks>()
         var muxer: MediaMuxer? = null
         var muxerStarted = false
+        var expectedAudioTrack = false
         try {
-            val tracks = findTracks(probe)
-            require(tracks.videoIndex >= 0) { "Original media-তে video track নেই" }
-            require(tracks.videoFormat.getString(MediaFormat.KEY_MIME)?.startsWith("video/") == true) {
-                "Original video format export-এর উপযোগী নয়"
+            val primaryTracks = findTracks(probe)
+            require(primaryTracks.videoIndex >= 0) { "Original media-তে video track নেই" }
+            tracksByMediaId[firstMediaId] = primaryTracks
+            for (mediaId in plan.clips.asSequence().map { it.mediaId }.distinct().drop(1)) {
+                ensureNotCancelled(cancelled)
+                val sourceProbe = newExtractor(context, Uri.parse(mediaId))
+                try {
+                    val tracks = findTracks(sourceProbe)
+                    require(tracks.videoIndex >= 0) { "Original media-তে video track নেই" }
+                    requireCompatibleTracks(primaryTracks, tracks)
+                    tracksByMediaId[mediaId] = tracks
+                } finally {
+                    sourceProbe.release()
+                }
             }
+            expectedAudioTrack = primaryTracks.audioIndex >= 0
+
             for (clip in plan.clips) {
                 ensureNotCancelled(cancelled)
-                verifySyncBoundary(context, sourceUri, tracks.videoIndex, clip.sourceInMs * 1000L)
+                verifySyncBoundary(
+                    context,
+                    Uri.parse(clip.mediaId),
+                    tracksByMediaId.getValue(clip.mediaId).videoIndex,
+                    clip.sourceInMs * 1000L,
+                )
             }
 
             muxer = MediaMuxer(output.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-            val outputVideo = muxer.addTrack(tracks.videoFormat)
-            val outputAudio = if (tracks.audioIndex >= 0) muxer.addTrack(tracks.audioFormat!!) else -1
-            if (tracks.videoFormat.containsKey(MediaFormat.KEY_ROTATION)) {
-                val rotation = tracks.videoFormat.getInteger(MediaFormat.KEY_ROTATION)
-                if (rotation == 90 || rotation == 180 || rotation == 270) muxer.setOrientationHint(rotation)
-            }
+            val outputVideo = muxer.addTrack(primaryTracks.videoFormat)
+            val outputAudio = if (expectedAudioTrack) muxer.addTrack(primaryTracks.audioFormat!!) else -1
+            val rotation = rotationHint(primaryTracks.videoFormat)
+            if (rotation == 90 || rotation == 180 || rotation == 270) muxer.setOrientationHint(rotation)
             muxer.start()
             muxerStarted = true
 
-            val maxInput = listOfNotNull(
-                tracks.videoFormat.maxInputSizeOrNull(),
-                tracks.audioFormat?.maxInputSizeOrNull(),
-            ).maxOrNull()?.coerceIn(64 * 1024, MAX_SAMPLE_BUFFER_BYTES) ?: 1024 * 1024
+            val maxInput = tracksByMediaId.values.flatMap { tracks ->
+                listOfNotNull(
+                    tracks.videoFormat.maxInputSizeOrNull(),
+                    tracks.audioFormat?.maxInputSizeOrNull(),
+                )
+            }.maxOrNull()?.coerceIn(64 * 1024, MAX_SAMPLE_BUFFER_BYTES) ?: 1024 * 1024
             val sampleBuffer = ByteBuffer.allocateDirect(maxInput)
             val info = MediaCodec.BufferInfo()
             var lastVideoPtsUs = Long.MIN_VALUE
@@ -109,10 +127,11 @@ internal object TimelineRemuxExporter {
             for ((index, clip) in plan.clips.withIndex()) {
                 ensureNotCancelled(cancelled)
                 progress("Encoded samples export হচ্ছে · ${index + 1}/${plan.clips.size}")
-                val extractor = newExtractor(context, sourceUri)
+                val sourceTracks = tracksByMediaId.getValue(clip.mediaId)
+                val extractor = newExtractor(context, Uri.parse(clip.mediaId))
                 try {
-                    extractor.selectTrack(tracks.videoIndex)
-                    if (tracks.audioIndex >= 0) extractor.selectTrack(tracks.audioIndex)
+                    extractor.selectTrack(sourceTracks.videoIndex)
+                    if (sourceTracks.audioIndex >= 0) extractor.selectTrack(sourceTracks.audioIndex)
                     val sourceInUs = clip.sourceInMs * 1000L
                     val sourceOutUs = clip.sourceOutMs * 1000L
                     val timelineStartUs = Math.multiplyExact(clip.startFrame, 1_000_000L) / FRAME_RATE
@@ -125,8 +144,8 @@ internal object TimelineRemuxExporter {
                         val sampleTime = extractor.sampleTime
                         val clipRelativeUs = sampleTime - sourceInUs
                         if (clipRelativeUs >= 0L && clipRelativeUs < timelineDurationUs &&
-                            (sourceTrack == tracks.videoIndex || sourceTrack == tracks.audioIndex)) {
-                            if (sourceTrack == tracks.videoIndex && !firstVideoSampleSeen) {
+                            (sourceTrack == sourceTracks.videoIndex || sourceTrack == sourceTracks.audioIndex)) {
+                            if (sourceTrack == sourceTracks.videoIndex && !firstVideoSampleSeen) {
                                 val isSync = extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
                                 require(isSync && abs(sampleTime - sourceInUs) <= KEYFRAME_TOLERANCE_US) {
                                     "Clip-এর শুরু sync frame-এ নেই; সঠিকভাবে export করতে keyframe-এ trim/split করুন"
@@ -135,21 +154,24 @@ internal object TimelineRemuxExporter {
                             }
                             sampleBuffer.clear()
                             val size = extractor.readSampleData(sampleBuffer, 0)
-                            require(size > 0) { "Original media থেকে encoded sample পড়া যায়নি বা buffer সীমা ছাড়িয়েছে" }
-                            val outputPtsUs = timelineStartUs + (sampleTime - sourceInUs)
-                            if (sourceTrack == tracks.videoIndex) {
+                            require(size > 0 && size <= sampleBuffer.capacity()) {
+                                "Original media থেকে encoded sample পড়া যায়নি বা buffer সীমা ছাড়িয়েছে"
+                            }
+                            val outputPtsUs = Math.addExact(timelineStartUs, clipRelativeUs)
+                            val destinationTrack = if (sourceTrack == sourceTracks.videoIndex) {
                                 require(outputPtsUs > lastVideoPtsUs) {
                                     "Video sample timestamp order এই file-এ stream-copy export-এর উপযোগী নয়"
                                 }
                                 lastVideoPtsUs = outputPtsUs
+                                outputVideo
                             } else {
                                 require(outputPtsUs > lastAudioPtsUs) {
                                     "Audio sample timestamp order এই file-এ stream-copy export-এর উপযোগী নয়"
                                 }
                                 lastAudioPtsUs = outputPtsUs
+                                outputAudio
                             }
                             info.set(0, size, outputPtsUs, toMuxerFlags(extractor.sampleFlags))
-                            val destinationTrack = if (sourceTrack == tracks.videoIndex) outputVideo else outputAudio
                             muxer.writeSampleData(destinationTrack, sampleBuffer, info)
                         }
                         if (!extractor.advance()) break
@@ -162,7 +184,6 @@ internal object TimelineRemuxExporter {
             ensureNotCancelled(cancelled)
             muxer.stop()
             muxerStarted = false
-            progress("MP4 stream তৈরি হয়েছে")
         } catch (cancel: CancellationException) {
             output.delete()
             throw cancel
@@ -175,6 +196,14 @@ internal object TimelineRemuxExporter {
             }
             muxer?.release()
             probe.release()
+        }
+        try {
+            progress("MP4 যাচাই হচ্ছে…")
+            verifyMuxedOutput(output, expectedAudioTrack, cancelled)
+            progress("MP4 stream তৈরি হয়েছে")
+        } catch (error: Exception) {
+            output.delete()
+            throw error
         }
     }
 
@@ -212,6 +241,126 @@ internal object TimelineRemuxExporter {
             audioIndex,
             audioFormat,
         )
+    }
+
+    private fun requireCompatibleTracks(reference: Tracks, candidate: Tracks) {
+        require((reference.audioIndex >= 0) == (candidate.audioIndex >= 0)) {
+            "সব source clip-এ একই audio track layout থাকতে হবে"
+        }
+        requireCompatibleFormat(reference.videoFormat, candidate.videoFormat, "video")
+        if (reference.audioIndex >= 0) {
+            requireCompatibleFormat(reference.audioFormat!!, candidate.audioFormat!!, "audio")
+        }
+    }
+
+    internal fun formatsCompatible(reference: MediaFormat, candidate: MediaFormat, kind: String): Boolean {
+        if (reference.getString(MediaFormat.KEY_MIME) != candidate.getString(MediaFormat.KEY_MIME)) return false
+        val keys = if (kind == "video") {
+            listOf(
+                MediaFormat.KEY_WIDTH,
+                MediaFormat.KEY_HEIGHT,
+                MediaFormat.KEY_PROFILE,
+                MediaFormat.KEY_LEVEL,
+                MediaFormat.KEY_COLOR_STANDARD,
+                MediaFormat.KEY_COLOR_RANGE,
+                MediaFormat.KEY_COLOR_TRANSFER,
+            )
+        } else {
+            listOf(
+                MediaFormat.KEY_SAMPLE_RATE,
+                MediaFormat.KEY_CHANNEL_COUNT,
+                MediaFormat.KEY_PROFILE,
+                MediaFormat.KEY_LEVEL,
+            )
+        }
+        for (key in keys) {
+            val first = if (reference.containsKey(key)) reference.getInteger(key) else null
+            val next = if (candidate.containsKey(key)) candidate.getInteger(key) else null
+            if (first != next) return false
+        }
+        for (index in 0..3) {
+            val key = "csd-$index"
+            val first = reference.getByteBuffer(key)?.copyRemainingBytes()
+            val next = candidate.getByteBuffer(key)?.copyRemainingBytes()
+            if (!byteArraysEqual(first, next)) return false
+        }
+        return kind != "video" || rotationHint(reference) == rotationHint(candidate)
+    }
+
+    private fun requireCompatibleFormat(reference: MediaFormat, candidate: MediaFormat, kind: String) {
+        require(formatsCompatible(reference, candidate, kind)) {
+            "একাধিক source export করতে সব clip-এর $kind codec, dimensions ও codec configuration একই হতে হবে"
+        }
+    }
+
+    private fun rotationHint(format: MediaFormat): Int =
+        if (format.containsKey(MediaFormat.KEY_ROTATION)) format.getInteger(MediaFormat.KEY_ROTATION) else 0
+
+    private fun ByteBuffer.copyRemainingBytes(): ByteArray {
+        val duplicate = duplicate()
+        val bytes = ByteArray(duplicate.remaining())
+        duplicate.get(bytes)
+        return bytes
+    }
+
+    private fun byteArraysEqual(first: ByteArray?, second: ByteArray?): Boolean = when {
+        first == null -> second == null
+        second == null -> false
+        else -> first.contentEquals(second)
+    }
+
+    private fun verifyMuxedOutput(output: File, expectedAudioTrack: Boolean, cancelled: AtomicBoolean) {
+        require(output.isFile && output.length() > 0L) { "Muxer কোনো বৈধ MP4 output তৈরি করেনি" }
+        val extractor = MediaExtractor()
+        try {
+            extractor.setDataSource(output.absolutePath)
+            val tracks = findTracks(extractor)
+            require(tracks.videoIndex >= 0) { "তৈরি MP4-তে video track খোলা যাচ্ছে না" }
+            require((tracks.audioIndex >= 0) == expectedAudioTrack) {
+                "তৈরি MP4-তে audio track অসম্পূর্ণ"
+            }
+            extractor.selectTrack(tracks.videoIndex)
+            if (tracks.audioIndex >= 0) extractor.selectTrack(tracks.audioIndex)
+            var videoSamples = 0
+            var audioSamples = 0
+            var lastVideoTime = Long.MIN_VALUE
+            var lastAudioTime = Long.MIN_VALUE
+            while (extractor.sampleTime >= 0L) {
+                ensureNotCancelled(cancelled)
+                when (extractor.sampleTrackIndex) {
+                    tracks.videoIndex -> {
+                        require(extractor.sampleTime > lastVideoTime) { "তৈরি MP4-তে video timestamp সঠিক নয়" }
+                        lastVideoTime = extractor.sampleTime
+                        videoSamples++
+                    }
+                    tracks.audioIndex -> {
+                        require(extractor.sampleTime > lastAudioTime) { "তৈরি MP4-তে audio timestamp সঠিক নয়" }
+                        lastAudioTime = extractor.sampleTime
+                        audioSamples++
+                    }
+                }
+                if (!extractor.advance()) break
+            }
+            require(videoSamples > 0) { "তৈরি MP4-তে video sample নেই" }
+            require(!expectedAudioTrack || audioSamples > 0) { "তৈরি MP4-তে audio sample নেই" }
+        } finally {
+            extractor.release()
+        }
+
+        ensureNotCancelled(cancelled)
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(output.absolutePath)
+            val firstFrame = retriever.getFrameAtTime(0L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                ?: throw IllegalArgumentException("তৈরি MP4-র প্রথম video frame Android decoder খুলতে পারেনি")
+            try {
+                ensureNotCancelled(cancelled)
+            } finally {
+                firstFrame.recycle()
+            }
+        } finally {
+            retriever.release()
+        }
     }
 
     private fun verifySyncBoundary(context: Context, uri: Uri, videoTrack: Int, sourceInUs: Long) {
