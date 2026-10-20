@@ -886,7 +886,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     }
 
     /** Publish only a validated MP4; keep the Gallery row hidden until the copy closes. */
-    @android.annotation.RequiresApi(Build.VERSION_CODES.Q)
+    @android.annotation.TargetApi(Build.VERSION_CODES.Q)
     private fun publishExportToGallery(file: File, cancellation: AtomicBoolean) {
         if (cancellation.get()) throw CancellationException("Export বাতিল করা হয়েছে")
         val values = ContentValues().apply {
