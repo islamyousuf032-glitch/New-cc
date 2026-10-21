@@ -91,3 +91,9 @@ rather than reporting an apparently green acceptance run when KVM is absent. Add
 JUnit XML-to-annotation reporting so real codec assertion failures remain visible
 even when artifact storage is full. Basic rendering is implemented but not yet
 runtime-verified; acceptance is still open.
+
+Run `39599894456` (`be9479d`): build/lint, AndroidTest compile and alignment passed.
+KVM/AVD-path checks passed, but rolling emulator 37.2.12 exited during startup before
+any guest boot output or codec assertions. No APK published. Pinned official stable
+36.4.9 with its official SHA-256, disabled unused Vulkan and added process exit-code
+diagnostics; next CI run pending. This still does not constitute a passed render test.

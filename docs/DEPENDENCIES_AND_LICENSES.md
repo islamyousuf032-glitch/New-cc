@@ -32,3 +32,10 @@ Never commit credentials, signing keystores, private media, or user project file
   and Samsung performance must be measured from CI/device builds.
 - FFmpeg via imageio-ffmpeg was used only off-device to create original synthetic
   instrumentation fixtures; neither the tool nor its binaries are app dependencies.
+
+CI emulator reproducibility follow-up: rolling SDK emulator 37.2.12 exited before
+guest boot in run 39599894456. Pin the official stable 36.4.9 Linux archive, build
+14788078, SHA-256 `85eab2a52517e8cac33dcd7fe3bed43a19472c9c2f17badf1f2616327d71488f`,
+verified from https://developer.android.com/studio/emulator_archive . Software GLES
+is used without Vulkan for headless codec tests; this is CI tooling, not an APK
+dependency. Official archive license notice applies; no emulator binary is committed.
