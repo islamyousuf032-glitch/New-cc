@@ -1,5 +1,37 @@
 # Progress
 
+## Latest basic reliability checkpoint — 2026-10-21
+
+- Code `4fc4590`: Android run **39620910796** passed build/lint, AndroidTest
+  compilation, 16 KB alignment and actual expanded emulator instrumentation steps.
+  APK release publication followed those successful tests. Portable CI
+  **39620910793 passed**; local `make test` and `git diff --check` passed.
+- New regression coverage passed: grouped relink longest-range rejection, atomic group
+  undo/redo, move/history, project reopen and invalid-load preservation; idle/export
+  Activity recreation, busy edit/history lock and last-import undo; active render
+  cancellation/retry, missing media/invalid output, duration mismatch and visible
+  first/middle/last fixture frames; storage write/close/size/publish failure cleanup,
+  cleanup refusal reporting, cancelled copy, and exact real MediaStore publication;
+  zero-read and write/flush project-stream behavior.
+- First expanded run `39619055951` failed two real cases. Fixed native import history
+  with C++ AddClipCommand and validator EOS detection for negative AAC pre-roll, then
+  reran the unchanged regression cases successfully. No failed-run APK was published.
+- New APK: https://github.com/islamyousuf032-glitch/New-cc/releases/tag/phone-test-39620910796
+  (`app-debug.apk`, 6,809,848 bytes; accompanying SHA-256 asset). No local APK checksum
+  claim: sandbox release-asset host restrictions remain. Actions artifact storage
+  quota still prevents report upload; release assets are available separately.
+- User selected **basic hardening**, not the full advanced roadmap. This checkpoint
+  improves the selected basic path and its automated regression evidence; it does
+  not close every manual/device acceptance gate. Galaxy F23 has user-confirmed
+  multi-source split/edit/gap-compacted 720p render on the previous APK, not yet on
+  this new one. Exact A/V sync, permission revocation/provider save/reopen, low-storage
+  and process-death checks remain manual. SAVE/LOAD/RECOVER-time recreation still uses
+  explicit autosave recovery; export-time recreation retains the project and cancels
+  the old job. No full asynchronous operation handoff or foreground render service.
+- No new dependency, project schema, output-resolution preset, advanced tools,
+  multitrack compositor, grading or RAW support is added in this hardening checkpoint.
+
+
 ## Selected next milestone: basic reliability (implementation, verification pending)
 
 User chose basic hardening rather than MVP/advanced tooling. Prior phone report now

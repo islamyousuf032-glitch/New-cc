@@ -52,7 +52,7 @@ is gated after emulator instrumentation and `phone-test-39603413359` is publishe
 render checkpoint. Earlier remux-only descriptions above are historical, not the new
 selected UI path.
 
-## Basic reliability milestone (verification pending)
+## Basic reliability milestone (emulator regression verified)
 
 Next scope selected by the user: basic editor hardening, not grading/RAW or MVP tools.
 New source guards grouped-source relink durations, blocks edits during project I/O,
@@ -60,11 +60,24 @@ retains editor history/selection on export-time recreation while cancelling the 
 render, preserves paused preview position and clamps seeks to the selected clip.
 Gallery publication now uses a testable pending-row transaction with copy/close/size/
 publish checks and explicit cleanup-failure reporting. Output duration and first/last
-frame decoding are checked before publication. Additional JNI, real codec, Activity
-recreation, MediaStore and injected storage-failure tests await Android CI execution.
+frame decoding are checked before publication. Android run `39620910796` executed the expanded JNI, real-codec, Activity
+recreation, MediaStore and injected storage-failure suite successfully after the
+initial regression failures were fixed. Build/lint and 16 KB alignment also passed.
+Published APK: `phone-test-39620910796` from `4fc4590` (6,809,848 bytes).
 
 Phone checks still needed: exact A/V sync, permission revocation/provider save/reopen,
 low storage, Samsung lifecycle/process death. SAVE/LOAD/RECOVER-time recreation still
 uses explicit autosave recovery, not background operation handoff. No provider-atomic
 replacement, write-ahead journal, full shared preview/export graph, multitrack, grading
 or RAW claim is added. Existing user-confirmed 5–6-clip 720p rendering remains valid.
+
+### Reliability checkpoint results
+
+Media import now participates in C++ AddClipCommand Undo/Redo history, including
+last-import undo clearing preview. MP4 validation iterates by sample-track index so
+negative AAC pre-roll timestamps are not mistaken for EOF. Regression tests were
+not weakened after the first failing run. New hardening has emulator evidence, not
+a new Galaxy F23 report; that phone's successful 5–6-clip render report concerns the
+previous basic-render APK. Project schema is unchanged and reopen resets transient
+history, as before. Save important work as a project document before changing debug
+APK installations; do not delete app data to resolve installation errors without backup.
