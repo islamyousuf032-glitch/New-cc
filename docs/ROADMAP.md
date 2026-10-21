@@ -12,20 +12,22 @@
 - [x] Linux/Android local project replace now syncs temporary file and parent directory after rename.
 - [ ] Write-ahead crash-recovery journal, provider-safe atomic replacement, power-loss fault injection, broad instrumentation and recovery failure tests.
 
-Gate: host tests pass; Android debug build/lint/alignment pass; instrumentation must execute successfully; device checks and reproducible instructions are documented. Latest Android build/lint/alignment passed, but emulator instrumentation was skipped because KVM was unavailable; the full gate is not met.
+Gate: host tests pass; Android debug build/lint/alignment pass; instrumentation must execute successfully; device checks and reproducible instructions are documented. Android run `39603413359` passed build/lint/alignment and executed emulator instrumentation. Galaxy F23 basic rendering is now user-confirmed; recovery, lifecycle and broader failure-mode gates remain open.
 
 ## Phase 1 — End-to-end vertical slice (partial; acceptance gate not met)
 
 - [x] SAF media picker, metadata extraction, visible platform preview/playback surface, seek controls, JNI media-reference insertion, and user-visible split/trim/delete/history controls.
 - [x] Per-track timeline blocks, selected clip, playhead, background project save/load, autosave/recovery, and initial playback across directly adjacent same-track clips.
-- [x] Galaxy F23 user smoke test reports visible video and working editing controls. This does not establish A/V sync, broad 4K/codec support, save/reopen correctness or export.
+- [x] Galaxy F23 user smoke test reports visible video and working editing controls. The later basic-render phone test also confirms edited export playback (see below), but does not establish measured A/V sync, broad 4K/codec support or save/reopen correctness.
 - [x] SAF project-document source compiles in Android build and its bounded-copy instrumentation source compiles; [ ] execute test on emulator and real Documents-provider save/reopen/revocation tests.
 - [ ] One timeline-driven preview and export graph, multitrack A/V scheduling, gap handling and sync validation.
-- [ ] Verify the newly authored keyframe-aligned same-source MP4 remux export on Android and a physical device, including cancellation, provider cleanup, audio continuity and output correctness.
-- [ ] General decoder/compositor/re-encoder export for arbitrary frame cuts, multiple sources, gaps and cross-track audio; shared render graph and A/V sync remain unimplemented.
+- [x] Replace remux-only UI export with decode/render/re-encode for arbitrary source trims and sequential mixed sources; emulator codec cases passed and Galaxy F23 user confirms 5–6 imported videos, split/edit, confirmed gap removal and playable 720p export.
+- [ ] Verify mid-render cancellation, low-storage/provider cleanup and measured audio continuity on a physical phone.
+- [x] Basic single-track decoder/render/re-encoder export for arbitrary frame cuts and sequential multiple sources.
+- [ ] Render black gaps without compaction, shared preview/export graph, multitrack composition and cross-track audio scheduling/mixing; measured A/V sync validation.
 - [ ] Android build/device acceptance for same-track timeline drag/reorder and media relink, including the new group-relink command; cross-track movement, robust recovery and lifecycle/surface-recreation test coverage.
 
-Acceptance: meet Android/device criteria in `PRODUCT_SPEC.md`, including same timeline for preview/export, persistence, A/V sync, error/cancel and lifecycle tests. No export implementation is claimed yet.
+Acceptance: meet Android/device criteria in `PRODUCT_SPEC.md`, including same timeline for preview/export, persistence, A/V sync, error/cancel and lifecycle tests. Basic single-track export is implemented and user-tested; the broader Phase 1 acceptance gate is not yet complete.
 
 ## Phase 2 — Usable MVP
 
@@ -65,3 +67,14 @@ Gallery thumbnails and lifecycle still need physical-device verification. APK pu
 is gated after emulator instrumentation and `phone-test-39603413359` is published; do not distribute the prior remux APK as this
 render checkpoint. Earlier remux-only descriptions above are historical, not the new
 selected UI path.
+
+## User-confirmed basic render acceptance (2026-10-21)
+
+User installed the latest supplied basic-render APK and reports importing about 5–6
+videos, splitting/editing them, removing empty timeline ranges with the render flow,
+and successfully playing the rendered 720p video. This closes the basic sequential
+import/play/edit/render smoke test on the previously identified Galaxy F23 only.
+No source codec/resolution inventory, precise A/V sync or performance measurement,
+mid-render cancellation, save/reopen, lifecycle or low-storage check was supplied.
+Advanced tools, grading and RAW are not complete; the next implementation scope must
+be an explicitly bounded milestone rather than declaring all phases complete.

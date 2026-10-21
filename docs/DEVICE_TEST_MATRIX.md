@@ -1,6 +1,6 @@
 # Device test matrix
 
-The Galaxy F23 row below records a user-reported manual smoke test. Other rows remain planned targets, and no independent device measurement or emulator instrumentation pass is claimed.
+The Galaxy F23 row below records a user-reported manual smoke test. Other rows remain planned targets. Emulator instrumentation passed in run `39603413359`; physical-phone reports are user observations, not independent measurements.
 
 | Device / class | Coverage | Result / limits |
 |---|---|---|
@@ -45,3 +45,11 @@ Gallery thumbnails and lifecycle still need physical-device verification. APK pu
 is gated after emulator instrumentation and `phone-test-39603413359` is published; do not distribute the prior remux APK as this
 render checkpoint. Earlier remux-only descriptions above are historical, not the new
 selected UI path.
+
+## Follow-up phone report — 2026-10-21
+
+The user reports that the latest supplied basic-render APK works well: imported
+approximately 5–6 videos, split/edited them, removed empty ranges, rendered and
+played the 720p result. Record as successful user-reported sequential multi-source
+render smoke test on the previously identified Galaxy F23, not measured A/V sync,
+all-codec support, cancellation, persistence, thermal or lifecycle acceptance.

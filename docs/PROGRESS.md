@@ -140,3 +140,11 @@ Root cause established in run `39602614968` (`3686119`): verbose emulator log en
 12288.00 MB`. This is infrastructure, not a render assertion. CI now frees unrelated
 preinstalled toolchains on the ephemeral runner and explicitly sizes the AVD userdata
 partition to 2 GiB. No APK was published; real render assertions remain pending.
+
+## Phone-confirmed basic render checkpoint (2026-10-21)
+
+User reports successful import of about 5–6 videos, split/edit, removal of empty
+timeline ranges, rendering and playback of the 720p result using the latest supplied
+APK. This is a successful physical-phone user smoke test, not an independent sync
+or performance measurement. Roadmap hardening, advanced tools, grading and RAW
+remain incomplete. No new feature APK is produced by this documentation checkpoint.

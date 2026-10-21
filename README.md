@@ -38,3 +38,11 @@ Gallery thumbnails and lifecycle still need physical-device verification. APK pu
 is gated after emulator instrumentation and `phone-test-39603413359` is published; do not distribute the prior remux APK as this
 render checkpoint. Earlier remux-only descriptions above are historical, not the new
 selected UI path.
+
+## Phone-confirmed basic render checkpoint (2026-10-21)
+
+User reports successful import of about 5–6 videos, split/edit, removal of empty
+timeline ranges, rendering and playback of the 720p result using the latest supplied
+APK. This is a successful physical-phone user smoke test, not an independent sync
+or performance measurement. Roadmap hardening, advanced tools, grading and RAW
+remain incomplete. No new feature APK is produced by this documentation checkpoint.
