@@ -55,6 +55,9 @@ jobs:
         timeout-minutes: 15
         run: |
           set -euo pipefail
+          # Hosted runners contain unrelated toolchains; reserve room for the guest data image.
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          df -h "$HOME"
           # Pinned stable SDK emulator; the rolling 37.2.12 process exited before guest boot.
           curl -fL --retry 3 https://dl.google.com/android/repository/emulator-linux_x64-14788078.zip -o "$RUNNER_TEMP/emulator.zip"
           echo "85eab2a52517e8cac33dcd7fe3bed43a19472c9c2f17badf1f2616327d71488f  $RUNNER_TEMP/emulator.zip" | sha256sum -c -
@@ -68,12 +71,14 @@ jobs:
           export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
           mkdir -p "$ANDROID_AVD_HOME"
           echo no | avdmanager create avd --force --name owncut --path "$ANDROID_AVD_HOME/owncut.avd" --package "system-images;android-35;google_apis;x86_64" --device "pixel_2"
+          sed -i '/^disk.dataPartition.size=/d' "$ANDROID_AVD_HOME/owncut.avd/config.ini"
+          echo 'disk.dataPartition.size=2G' >> "$ANDROID_AVD_HOME/owncut.avd/config.ini"
           printf 'avd.ini.encoding=UTF-8\npath=%s\ntarget=android-35\n' "$ANDROID_AVD_HOME/owncut.avd" > "$ANDROID_AVD_HOME/owncut.ini"
           "$ANDROID_HOME/emulator/emulator" -list-avds
           "$ANDROID_HOME/emulator/emulator" -accel-check || true
           ldd "$ANDROID_HOME/emulator/qemu/linux-x86_64/qemu-system-x86_64" | tee app/build/diagnostics/emulator-libraries.log
           mkdir -p app/build/diagnostics
-          "$ANDROID_HOME/emulator/emulator" -avd owncut -verbose -show-kernel -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -feature -Vulkan -no-snapshot -memory 2048 -cores 2 -accel on > app/build/diagnostics/emulator.log 2>&1 &
+          "$ANDROID_HOME/emulator/emulator" -avd owncut -verbose -show-kernel -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -feature -Vulkan -no-snapshot -memory 2048 -cores 2 -partition-size 2048 -accel on > app/build/diagnostics/emulator.log 2>&1 &
           emulator_pid=$!
           booted=false
           for attempt in $(seq 1 90); do

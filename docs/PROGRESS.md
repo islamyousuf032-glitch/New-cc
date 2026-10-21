@@ -108,3 +108,9 @@ Run `39601748480` (`ce4df59`) again failed before guest boot (emulator exit 1),
 not on render assertions. GitHub's per-step warning annotation limit hid most
 verbose emulator lines; diagnostics now emit one multiline annotation rather than
 one per line. No APK is being offered while acceptance is unverified.
+
+Root cause established in run `39602614968` (`3686119`): verbose emulator log ends
+`Not enough space to create userdata partition. Available: 3977.91 MB ... need
+12288.00 MB`. This is infrastructure, not a render assertion. CI now frees unrelated
+preinstalled toolchains on the ephemeral runner and explicitly sizes the AVD userdata
+partition to 2 GiB. No APK was published; real render assertions remain pending.
