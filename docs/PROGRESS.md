@@ -1,5 +1,30 @@
 # Progress
 
+## Latest verified basic render checkpoint — 2026-10-21
+
+- Code `4837c7f`: Android CI **39603413359 passed**, including actual emulator
+  instrumentation, build/lint, AndroidTest compilation and 16 KB zip alignment.
+  Portable CI **39603413469 passed**; local `make test` and `git diff --check` passed.
+- The new codec tests ran successfully: untouched media is re-encoded, 500 ms
+  non-keyframe trim works, three clips with mixed dimensions/aspects and missing
+  audio export, H.264/AAC tracks and duration are verified, first/last frames decode,
+  and pre-start cancellation leaves no output. Existing JNI/UI/storage/planner
+  instrumentation also completed successfully. This is not a physical-phone test.
+- Published debug APK: https://github.com/islamyousuf032-glitch/New-cc/releases/tag/phone-test-39603413359
+  (`app-debug.apk`, 6,786,632 bytes). Publication happened only after instrumentation.
+- Galaxy F23 must still check real source codecs, playback/audio synchronization,
+  Gallery visibility/thumbnail, mid-render cancellation, background/rotation behavior,
+  low storage and provider failure cleanup. Import/play/edit were previously confirmed
+  on that phone; the new renderer has not yet been phone-tested.
+- Scope: one non-overlapping video track; H.264/AAC, 720-high SDR with source cadence.
+  Gap compaction requires confirmation. No grading, advanced effects, multitrack
+  compositor or RAW support is claimed; these follow basic phone acceptance.
+- Older pending/failed run notes below are chronological history, superseded by this
+  result where applicable. Artifact storage quota still prevents Actions artifact
+  upload; the separate release APK asset exists. Local release-asset download was
+  blocked by sandbox host restrictions, so no local APK checksum verification is claimed.
+
+
 ## Implemented
 
 - Portable C++20 rational-time timeline, non-destructive edit commands/history, versioned project serialization/store, v0 migration reader, and host tests. Local project replacement now fsyncs the temporary file and parent directory on Linux/Android; no write-ahead journal or power-loss fault test exists.
@@ -51,7 +76,7 @@ Verification: local `make test` and `git diff --check` passed; Android CI and ph
 
 Publication fix verification update: initial Android run `39430675076` failed compilation because `android.annotation.RequiresApi` does not exist; replaced it with platform `TargetApi` (no added dependency). Corrected run `39431256128` for `7873b47` passed APK build/lint, AndroidTest source compilation, 16 KB zip alignment and publication of `phone-test-39431256128`. Emulator instrumentation is still running; Gallery publication, provider failures and cancellation have not been phone-tested. This APK still uses restricted remux and is not a solution for arbitrary split/re-encode or custom RAW.
 
-## Basic render checkpoint (2026-10-21, verification pending)
+## Basic render checkpoint (2026-10-21, emulator verified)
 
 Default export now routes through `TimelineRenderExporter` (Media3 1.8.1) instead of
 stream-copy. The native timeline snapshot supplies clip order and source trim ranges;
@@ -63,9 +88,10 @@ features; RAW and grading are explicitly deferred until basic acceptance is comp
 New real-media instrumentation covers untouched input, non-keyframe trim, three clips
 with different resolutions/aspects and a silent source, duration, output first/last
 frames and pre-start cancellation. Synthetic fixture provenance is in androidTest/assets.
-Compilation is not execution: these tests and Galaxy F23 playback/A/V sync, mid-render
-cancellation, Gallery thumbnails and lifecycle still need verification. APK publication
-is gated after emulator instrumentation; do not distribute the prior remux APK as this
+Run `39603413359` executed the instrumentation suite successfully, including the
+new real-media render cases. Galaxy F23 playback/A/V sync, mid-render cancellation,
+Gallery thumbnails and lifecycle still need physical-device verification. APK publication
+is gated after emulator instrumentation and `phone-test-39603413359` is published; do not distribute the prior remux APK as this
 render checkpoint. Earlier remux-only descriptions above are historical, not the new
 selected UI path.
 

@@ -37,3 +37,9 @@ effects UI, grading and RAW remain out of this basic checkpoint. Native C++ reta
 edit/time/project ownership; Kotlin is the codec lifecycle adapter. Output is validated
 before Gallery publication. A codec hang is bounded to 30 minutes. Release APK
 publication now follows successful instrumentation, not merely compilation.
+
+Verification update: run `39603413359` for `4837c7f` passed emulator instrumentation,
+including untouched input re-encoding, arbitrary non-keyframe trim and heterogeneous
+three-clip rendering. `phone-test-39603413359` was published only after those tests.
+The remux-only exporter remains as historical/internal code, not the UI export path.
+Physical-device A/V sync and lifecycle acceptance remain separate from emulator tests.

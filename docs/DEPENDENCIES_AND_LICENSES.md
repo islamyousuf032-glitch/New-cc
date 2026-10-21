@@ -39,3 +39,9 @@ guest boot in run 39599894456. Pin the official stable 36.4.9 Linux archive, bui
 verified from https://developer.android.com/studio/emulator_archive . Software GLES
 is used without Vulkan for headless codec tests; this is CI tooling, not an APK
 dependency. Official archive license notice applies; no emulator binary is committed.
+
+Measured basic-render APK release size: 6,786,632 bytes (`phone-test-39603413359`),
+versus 3,350,454 bytes in `phone-test-39431256128` before Media3. These are GitHub
+release-asset sizes, not an installed-memory or on-device performance measurement.
+The final render CI run executed real codec tests successfully on the pinned emulator;
+Samsung/physical-device performance remains unmeasured.

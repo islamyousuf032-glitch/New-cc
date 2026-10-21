@@ -47,7 +47,7 @@ Selected tracking, stabilization, subtitles and AI only after consent, on-device
 
 Device matrix, profiling, accessibility, privacy/store checklist, dependency/license review, release signing instructions and legal review where needed.
 
-## Basic render checkpoint (2026-10-21, verification pending)
+## Basic render checkpoint (2026-10-21, emulator verified)
 
 Default export now routes through `TimelineRenderExporter` (Media3 1.8.1) instead of
 stream-copy. The native timeline snapshot supplies clip order and source trim ranges;
@@ -59,8 +59,9 @@ features; RAW and grading are explicitly deferred until basic acceptance is comp
 New real-media instrumentation covers untouched input, non-keyframe trim, three clips
 with different resolutions/aspects and a silent source, duration, output first/last
 frames and pre-start cancellation. Synthetic fixture provenance is in androidTest/assets.
-Compilation is not execution: these tests and Galaxy F23 playback/A/V sync, mid-render
-cancellation, Gallery thumbnails and lifecycle still need verification. APK publication
-is gated after emulator instrumentation; do not distribute the prior remux APK as this
+Run `39603413359` executed the instrumentation suite successfully, including the
+new real-media render cases. Galaxy F23 playback/A/V sync, mid-render cancellation,
+Gallery thumbnails and lifecycle still need physical-device verification. APK publication
+is gated after emulator instrumentation and `phone-test-39603413359` is published; do not distribute the prior remux APK as this
 render checkpoint. Earlier remux-only descriptions above are historical, not the new
 selected UI path.
