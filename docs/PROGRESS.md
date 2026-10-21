@@ -77,3 +77,9 @@ in this sandbox. Replaced opaque emulator action with SDK emulator boot plus cap
 log/annotation diagnostics and bounded boot checks; subsequent run pending. Also
 hardened render worker interruption cleanup and corrected docs: encoded video keeps
 source cadence (`EditedMediaItem.setFrameRate` would only apply to images).
+
+Diagnostic run `39598265360` (`b8a81e4`) passed build/lint, test compilation and APK
+alignment, but the emulator exited before boot: `Unknown AVD name [owncut]`, with no
+`owncut.ini` in the emulator's search directory. CI now explicitly aligns
+ANDROID_USER_HOME / ANDROID_EMULATOR_HOME / ANDROID_AVD_HOME, creates the AVD at that
+path and writes its descriptor. No render assertions executed and no APK published.

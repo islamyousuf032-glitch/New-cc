@@ -54,7 +54,13 @@ jobs:
         run: |
           set -euo pipefail
           sdkmanager "emulator"
-          echo no | avdmanager create avd --force --name owncut --package "system-images;android-35;google_apis;x86_64" --device "pixel_2"
+          export ANDROID_USER_HOME="$HOME/.android"
+          export ANDROID_EMULATOR_HOME="$ANDROID_USER_HOME"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd --force --name owncut --path "$ANDROID_AVD_HOME/owncut.avd" --package "system-images;android-35;google_apis;x86_64" --device "pixel_2"
+          printf 'avd.ini.encoding=UTF-8\npath=%s\ntarget=android-35\n' "$ANDROID_AVD_HOME/owncut.avd" > "$ANDROID_AVD_HOME/owncut.ini"
+          "$ANDROID_HOME/emulator/emulator" -list-avds
           mkdir -p app/build/diagnostics
           "$ANDROID_HOME/emulator/emulator" -avd owncut -no-window -no-audio -no-boot-anim -gpu swiftshader -no-snapshot -memory 2048 -cores 2 -accel on > app/build/diagnostics/emulator.log 2>&1 &
           emulator_pid=$!
