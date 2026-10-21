@@ -97,3 +97,9 @@ KVM/AVD-path checks passed, but rolling emulator 37.2.12 exited during startup b
 any guest boot output or codec assertions. No APK published. Pinned official stable
 36.4.9 with its official SHA-256, disabled unused Vulkan and added process exit-code
 diagnostics; next CI run pending. This still does not constitute a passed render test.
+
+Run `39600810217` (`3cbbad6`) built/linted/compiled AndroidTests and aligned the APK,
+but even the pinned emulator exited with code 1 before guest boot. Codec assertions
+still did not run; no release published. Next diagnostics add headless Qt mode,
+explicit Linux runtime libraries, verbose/kernel output and the QEMU linker report.
+The acceptance gate remains blocked; no completed-rendering/device claim is made.
