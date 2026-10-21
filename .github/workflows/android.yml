@@ -32,20 +32,6 @@ jobs:
       - name: Verify APK zip alignment
         run: |
           "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 -v 4 app/build/outputs/apk/debug/app-debug.apk
-      - name: Publish private phone-test APK release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/arena/6e511b63-new-cc'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          apk=app/build/outputs/apk/debug/app-debug.apk
-          sha256sum "$apk" > "$apk.sha256"
-          tag="phone-test-${GITHUB_RUN_ID}"
-          gh release create "$tag" "$apk" "$apk.sha256" \
-            --target "$GITHUB_SHA" \
-            --prerelease \
-            --title "Owncut phone-test build ${GITHUB_RUN_NUMBER}" \
-            --notes "Debug APK for manual phone testing. Not a production release. Includes arm64-v8a and x86_64. Built from ${GITHUB_SHA}."
-          echo "APK release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}" >> "$GITHUB_STEP_SUMMARY"
       - name: Check KVM availability for the emulator
         id: kvm
         run: |
@@ -71,10 +57,24 @@ jobs:
           arch: x86_64
           profile: pixel_7
           emulator-boot-timeout: 900
-          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -no-metrics
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader -no-snapshot -no-metrics
           ram-size: 2048M
           disable-animations: true
           script: ./gradlew --no-daemon :app:connectedDebugAndroidTest
+      - name: Publish private phone-test APK release
+        if: success() && steps.kvm.outputs.available == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/arena/6e511b63-new-cc'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=app/build/outputs/apk/debug/app-debug.apk
+          sha256sum "$apk" > "$apk.sha256"
+          tag="phone-test-${GITHUB_RUN_ID}"
+          gh release create "$tag" "$apk" "$apk.sha256" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Owncut phone-test build ${GITHUB_RUN_NUMBER}" \
+            --notes "Debug APK for manual phone testing. Not a production release. Includes arm64-v8a and x86_64. Built from ${GITHUB_SHA}."
+          echo "APK release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload debug APK and Android reports for device testing
         if: always()
         continue-on-error: true

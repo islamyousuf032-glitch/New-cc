@@ -39,6 +39,7 @@ import java.util.concurrent.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private var engine: EngineSession? = null
     private lateinit var preview: AspectRatioTextureView
@@ -850,7 +851,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 else "Export সম্পন্ন · MP4 Documents-এ সংরক্ষিত"
             }
             try {
-                TimelineRemuxExporter.export(this@MainActivity, plan, temporary, cancellation) { message ->
+                TimelineRenderExporter.export(this@MainActivity, plan, temporary, cancellation) { message ->
                     mainHandler.post { if (!isDestroyed) statusText.text = message }
                 }
                 if (destination == null) {

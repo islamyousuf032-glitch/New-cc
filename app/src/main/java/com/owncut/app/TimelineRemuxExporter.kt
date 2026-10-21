@@ -309,7 +309,7 @@ internal object TimelineRemuxExporter {
         else -> first.contentEquals(second)
     }
 
-    private fun verifyMuxedOutput(output: File, expectedAudioTrack: Boolean, cancelled: AtomicBoolean) {
+    internal fun verifyMuxedOutput(output: File, expectedAudioTrack: Boolean, cancelled: AtomicBoolean) {
         require(output.isFile && output.length() > 0L) { "Muxer কোনো বৈধ MP4 output তৈরি করেনি" }
         val extractor = MediaExtractor()
         try {

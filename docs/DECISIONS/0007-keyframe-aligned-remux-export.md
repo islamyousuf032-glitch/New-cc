@@ -20,3 +20,20 @@ Output is staged in app cache before copying to a SAF document. Cancellation is 
 - Container/codec combinations still depend on the device's Android extractor/muxer support.
 - Planner instrumentation tests validate structural constraints only. Actual sample export, playback, A/V sync, cancellation, and format compatibility require physical-device testing.
 - This is not the final shared render graph or general export acceptance gate.
+
+## Superseded default path: basic render export (2026-10-21)
+
+The remux-only default does not satisfy basic arbitrary split/trim acceptance.
+MainActivity now calls TimelineRenderExporter with a snapshot of the same validated
+single-track plan. AndroidX Media3 owns platform decoder/GL/encoder scheduling on an
+owned HandlerThread. Both audioNeedsEncoding/videoNeedsEncoding return true, trim
+optimizations/transmux are not enabled, and output requests H.264/AAC, 30 fps, 720-high
+SDR with aspect ratio preserved. Silent clips receive silence. HDR is explicitly
+tone-mapped to SDR, not silently treated as preserved HDR. Device fallback may reduce
+encoder parameters; unsupported codecs fail without publishing a Gallery row.
+
+Gap compaction still requires explicit confirmation; overlap/multitrack rendering,
+effects UI, grading and RAW remain out of this basic checkpoint. Native C++ retains
+edit/time/project ownership; Kotlin is the codec lifecycle adapter. Output is validated
+before Gallery publication. A codec hang is bounded to 30 minutes. Release APK
+publication now follows successful instrumentation, not merely compilation.

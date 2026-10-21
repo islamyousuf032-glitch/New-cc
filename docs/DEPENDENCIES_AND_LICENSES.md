@@ -17,3 +17,18 @@ Record upstream source, exact version/commit, maintenance status, license/notice
 FFmpeg is not included. If considered, document exact configure flags and LGPL/GPL consequences; do not enable GPL/nonfree components by default. Verify distribution/linking/source obligations and codec patent risks with qualified counsel. This document is engineering guidance, not legal advice; professional legal review is needed before release.
 
 Never commit credentials, signing keystores, private media, or user project files.
+
+## Media3 rendering adapter (2026-10-21)
+
+- AndroidX Media3 Transformer and Effect pinned to **1.8.1**, official AndroidX-maintained
+  media project, Apache-2.0. Official release history checked at
+  https://developer.android.com/jetpack/androidx/releases/media3 and upstream 1.8.1
+  source/API/license checked at https://github.com/androidx/media/tree/1.8.1 .
+- Chosen as the bounded Android codec/GPU adapter, not an editing-domain replacement.
+  This known patch-line API is pinned for reproducibility; newer release lines exist,
+  so upgrades require the render fixture/device matrix, not an untested floating version.
+- Uses platform MediaCodec and GLES; no FFmpeg/native decoder extension is added to
+  the APK. Our existing JNI ABI/page alignment checks still apply. APK size increase
+  and Samsung performance must be measured from CI/device builds.
+- FFmpeg via imageio-ffmpeg was used only off-device to create original synthetic
+  instrumentation fixtures; neither the tool nor its binaries are app dependencies.

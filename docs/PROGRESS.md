@@ -50,3 +50,21 @@ This is a publication fix, not a render pipeline: arbitrary split boundaries and
 Verification: local `make test` and `git diff --check` passed; Android CI and phone publication tests pending for this change. Earlier Android run 39420456732 built/linted/compiled AndroidTests and published the multi-source APK; do not confuse that APK with this new publication change.
 
 Publication fix verification update: initial Android run `39430675076` failed compilation because `android.annotation.RequiresApi` does not exist; replaced it with platform `TargetApi` (no added dependency). Corrected run `39431256128` for `7873b47` passed APK build/lint, AndroidTest source compilation, 16 KB zip alignment and publication of `phone-test-39431256128`. Emulator instrumentation is still running; Gallery publication, provider failures and cancellation have not been phone-tested. This APK still uses restricted remux and is not a solution for arbitrary split/re-encode or custom RAW.
+
+## Basic render checkpoint (2026-10-21, verification pending)
+
+Default export now routes through `TimelineRenderExporter` (Media3 1.8.1) instead of
+stream-copy. The native timeline snapshot supplies clip order and source trim ranges;
+Android decodes/renders/re-encodes H.264 + AAC, 30 fps, 720-high SDR, preserving aspect
+ratio. A silent audio track is generated where necessary. Gap removal still needs
+confirmation; overlaps/multitrack export remain rejected. Import/play/edit are existing
+features; RAW and grading are explicitly deferred until basic acceptance is complete.
+
+New real-media instrumentation covers untouched input, non-keyframe trim, three clips
+with different resolutions/aspects and a silent source, duration, output first/last
+frames and pre-start cancellation. Synthetic fixture provenance is in androidTest/assets.
+Compilation is not execution: these tests and Galaxy F23 playback/A/V sync, mid-render
+cancellation, Gallery thumbnails and lifecycle still need verification. APK publication
+is gated after emulator instrumentation; do not distribute the prior remux APK as this
+render checkpoint. Earlier remux-only descriptions above are historical, not the new
+selected UI path.
