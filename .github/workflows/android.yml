@@ -39,14 +39,16 @@ jobs:
             echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
             sudo udevadm control --reload-rules
             sudo udevadm trigger --name-match=kvm || true
+            sudo chmod a+rw /dev/kvm
           fi
           if [[ -r /dev/kvm && -w /dev/kvm ]]; then
             echo 'available=true' >> "$GITHUB_OUTPUT"
             echo 'KVM is available; emulator instrumentation will run.' >> "$GITHUB_STEP_SUMMARY"
           else
             echo 'available=false' >> "$GITHUB_OUTPUT"
-            echo '::warning::KVM is unavailable on this runner; skipping emulator instrumentation. APK build, lint, alignment, and release checks still ran.'
-            echo 'KVM unavailable; emulator instrumentation skipped. APK build, lint, alignment, and release checks still ran.' >> "$GITHUB_STEP_SUMMARY"
+            echo '::error::KVM unavailable: codec instrumentation and APK publication cannot proceed.'
+            echo 'KVM unavailable; instrumentation and APK publication blocked.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
       - name: Boot emulator with captured diagnostics and run render/JNI tests
         if: steps.kvm.outputs.available == 'true'
@@ -79,6 +81,21 @@ jobs:
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
           ./gradlew --no-daemon :app:connectedDebugAndroidTest
+      - name: Surface instrumentation failures in annotations
+        if: failure()
+        run: |
+          python3 - <<'PYTEST'
+          import glob, xml.etree.ElementTree as ET
+          for path in glob.glob('app/build/outputs/androidTest-results/connected/**/*.xml', recursive=True):
+              try:
+                  root = ET.parse(path).getroot()
+              except ET.ParseError:
+                  continue
+              for case in root.iter('testcase'):
+                  for failure in list(case.findall('failure')) + list(case.findall('error')):
+                      text = (case.get('name', '') + ': ' + (failure.text or failure.get('message', '')))[:6000]
+                      print('::error::' + text.replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D'))
+          PYTEST
       - name: Publish private phone-test APK release
         if: success() && steps.kvm.outputs.available == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/arena/6e511b63-new-cc'
         env:

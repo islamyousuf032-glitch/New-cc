@@ -83,3 +83,11 @@ alignment, but the emulator exited before boot: `Unknown AVD name [owncut]`, wit
 `owncut.ini` in the emulator's search directory. CI now explicitly aligns
 ANDROID_USER_HOME / ANDROID_EMULATOR_HOME / ANDROID_AVD_HOME, creates the AVD at that
 path and writes its descriptor. No render assertions executed and no APK published.
+
+Run `39599071568` (`d5ae07b`) again passed Android build/lint/test compilation and
+alignment, but this runner reported KVM unavailable and skipped instrumentation.
+No release was published. CI now explicitly chmods an existing KVM device and fails
+rather than reporting an apparently green acceptance run when KVM is absent. Added
+JUnit XML-to-annotation reporting so real codec assertion failures remain visible
+even when artifact storage is full. Basic rendering is implemented but not yet
+runtime-verified; acceptance is still open.
