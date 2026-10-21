@@ -183,3 +183,10 @@ timeline ranges, rendering and playback of the 720p result using the latest supp
 APK. This is a successful physical-phone user smoke test, not an independent sync
 or performance measurement. Roadmap hardening, advanced tools, grading and RAW
 remain incomplete. No new feature APK is produced by this documentation checkpoint.
+
+Hardening CI `39619055951` (`e6dc029`): build/lint, test compilation and alignment
+passed; emulator executed the expanded suite but two regressions failed, so no APK
+was published. Last-import undo exposed that native import bypassed command history;
+added C++ AddClipCommand and JNI routing, with host undo/redo/split and failed-command
+history tests. Validator fixture exposed negative AAC pre-roll PTS being mistaken for
+EOF; loops now use sampleTrackIndex for EOS. Existing new tests remain intact.

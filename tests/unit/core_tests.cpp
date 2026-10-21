@@ -81,6 +81,25 @@ std::filesystem::path make_temp_directory() {
 int main() {
     const TimeBase ntsc_frame{1001, 30000};
     const TimeBase milliseconds{1, 1000};
+    {
+        Timeline imported{TimeBase{1, 30}};
+        imported.add_track({"v1", TrackKind::video, false, false, {}});
+        CommandHistory history;
+        const Clip clip{"import-1", "original", {0, TimeBase{1, 30}}, {0, milliseconds}, {6000, milliseconds}};
+        history.execute(imported, std::make_unique<AddClipCommand>("v1", clip));
+        check(imported.locate_clip("import-1").clip.source_out == clip.source_out);
+        history.execute(imported, std::make_unique<SplitClipCommand>("import-1", Timestamp{90, TimeBase{1, 30}}, "right"));
+        check(history.undo(imported)); // undo split, then undo import
+        check(history.undo(imported));
+        check(imported.tracks()[0].clips.empty());
+        expect_failure([&] {
+            history.execute(imported, std::make_unique<AddClipCommand>("missing-track", clip));
+        });
+        check(history.redo(imported)); // failed import must not erase redo
+        check(imported.locate_clip("import-1").clip.media_id == "original");
+        check(history.redo(imported));
+        check(imported.locate_clip("right").clip.source_in == Timestamp{3000, milliseconds});
+    }
     check((TimeBase{2, 4} == TimeBase{1, 2}));
     check((Timestamp{30, ntsc_frame} == Timestamp{1001, TimeBase{1, 1000}}));
     check((Timestamp{1, TimeBase{1, 2}}.rescaled(milliseconds).ticks == 500));

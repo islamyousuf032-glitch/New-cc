@@ -86,8 +86,8 @@ std::string add_media_clip(EngineSession& session, const std::string& media_id, 
         if (append_at < end) append_at = end;
     }
     const std::string id = next_clip_id(session);
-    timeline.add_clip(video_track->id,
-        {id, media_id, append_at, Timestamp{0, kMilliseconds}, Timestamp{duration_ms, kMilliseconds}});
+    session.history.execute(timeline, std::make_unique<AddClipCommand>(video_track->id,
+        Clip{id, media_id, append_at, Timestamp{0, kMilliseconds}, Timestamp{duration_ms, kMilliseconds}}));
     return id;
 }
 

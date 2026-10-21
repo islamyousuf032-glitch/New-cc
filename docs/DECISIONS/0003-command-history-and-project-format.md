@@ -10,3 +10,9 @@ Model user edits as C++ commands; implement move, split, left/right trim, delete
 ## Rationale and limits
 
 The core currently has no vetted JSON/SQLite dependency, Android URI adapter, or project data ecosystem, so a small versioned codec avoids adding a dependency before its maintenance/license/security costs are justified. The codec caps text fields at 4096 bytes, tracks at 4096, and clips at 8192 total. The format is private/internal, not an interchange standard. Local rename protects the existing file from ordinary serialization/write failures. Linux/Android saves now fsync the temporary file and parent directory, but this is not a write-ahead journal or tested power-loss guarantee; Android SAF still needs provider-specific atomic replacement and persisted URI grants. Before release, review whether to retain/evolve this format or migrate to a documented interoperable format, and add explicit migration fixtures for every shipped schema.
+
+Basic reliability update: native media insertion now executes `AddClipCommand`, not
+an untracked Timeline mutation. Undo removes the import; redo restores its stable
+clip ID/media/range/placement before later split/move commands are replayed. Failed
+commands preserve prior redo history. This fixes the last-import UI undo regression.
+Project format is unchanged; command history remains transient on project reopen.

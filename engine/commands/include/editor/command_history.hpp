@@ -16,6 +16,19 @@ public:
     virtual void undo(Timeline& timeline) = 0;
 };
 
+// Media import is an edit, so it participates in the same linear history as cuts and moves.
+class AddClipCommand final : public EditCommand {
+public:
+    AddClipCommand(std::string track_id, Clip clip);
+    void apply(Timeline& timeline) override;
+    void undo(Timeline& timeline) override;
+
+private:
+    std::string track_id_;
+    Clip clip_;
+    bool applied_{false};
+};
+
 class MoveClipCommand final : public EditCommand {
 public:
     MoveClipCommand(std::string clip_id, std::string destination_track_id, Timestamp destination_start);

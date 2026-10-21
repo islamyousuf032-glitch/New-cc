@@ -4,6 +4,24 @@
 #include <utility>
 
 namespace editor {
+AddClipCommand::AddClipCommand(std::string track_id, Clip clip)
+    : track_id_(std::move(track_id)), clip_(std::move(clip)) {
+    if (track_id_.empty() || clip_.id.empty() || clip_.media_id.empty())
+        throw std::invalid_argument("add command requires track, clip and media ids");
+}
+
+void AddClipCommand::apply(Timeline& timeline) {
+    if (applied_) throw std::logic_error("add command is already applied");
+    timeline.add_clip(track_id_, clip_);
+    applied_ = true;
+}
+
+void AddClipCommand::undo(Timeline& timeline) {
+    if (!applied_) throw std::logic_error("add command is not applied");
+    (void)timeline.remove_clip(clip_.id);
+    applied_ = false;
+}
+
 MoveClipCommand::MoveClipCommand(std::string clip_id, std::string destination_track_id,
                                  Timestamp destination_start)
     : clip_id_(std::move(clip_id)), destination_track_id_(std::move(destination_track_id)),

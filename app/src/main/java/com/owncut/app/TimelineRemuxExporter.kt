@@ -138,7 +138,7 @@ internal object TimelineRemuxExporter {
                     val timelineDurationUs = Math.multiplyExact(clip.durationFrames, 1_000_000L) / FRAME_RATE
                     extractor.seekTo(sourceInUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
                     var firstVideoSampleSeen = false
-                    while (extractor.sampleTime >= 0L && extractor.sampleTime < sourceOutUs) {
+                    while (extractor.sampleTrackIndex >= 0 && extractor.sampleTime < sourceOutUs) {
                         ensureNotCancelled(cancelled)
                         val sourceTrack = extractor.sampleTrackIndex
                         val sampleTime = extractor.sampleTime
@@ -331,7 +331,8 @@ internal object TimelineRemuxExporter {
             var audioSamples = 0
             var lastVideoTime = Long.MIN_VALUE
             var lastAudioTime = Long.MIN_VALUE
-            while (extractor.sampleTime >= 0L) {
+            // Negative AAC pre-roll PTS is not EOF; track index is the unambiguous EOS signal.
+            while (extractor.sampleTrackIndex >= 0) {
                 ensureNotCancelled(cancelled)
                 when (extractor.sampleTrackIndex) {
                     tracks.videoIndex -> {
