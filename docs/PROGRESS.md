@@ -103,3 +103,8 @@ but even the pinned emulator exited with code 1 before guest boot. Codec asserti
 still did not run; no release published. Next diagnostics add headless Qt mode,
 explicit Linux runtime libraries, verbose/kernel output and the QEMU linker report.
 The acceptance gate remains blocked; no completed-rendering/device claim is made.
+
+Run `39601748480` (`ce4df59`) again failed before guest boot (emulator exit 1),
+not on render assertions. GitHub's per-step warning annotation limit hid most
+verbose emulator lines; diagnostics now emit one multiline annotation rather than
+one per line. No APK is being offered while acceptance is unverified.

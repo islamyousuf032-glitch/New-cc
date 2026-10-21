@@ -82,7 +82,7 @@ jobs:
             sleep 3
           done
           if [[ "$booted" != true ]]; then
-            tail -n 150 app/build/diagnostics/emulator.log | while IFS= read -r line; do echo "::warning::${line//%/%25}"; done
+            python3 -c 'from pathlib import Path; text=Path("app/build/diagnostics/emulator.log").read_text(errors="replace")[-24000:]; print("::warning::"+text.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
             echo '::error::Emulator did not boot; real codec tests were not executed.'
             exit 1
           fi
