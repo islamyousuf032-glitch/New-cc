@@ -31,7 +31,7 @@ Android 10+ export saves validated MP4s automatically to `Movies/Owncut` using a
 
 Default export now routes through `TimelineRenderExporter` (Media3 1.8.1) instead of
 stream-copy. The native timeline snapshot supplies clip order and source trim ranges;
-Android decodes/renders/re-encodes H.264 + AAC, 30 fps, 720-high SDR, preserving aspect
+Android decodes/renders/re-encodes H.264 + AAC, source video cadence, 720-high SDR, preserving aspect
 ratio. A silent audio track is generated where necessary. Gap removal still needs
 confirmation; overlaps/multitrack export remain rejected. Import/play/edit are existing
 features; RAW and grading are explicitly deferred until basic acceptance is complete.

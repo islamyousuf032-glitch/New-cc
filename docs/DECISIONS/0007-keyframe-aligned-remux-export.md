@@ -27,7 +27,7 @@ The remux-only default does not satisfy basic arbitrary split/trim acceptance.
 MainActivity now calls TimelineRenderExporter with a snapshot of the same validated
 single-track plan. AndroidX Media3 owns platform decoder/GL/encoder scheduling on an
 owned HandlerThread. Both audioNeedsEncoding/videoNeedsEncoding return true, trim
-optimizations/transmux are not enabled, and output requests H.264/AAC, 30 fps, 720-high
+optimizations/transmux are not enabled, and output requests H.264/AAC, source video cadence, 720-high
 SDR with aspect ratio preserved. Silent clips receive silence. HDR is explicitly
 tone-mapped to SDR, not silently treated as preserved HDR. Device fallback may reduce
 encoder parameters; unsupported codecs fail without publishing a Gallery row.

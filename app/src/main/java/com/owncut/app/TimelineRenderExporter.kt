@@ -39,7 +39,7 @@ internal object TimelineRenderExporter {
                     .setEndPositionMs(clip.sourceOutMs)
                     .build())
                 .build()
-            EditedMediaItem.Builder(media).setFrameRate(30).build()
+            EditedMediaItem.Builder(media).build()
         }
         val sequence = EditedMediaItemSequence.Builder(items)
             .experimentalSetForceAudioTrack(true)
@@ -131,8 +131,9 @@ internal object TimelineRenderExporter {
             progress("Render সম্পন্ন · MP4 যাচাই হচ্ছে…")
             TimelineRemuxExporter.verifyMuxedOutput(output, true, cancelled)
             succeeded = true
-        } catch (error: Throwable) {
-            throw error
+        } catch (interrupted: InterruptedException) {
+            cancelled.set(true)
+            throw CancellationException("Render বন্ধ করা হয়েছে").apply { initCause(interrupted) }
         } finally {
             val stopped = CountDownLatch(1)
             handler.removeCallbacks(ticker)
@@ -140,9 +141,15 @@ internal object TimelineRenderExporter {
                 try { transformer?.cancel() } finally { stopped.countDown() }
             }
             // Never delete a file while the codec still has an open muxer.
-            stopped.await()
+            var interrupted = false
+            while (true) {
+                try { stopped.await(); break } catch (_: InterruptedException) { interrupted = true }
+            }
             thread.quitSafely()
-            thread.join()
+            while (thread.isAlive) {
+                try { thread.join() } catch (_: InterruptedException) { interrupted = true }
+            }
+            if (interrupted) Thread.currentThread().interrupt()
             if (!succeeded) output.delete()
         }
     }

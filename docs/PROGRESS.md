@@ -55,7 +55,7 @@ Publication fix verification update: initial Android run `39430675076` failed co
 
 Default export now routes through `TimelineRenderExporter` (Media3 1.8.1) instead of
 stream-copy. The native timeline snapshot supplies clip order and source trim ranges;
-Android decodes/renders/re-encodes H.264 + AAC, 30 fps, 720-high SDR, preserving aspect
+Android decodes/renders/re-encodes H.264 + AAC, source video cadence, 720-high SDR, preserving aspect
 ratio. A silent audio track is generated where necessary. Gap removal still needs
 confirmation; overlaps/multitrack export remain rejected. Import/play/edit are existing
 features; RAW and grading are explicitly deferred until basic acceptance is complete.
@@ -68,3 +68,12 @@ cancellation, Gallery thumbnails and lifecycle still need verification. APK publ
 is gated after emulator instrumentation; do not distribute the prior remux APK as this
 render checkpoint. Earlier remux-only descriptions above are historical, not the new
 selected UI path.
+
+Run `39595474496` (`509df3c`): Android build/lint, AndroidTest compilation and 16 KB
+alignment passed; portable CI `39595474834` passed. Emulator boot timed out before
+instrumentation ran, so no new render test is claimed as passed and no release APK
+was published. Actions artifact quota is still full and run-log download is blocked
+in this sandbox. Replaced opaque emulator action with SDK emulator boot plus captured
+log/annotation diagnostics and bounded boot checks; subsequent run pending. Also
+hardened render worker interruption cleanup and corrected docs: encoded video keeps
+source cadence (`EditedMediaItem.setFrameRate` would only apply to images).

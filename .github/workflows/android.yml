@@ -48,19 +48,31 @@ jobs:
             echo '::warning::KVM is unavailable on this runner; skipping emulator instrumentation. APK build, lint, alignment, and release checks still ran.'
             echo 'KVM unavailable; emulator instrumentation skipped. APK build, lint, alignment, and release checks still ran.' >> "$GITHUB_STEP_SUMMARY"
           fi
-      - name: Run native JNI instrumentation smoke test
+      - name: Boot emulator with captured diagnostics and run render/JNI tests
         if: steps.kvm.outputs.available == 'true'
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_7
-          emulator-boot-timeout: 900
-          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader -no-snapshot -no-metrics
-          ram-size: 2048M
-          disable-animations: true
-          script: ./gradlew --no-daemon :app:connectedDebugAndroidTest
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          sdkmanager "emulator"
+          echo no | avdmanager create avd --force --name owncut --package "system-images;android-35;google_apis;x86_64" --device "pixel_2"
+          mkdir -p app/build/diagnostics
+          "$ANDROID_HOME/emulator/emulator" -avd owncut -no-window -no-audio -no-boot-anim -gpu swiftshader -no-snapshot -memory 2048 -cores 2 -accel on > app/build/diagnostics/emulator.log 2>&1 &
+          emulator_pid=$!
+          booted=false
+          for attempt in $(seq 1 90); do
+            if ! kill -0 "$emulator_pid" 2>/dev/null; then break; fi
+            if [[ "$(timeout 5 adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)" == "1" ]]; then booted=true; break; fi
+            sleep 3
+          done
+          if [[ "$booted" != true ]]; then
+            tail -n 100 app/build/diagnostics/emulator.log | while IFS= read -r line; do echo "::warning::${line//%/%25}"; done
+            echo '::error::Emulator did not boot; real codec tests were not executed.'
+            exit 1
+          fi
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          ./gradlew --no-daemon :app:connectedDebugAndroidTest
       - name: Publish private phone-test APK release
         if: success() && steps.kvm.outputs.available == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/arena/6e511b63-new-cc'
         env:
@@ -86,5 +98,6 @@ jobs:
             app/build/reports/lint-results-debug.html
             app/build/outputs/androidTest-results/connected/**
             app/build/diagnostics/gradle-build.log
+            app/build/diagnostics/emulator.log
           if-no-files-found: warn
           retention-days: 14
