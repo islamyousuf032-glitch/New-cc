@@ -2,7 +2,6 @@ package com.owncut.app
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.ContentValues
 import android.content.Intent
 import android.graphics.SurfaceTexture
 import android.media.MediaMetadataRetriever
@@ -13,8 +12,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
-import android.os.Environment
-import android.provider.MediaStore
 import android.provider.DocumentsContract
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
@@ -86,7 +83,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 if (tick != null) mainHandler.post {
                     if (generation == playerGeneration && player === current) {
                         val (position, reachedClipEnd) = tick
-                        if (!isSeeking) seekBar.progress = position
+                        if (!isSeeking) {
+                            seekBar.progress = position
+                            previewPositionMs = position.toLong()
+                        }
                         if (reachedClipEnd) {
                             advanceOrStopTimeline(generation, current)
                         } else {
@@ -112,6 +112,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private var durationMs = 0L
     private var previewStartMs = 0L
     private var previewEndMs = 0L
+    @Volatile private var previewPositionMs = 0L
     private var isSeeking = false
 
     private enum class ProjectIoOperation { SAVE, LOAD, RECOVER, EXPORT }
@@ -123,6 +124,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         val selectedClipId: String?,
         val hasUnsavedChanges: Boolean,
         val editGeneration: Long,
+        val previewPositionMs: Long,
     )
 
     private var projectIoOperation: ProjectIoOperation? = null
@@ -149,6 +151,11 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             selectedClipId = retained.selectedClipId
             hasUnsavedChanges = retained.hasUnsavedChanges
             editGeneration = retained.editGeneration
+            previewPositionMs = retained.previewPositionMs
+            engine?.clips()?.firstOrNull { it.id == selectedClipId }?.let {
+                previewStartMs = it.sourceInMs
+                previewEndMs = it.sourceOutMs
+            }
         } else {
             engine = EngineSession()
             projectPath = File(filesDir, "active.owncut").absolutePath
@@ -249,7 +256,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     isSeeking = false
                     if (playerPrepared) {
                         val current = player
-                        val position = bar.progress
+                        val position = bar.progress.toLong().coerceIn(previewStartMs,
+                            (previewEndMs - 1L).coerceAtLeast(previewStartMs)).toInt()
+                        bar.progress = position
+                        previewPositionMs = position.toLong()
                         mediaHandler.post { if (player === current) current?.seekTo(position) }
                     }
                 }
@@ -530,6 +540,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         selectedUri = uri
         previewStartMs = clip.sourceInMs
         previewEndMs = clip.sourceOutMs
+        previewPositionMs = clip.sourceInMs
         refreshTimeline()
         readMetadataAndRegister(uri, existingClipId = clip.id)
     }
@@ -564,6 +575,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             selectedUri = null
             previewStartMs = 0L
             previewEndMs = 0L
+            previewPositionMs = 0L
             releasePlayer()
             mediaText.text = "Timeline-এ কোনো clip নেই"
         }
@@ -618,6 +630,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 selectedUri = null
                 previewStartMs = 0L
                 previewEndMs = 0L
+                previewPositionMs = 0L
                 releasePlayer()
                 mediaText.text = "Timeline-এ কোনো clip নেই"
             }
@@ -638,7 +651,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             refreshTimeline()
             scheduleAutosave()
             engineStatusText.text = session.status()
-            clips.firstOrNull { it.id == selectedClipId }?.let { selectClip(it) }
+            if (clips.isEmpty()) showFirstClip(session)
+            else clips.firstOrNull { it.id == selectedClipId }?.let { selectClip(it) }
         } catch (error: Exception) { showError(error) }
     }
 
@@ -646,11 +660,12 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         val session = engine ?: return
         hasUnsavedChanges = true
         editGeneration += 1
+        val scheduledGeneration = editGeneration
         pendingAutosave?.cancel(false)
         pendingAutosave = metadataExecutor.schedule({
             try {
                 session.saveAutosave(projectPath)
-                mainHandler.post { if (!isDestroyed) statusText.text = "Autosave محفوظ হয়েছে" }
+                mainHandler.post { if (!isDestroyed && !projectIoBusy && editGeneration == scheduledGeneration) statusText.text = "Autosave সংরক্ষিত হয়েছে" }
             } catch (error: Exception) {
                 mainHandler.post { if (!isDestroyed) statusText.text = "Autosave ব্যর্থ: ${error.message}" }
             }
@@ -664,6 +679,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             .setMessage("আগের saved project প্রতিস্থাপিত হবে। সফল save-এর পরে autosave snapshot-ও clear হবে।")
             .setNegativeButton("বাতিল", null)
             .setPositiveButton("Save") { _, _ ->
+                if (projectIoBusy || selectedMediaLoading) return@setPositiveButton
                 val session = engine ?: return@setPositiveButton
                 pendingAutosave?.cancel(false)
                 projectIoBusy = true
@@ -703,6 +719,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             .setMessage("বর্তমান session বদলে যাবে। আগে বর্তমান কাজ autosave করে তারপর saved project load হবে।")
             .setNegativeButton("বাতিল", null)
             .setPositiveButton("Open") { _, _ ->
+                if (projectIoBusy || selectedMediaLoading) return@setPositiveButton
                 val session = engine ?: return@setPositiveButton
                 pendingAutosave?.cancel(false)
                 projectIoBusy = true
@@ -743,6 +760,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             .setMessage("Recovery snapshot বর্তমান in-memory project-কে প্রতিস্থাপন করবে। আগে আলাদা project save করুন যদি বর্তমান কাজ রাখতে চান।")
             .setNegativeButton("বাতিল", null)
             .setPositiveButton("Recover") { _, _ ->
+                if (projectIoBusy || selectedMediaLoading) return@setPositiveButton
                 val session = engine ?: return@setPositiveButton
                 pendingAutosave?.cancel(false)
                 projectIoBusy = true
@@ -778,6 +796,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     }
 
     private fun blockWhileMediaLoads(): Boolean {
+        if (projectIoBusy) {
+            Toast.makeText(this, "চলমান save/load/export শেষ করুন বা export বাতিল করুন", Toast.LENGTH_SHORT).show()
+            return true
+        }
         if (!selectedMediaLoading) return false
         Toast.makeText(this, "Selected media প্রস্তুত হচ্ছে", Toast.LENGTH_SHORT).show()
         return true
@@ -862,9 +884,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     }
                 }
                 else copyExportToDocument(temporary, destination, cancellation)
-            } catch (_: CancellationException) {
+            } catch (cancel: CancellationException) {
                 val cleaned = destination == null || deleteFailedExportDocument(destination)
-                resultMessage = if (cleaned) "Export বাতিল হয়েছে; নতুন output রাখা হয়নি"
+                resultMessage = if (destination == null) (cancel.message ?: "Export বাতিল হয়েছে")
+                    else if (cleaned) "Export বাতিল হয়েছে; নতুন output রাখা হয়নি"
                     else "Export বাতিল; provider খালি/অসম্পূর্ণ document সরাতে পারেনি"
             } catch (error: Exception) {
                 val cleaned = destination == null || deleteFailedExportDocument(destination)
@@ -889,30 +912,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     /** Publish only a validated MP4; keep the Gallery row hidden until the copy closes. */
     @android.annotation.TargetApi(Build.VERSION_CODES.Q)
     private fun publishExportToGallery(file: File, cancellation: AtomicBoolean) {
-        if (cancellation.get()) throw CancellationException("Export বাতিল করা হয়েছে")
-        val values = ContentValues().apply {
-            put(MediaStore.Video.Media.DISPLAY_NAME, "Owncut-edited-${System.currentTimeMillis()}.mp4")
-            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-            put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/Owncut")
-            put(MediaStore.Video.Media.IS_PENDING, 1)
-        }
-        val destination = contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)
-            ?: throw IllegalStateException("Gallery-তে output তৈরি করা যায়নি")
-        try {
-            copyExportToDocument(file, destination, cancellation)
-            if (cancellation.get()) throw CancellationException("Export বাতিল করা হয়েছে")
-            val published = contentResolver.update(destination, ContentValues().apply {
-                put(MediaStore.Video.Media.IS_PENDING, 0)
-            }, null, null)
-            check(published == 1) { "Gallery-তে output প্রকাশ করা যায়নি" }
-        } catch (error: Exception) {
-            try {
-                contentResolver.delete(destination, null, null)
-            } catch (cleanup: Exception) {
-                error.addSuppressed(cleanup)
-            }
-            throw error
-        }
+        ExportPublication.publish(file, cancellation) { GalleryPendingOutput.create(this) }
     }
 
     private fun deleteFailedExportDocument(destination: Uri): Boolean = try {
@@ -1018,6 +1018,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             .setMessage("বর্তমান editor session বদলে যাবে। আগে unsaved পরিবর্তন autosave করা হবে।")
             .setNegativeButton("বাতিল", null)
             .setPositiveButton("Open") { _, _ ->
+                if (projectIoBusy || selectedMediaLoading) return@setPositiveButton
                 val session = engine ?: return@setPositiveButton
                 pendingAutosave?.cancel(false)
                 projectIoBusy = true
@@ -1095,6 +1096,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         existingClipId: String? = null,
         relinkClipId: String? = null,
     ) {
+        if (projectIoBusy) return
         val request = ++metadataRequestSequence
         selectedMediaLoading = true
         statusText.text = "ভিডিওর metadata পড়া হচ্ছে…"
@@ -1154,17 +1156,19 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     val session = engine ?: throw IllegalStateException("Editor engine is unavailable")
                     val existing = existingClipId?.let { id -> session.clips().firstOrNull { it.id == id } }
                     if (existingClipId != null && existing == null) throw IllegalStateException("Preview-র নির্বাচিত clip আর নেই")
+                    if (existing != null && existing.sourceOutMs > duration)
+                        throw IllegalArgumentException("Source video বদলেছে বা ছোট হয়েছে; Media বদল দিয়ে relink করুন")
                     val relinkTarget = relinkClipId?.let { id -> session.clips().firstOrNull { it.id == id } }
                     if (relinkClipId != null && relinkTarget == null) throw IllegalStateException("যে clip-টি relink করতে চেয়েছেন সেটি আর নেই")
-                    if (relinkTarget != null && relinkTarget.sourceOutMs > duration) {
-                        throw IllegalArgumentException("নতুন media-এর duration পুরনো source range-এর চেয়ে কম; এই clip-এ এটি relink করা যাবে না")
-                    }
-                    if (relinkTarget != null) session.relinkClipMedia(relinkTarget.id, uri.toString())
+                    if (relinkTarget != null) session.relinkClipMedia(relinkTarget.id, uri.toString(), duration)
                     val clipId = relinkTarget?.id ?: existing?.id ?: session.addMediaClip(uri.toString(), duration)
                     val addedNewClip = existing == null && relinkTarget == null
                     selectedClipId = clipId
                     previewStartMs = relinkTarget?.sourceInMs ?: existing?.sourceInMs ?: 0L
                     previewEndMs = relinkTarget?.sourceOutMs ?: existing?.sourceOutMs ?: duration
+                    if (addedNewClip) previewPositionMs = 0L
+                    previewPositionMs = previewPositionMs.coerceIn(previewStartMs,
+                        (previewEndMs - 1L).coerceAtLeast(previewStartMs))
                     selectedUri = uri
                     durationMs = duration
                     preview.setVideoSize(displayWidth, displayHeight)
@@ -1216,7 +1220,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     if (generation != playerGeneration || player !== ready) return@setOnPreparedListener
                     playerPrepared = true
                     val readyDuration = ready.duration
-                    val startPosition = previewStartMs.coerceIn(0L, readyDuration.toLong().coerceAtLeast(0L))
+                    val startPosition = previewPositionMs.coerceIn(previewStartMs,
+                        (minOf(previewEndMs, readyDuration.toLong()) - 1L).coerceAtLeast(previewStartMs))
                     val shouldResume = resumeAfterSelection
                     resumeAfterSelection = false
                     if (startPosition > 0L) ready.seekTo(startPosition.toInt())
@@ -1423,7 +1428,9 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     @Suppress("DEPRECATION") // Retain the native session without adding a ViewModel dependency to this bootstrap.
     override fun onRetainNonConfigurationInstance(): Any? {
-        if (projectIoBusy) return null
+        if (projectIoBusy && projectIoOperation != ProjectIoOperation.EXPORT) return null
+        // Render uses an immutable plan: cancel the old job but retain the editable native session.
+        pendingAutosave?.cancel(false)
         val currentEngine = engine ?: return null
         val retained = RetainedEditorState(
             engine = currentEngine,
@@ -1432,6 +1439,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             selectedClipId = selectedClipId,
             hasUnsavedChanges = hasUnsavedChanges,
             editGeneration = editGeneration,
+            previewPositionMs = previewPositionMs,
         )
         handingOffEngine = true
         engine = null

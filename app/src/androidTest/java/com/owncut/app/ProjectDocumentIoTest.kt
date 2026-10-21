@@ -30,4 +30,29 @@ class ProjectDocumentIoTest {
         assertEquals(true, rejected)
         assertEquals(0, destination.size())
     }
+    @Test
+    fun zeroLengthReadsDoNotHangOrLoseBytes() {
+        val stream = object : java.io.InputStream() {
+            var value = 0
+            override fun read(b: ByteArray, off: Int, len: Int): Int = if (value >= 4) -1 else 0
+            override fun read(): Int = if (value >= 4) -1 else value++
+        }
+        val output = ByteArrayOutputStream()
+        ProjectDocumentIo.copy(stream, output, 4)
+        assertArrayEquals(byteArrayOf(0, 1, 2, 3), output.toByteArray())
+    }
+
+    @Test
+    fun writeAndFlushFailuresArePropagated() {
+        for (failOnFlush in listOf(false, true)) {
+            val output = object : java.io.OutputStream() {
+                override fun write(b: Int) { if (!failOnFlush) throw java.io.IOException("storage full") }
+                override fun flush() { if (failOnFlush) throw java.io.IOException("flush failed") }
+            }
+            org.junit.Assert.assertThrows(java.io.IOException::class.java) {
+                ProjectDocumentIo.copy(ByteArrayInputStream(byteArrayOf(1, 2, 3)), output, 3)
+            }
+        }
+    }
+
 }

@@ -78,3 +78,20 @@ No source codec/resolution inventory, precise A/V sync or performance measuremen
 mid-render cancellation, save/reopen, lifecycle or low-storage check was supplied.
 Advanced tools, grading and RAW are not complete; the next implementation scope must
 be an explicitly bounded milestone rather than declaring all phases complete.
+
+## Basic reliability milestone (verification pending)
+
+Next scope selected by the user: basic editor hardening, not grading/RAW or MVP tools.
+New source guards grouped-source relink durations, blocks edits during project I/O,
+retains editor history/selection on export-time recreation while cancelling the old
+render, preserves paused preview position and clamps seeks to the selected clip.
+Gallery publication now uses a testable pending-row transaction with copy/close/size/
+publish checks and explicit cleanup-failure reporting. Output duration and first/last
+frame decoding are checked before publication. Additional JNI, real codec, Activity
+recreation, MediaStore and injected storage-failure tests await Android CI execution.
+
+Phone checks still needed: exact A/V sync, permission revocation/provider save/reopen,
+low storage, Samsung lifecycle/process death. SAVE/LOAD/RECOVER-time recreation still
+uses explicit autosave recovery, not background operation handoff. No provider-atomic
+replacement, write-ahead journal, full shared preview/export graph, multitrack, grading
+or RAW claim is added. Existing user-confirmed 5–6-clip 720p rendering remains valid.

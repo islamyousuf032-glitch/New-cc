@@ -309,9 +309,15 @@ internal object TimelineRemuxExporter {
         else -> first.contentEquals(second)
     }
 
-    internal fun verifyMuxedOutput(output: File, expectedAudioTrack: Boolean, cancelled: AtomicBoolean) {
+    internal fun verifyMuxedOutput(
+        output: File,
+        expectedAudioTrack: Boolean,
+        cancelled: AtomicBoolean,
+        expectedDurationUs: Long? = null,
+    ) {
         require(output.isFile && output.length() > 0L) { "Muxer কোনো বৈধ MP4 output তৈরি করেনি" }
         val extractor = MediaExtractor()
+        var maximumVideoIntervalUs = 33_334L
         try {
             extractor.setDataSource(output.absolutePath)
             val tracks = findTracks(extractor)
@@ -330,6 +336,8 @@ internal object TimelineRemuxExporter {
                 when (extractor.sampleTrackIndex) {
                     tracks.videoIndex -> {
                         require(extractor.sampleTime > lastVideoTime) { "তৈরি MP4-তে video timestamp সঠিক নয়" }
+                        if (lastVideoTime != Long.MIN_VALUE)
+                            maximumVideoIntervalUs = maxOf(maximumVideoIntervalUs, extractor.sampleTime - lastVideoTime)
                         lastVideoTime = extractor.sampleTime
                         videoSamples++
                     }
@@ -351,12 +359,20 @@ internal object TimelineRemuxExporter {
         val retriever = MediaMetadataRetriever()
         try {
             retriever.setDataSource(output.absolutePath)
-            val firstFrame = retriever.getFrameAtTime(0L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
-                ?: throw IllegalArgumentException("তৈরি MP4-র প্রথম video frame Android decoder খুলতে পারেনি")
-            try {
+            val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull() ?: throw IllegalArgumentException("তৈরি MP4-র duration পড়া যাচ্ছে না")
+            require(durationMs > 0L) { "তৈরি MP4-র duration শূন্য" }
+            expectedDurationUs?.let { expected ->
+                val tolerance = maxOf(250_000L, maximumVideoIntervalUs * 2L)
+                require(abs(durationMs * 1000L - expected) <= tolerance) {
+                    "Render duration timeline-এর সঙ্গে মিলছে না; অসম্পূর্ণ output সেভ হয়নি"
+                }
+            }
+            for (timeUs in listOf(0L, ((durationMs - 50L).coerceAtLeast(0L)) * 1000L).distinct()) {
                 ensureNotCancelled(cancelled)
-            } finally {
-                firstFrame.recycle()
+                val frame = retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST)
+                    ?: throw IllegalArgumentException("তৈরি MP4-র শুরু/শেষ video frame Android decoder খুলতে পারেনি")
+                try { ensureNotCancelled(cancelled) } finally { frame.recycle() }
             }
         } finally {
             retriever.release()

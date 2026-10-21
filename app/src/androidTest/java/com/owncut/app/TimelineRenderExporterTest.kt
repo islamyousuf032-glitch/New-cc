@@ -45,6 +45,52 @@ class TimelineRenderExporterTest {
         } finally { output.delete() }
     }
 
+    @Test(timeout = 120_000L)
+    fun cancelsAnActiveRenderThenRendersAgainWithoutLeakingWorker() = withFixtures { a, _ ->
+        val output = File(context.cacheDir, "active-cancel-${System.nanoTime()}.mp4")
+        val cancel = AtomicBoolean(false)
+        var started = false
+        try {
+            assertThrows(CancellationException::class.java) {
+                TimelineRenderExporter.export(context,
+                    TimelineRemuxExporter.makePlan(listOf(clip("a", a, 0, 0, 3000))),
+                    output, cancel) { started = true; cancel.set(true) }
+            }
+            assertTrue(started)
+            assertFalse(output.exists())
+            assertFalse(Thread.getAllStackTraces().keys.any { it.isAlive && it.name == "OwncutRender" })
+            renderAndCheck(listOf(clip("retry", a, 0, 500, 1500)), 1000L)
+        } finally { output.delete() }
+    }
+
+    @Test(timeout = 120_000L)
+    fun missingMediaAndInvalidOutputPathFailWithoutLeavingOutput() = withFixtures { a, _ ->
+        val output = File(context.cacheDir, "missing-render-${System.nanoTime()}.mp4")
+        val missing = File(context.cacheDir, "does-not-exist-${System.nanoTime()}.mp4")
+        try {
+            assertThrows(Exception::class.java) {
+                TimelineRenderExporter.export(context,
+                    TimelineRemuxExporter.makePlan(listOf(clip("missing", missing, 0, 0, 3000))),
+                    output, AtomicBoolean(false)) { }
+            }
+            assertFalse(output.exists())
+            val invalidOutput = File(missing, "output.mp4")
+            assertThrows(Exception::class.java) {
+                TimelineRenderExporter.export(context,
+                    TimelineRemuxExporter.makePlan(listOf(clip("source", a, 0, 0, 3000))),
+                    invalidOutput, AtomicBoolean(false)) { }
+            }
+            assertFalse(invalidOutput.exists())
+        } finally { output.delete() }
+    }
+
+    @Test fun outputValidatorRejectsWrongTimelineDuration() = withFixtures { a, _ ->
+        assertThrows(IllegalArgumentException::class.java) {
+            TimelineRemuxExporter.verifyMuxedOutput(a, true, AtomicBoolean(false), 20_000_000L)
+        }
+        TimelineRemuxExporter.verifyMuxedOutput(a, true, AtomicBoolean(false), 3_000_000L)
+    }
+
     private fun renderAndCheck(clips: List<ClipSnapshot>, expectedDurationMs: Long) {
         val output = File(context.cacheDir, "render-${System.nanoTime()}.mp4")
         try {
@@ -64,10 +110,17 @@ class TimelineRenderExporterTest {
                 retriever.setDataSource(output.absolutePath)
                 val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)!!.toLong()
                 assertTrue("duration $duration != $expectedDurationMs", kotlin.math.abs(duration - expectedDurationMs) < 150)
-                for (time in listOf(0L, (expectedDurationMs - 150L) * 1000L)) {
+                for (time in listOf(0L, expectedDurationMs * 500L, (expectedDurationMs - 150L) * 1000L)) {
                     val frame = retriever.getFrameAtTime(time, MediaMetadataRetriever.OPTION_CLOSEST)
                     assertNotNull("frame at $time", frame)
-                    frame?.recycle()
+                    frame?.let { bitmap ->
+                        try {
+                            val colors = mutableSetOf<Int>()
+                            for (x in 1..7) for (y in 1..7)
+                                colors.add(bitmap.getPixel(bitmap.width * x / 8, bitmap.height * y / 8))
+                            assertTrue("rendered fixture must contain visible image content", colors.size > 4)
+                        } finally { bitmap.recycle() }
+                    }
                 }
             } finally { retriever.release() }
         } finally { output.delete() }

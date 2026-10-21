@@ -22,7 +22,7 @@ class EngineJniSmokeTest {
             requireTestEquals(mediaIdWithJsonEscapes, engine.clips().single().mediaId)
             requireTestEquals(300L, engine.clips().single().durationFrames)
 
-            engine.relinkClipMedia(clipId, "content://test.local/video/relinked")
+            engine.relinkClipMedia(clipId, "content://test.local/video/relinked", 10_000L)
             requireTestEquals("content://test.local/video/relinked", engine.clips().single().mediaId)
             requireTest(engine.undo(), "media relink undo should succeed")
             requireTestEquals(mediaIdWithJsonEscapes, engine.clips().single().mediaId)
@@ -68,6 +68,42 @@ class EngineJniSmokeTest {
             projectFile.delete()
             autosaveFile.delete()
         }
+    }
+
+    @Test
+    fun splitGroupRelinkValidatesLongestRangeAndSurvivesReopen() {
+        val engine = EngineSession()
+        val file = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
+            "group-roundtrip-${System.nanoTime()}.owncut")
+        try {
+            val left = engine.addMediaClip("content://test/original", 10_000L)
+            engine.splitClip(left, 150L, "right")
+            val before = engine.clips()
+            org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+                engine.relinkClipMedia(left, "content://test/too-short", 5_000L)
+            }
+            requireTestEquals(before, engine.clips())
+            engine.relinkClipMedia(left, "content://test/replacement", 10_000L)
+            val linked = before.map { it.copy(mediaId = "content://test/replacement") }
+            requireTestEquals(linked, engine.clips())
+            requireTest(engine.undo(), "group relink undo")
+            requireTestEquals(before, engine.clips())
+            requireTest(engine.redo(), "group relink redo")
+            engine.moveClip("right", "v1", 300L)
+            val moved = engine.clips()
+            requireTest(engine.undo(), "move undo")
+            requireTest(engine.redo(), "move redo")
+            requireTestEquals(moved, engine.clips())
+            engine.saveProject(file.absolutePath)
+            EngineSession().use { reopened ->
+                reopened.loadProject(file.absolutePath)
+                requireTestEquals(moved, reopened.clips())
+                requireTest(!reopened.undo(), "reopen resets transient history")
+            }
+            file.writeText("invalid/truncated project")
+            org.junit.Assert.assertThrows(Exception::class.java) { engine.loadProject(file.absolutePath) }
+            requireTestEquals(moved, engine.clips())
+        } finally { engine.close(); file.delete() }
     }
 
     private fun requireTest(condition: Boolean, message: String) {

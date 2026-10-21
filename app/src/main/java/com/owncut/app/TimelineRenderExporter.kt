@@ -129,7 +129,10 @@ internal object TimelineRenderExporter {
             failure.get()?.let { throw it }
             if (cancelled.get()) throw CancellationException("Render বাতিল করা হয়েছে")
             progress("Render সম্পন্ন · MP4 যাচাই হচ্ছে…")
-            TimelineRemuxExporter.verifyMuxedOutput(output, true, cancelled)
+            val expectedDurationUs = plan.clips.fold(0L) { total, clip ->
+                Math.addExact(total, Math.multiplyExact(clip.sourceOutMs - clip.sourceInMs, 1000L))
+            }
+            TimelineRemuxExporter.verifyMuxedOutput(output, true, cancelled, expectedDurationUs)
             succeeded = true
         } catch (interrupted: InterruptedException) {
             cancelled.set(true)

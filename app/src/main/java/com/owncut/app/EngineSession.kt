@@ -56,8 +56,14 @@ internal class EngineSession : AutoCloseable {
     }
 
     @Synchronized
-    fun relinkClipMedia(clipId: String, replacementMediaId: String) {
+    fun relinkClipMedia(clipId: String, replacementMediaId: String, replacementDurationMs: Long) {
         check(handle != 0L) { "Engine session is closed" }
+        val all = clips()
+        val target = all.firstOrNull { it.id == clipId } ?: error("Relink করার clip পাওয়া যায়নি")
+        val required = all.filter { it.mediaId == target.mediaId }.maxOf { it.sourceOutMs }
+        require(replacementDurationMs >= required) {
+            "নতুন media কমপক্ষে $required ms হতে হবে; একই source-এর সব split clip relink হবে"
+        }
         nativeRelinkClipMedia(handle, clipId, replacementMediaId)
     }
 

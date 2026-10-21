@@ -1,5 +1,40 @@
 # Progress
 
+## Selected next milestone: basic reliability (implementation, verification pending)
+
+User chose basic hardening rather than MVP/advanced tooling. Prior phone report now
+confirms 5–6 imported videos, split/edit, accepted gap compaction and playable 720p
+render; this is not a measured A/V-sync/performance result.
+
+New source changes:
+- Validate replacement media duration against **every** clip sharing the old source
+  before the native atomic relink command; preserve source ranges/history on rejection.
+- Block split/trim/delete/history/save/load/recovery while project I/O is busy; guard
+  delayed picker metadata and repeated confirmation callbacks. Undoing the last import
+  clears the stale preview. Stale autosave success messages do not overwrite render UI.
+- Retain the native session/history during export-time configuration changes, cancel
+  the old render instead of handing off its job, preserve paused preview position/range
+  across recreation and clamp seeks to the selected clip. This is not a foreground
+  render service or automatic continuation after process death.
+- Separate Gallery pending-row transaction from Activity. Flush/close, exact copy size,
+  provider size (when available) and commit are checked; copy/close/cancel/commit failure
+  discards only the newly created row. Refused cleanup is explicitly reported.
+- Before publication, verify rendered duration against source ranges (250 ms or two
+  observed video-sample intervals tolerance) and decode first/last frames.
+- Project stream copy handles zero-length reads without hanging and propagates write/
+  flush errors. SAF project-provider replacement remains non-atomic.
+
+Added regression sources: group relink/reopen/corrupt-load preservation/history,
+active render cancellation/retry/missing media/invalid output path/duration mismatch,
+visible fixture content, Gallery transaction fault injection and real MediaStore copy,
+Activity recreation/busy-edit lock/last-import undo, project zero-read/write/flush cases.
+Local `make test` and `git diff --check` pass; Android compilation/execution pending.
+Remaining manual acceptance: real Documents-provider revocation/save/reopen, precise
+A/V sync, low storage, Samsung decoder and background/process-death behavior. Rotation
+during project save/load/recovery still uses the existing explicit autosave recovery
+path, not a retained asynchronous project-operation controller. No new APK yet.
+
+
 ## Latest verified basic render checkpoint — 2026-10-21
 
 - Code `4837c7f`: Android CI **39603413359 passed**, including actual emulator

@@ -12,7 +12,14 @@ internal object ProjectDocumentIo {
         val buffer = ByteArray(64 * 1024)
         var total = 0L
         while (true) {
-            val count = input.read(buffer)
+            var count = input.read(buffer)
+            // Defensive providers can return a zero-length read without EOF. Ensure progress.
+            if (count == 0) {
+                val next = input.read()
+                if (next < 0) break
+                buffer[0] = next.toByte()
+                count = 1
+            }
             if (count < 0) break
             total += count
             require(total <= maxBytes) { "Project file exceeds the ${maxBytes / (1024 * 1024)} MiB limit" }
