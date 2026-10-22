@@ -146,7 +146,13 @@ jobs:
           set -Eeuo pipefail
           log="$RUNNER_TEMP/update-check.log"
           exec > >(tee "$log") 2>&1
-          trap 'code=$?; trap - ERR; tail -n 35 "$log" | while IFS= read -r line; do echo "::error title=Install-over verification::$line"; done; exit "$code"' ERR
+          report_failure() {
+            code=$?
+            trap - ERR
+            python3 -c 'import sys; from pathlib import Path; text=Path(sys.argv[1]).read_text(errors="replace")[-14000:]; print("::error title=Install-over verification::"+text.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))' "$log"
+            exit "$code"
+          }
+          trap report_failure ERR
           cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/current.apk"
           ./gradlew --no-daemon :app:assembleDebugAndroidTest :app:assembleDebug -PpatchVersionCode=$((OWNCUT_VERSION_CODE - 1))
           adb uninstall com.owncut.app.test || true

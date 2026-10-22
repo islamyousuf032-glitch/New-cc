@@ -12,7 +12,7 @@ class PatchMetadataTest(unittest.TestCase):
             with patch.object(sys,'argv',[str(SCRIPT),str(apk),'/tools/apksigner',expected,'1050']), patch('subprocess.run',side_effect=outputs), contextlib.redirect_stdout(io.StringIO()):
                 if success: runpy.run_path(str(SCRIPT),run_name='__main__'); self.assertTrue((apk.parent/'update-metadata.json').is_file())
                 else:
-                    with self.assertRaises(AssertionError): runpy.run_path(str(SCRIPT),run_name='__main__')
+                    with self.assertRaises(ValueError): runpy.run_path(str(SCRIPT),run_name='__main__')
                     self.assertFalse((apk.parent/'update-metadata.json').exists())
     def test_pin_success(self): self.check_case()
     def test_wrong_pin(self): self.check_case(expected='bb'*32,success=False)
