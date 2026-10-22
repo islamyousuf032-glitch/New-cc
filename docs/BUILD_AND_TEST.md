@@ -86,10 +86,10 @@ previous basic-render APK. Project schema is unchanged and reopen resets transie
 history, as before. Save important work as a project document before changing debug
 APK installations; do not delete app data to resolve installation errors without backup.
 
-## Timeline interaction checkpoint (Android verification pending)
+## Timeline interaction checkpoint — verified emulator batch (2026-10-22)
 
 User reports the basic-hardening APK works correctly on their phone, with some
-unspecified remaining issues. Next requested batch adds an original red timeline
+unspecified remaining issues. This requested batch adds an original red timeline
 playhead, HH:MM:SS:FF ruler/time label, unified lane scrolling, tap-to-seek, marker-head
 scrubbing, follow toggle/manual browse, proportional short clips/adaptive long scale,
 source/sequence time separation and Undo anchor preservation. Native C++ owns point
@@ -98,8 +98,28 @@ requests closest-frame seeks and waits for initial seek completion before playba
 No project schema/output-preset/new dependency or advanced-tool/RAW claim is added.
 
 See DECISIONS/0008 for research, clock/conversion/interaction details and test scope.
-New host tests pass with `make test`; `git diff --check` passes. Android build/lint and
-new UI/real-player tests are pending; no new APK is offered until those tests pass.
+Host `make test` and `git diff --check` passed. Final code `8f5df51` passed
+portable CI `39728248775` and Android CI `39728248796` (job `119657088154`):
+APK build/lint, AndroidTest compilation, 16 KB alignment and the full Android 35
+x86_64 emulator suite, including the new Canvas/touch/JNI/real-MediaPlayer seek,
+playback advancement, split/Undo and non-selected clip move/source checks. Existing
+render, publication, project-I/O and lifecycle tests also passed.
+Phone-test prerelease: `phone-test-39728248796`, target
+`8f5df51622fec4bd29542921875b330905c475b9`, APK 6,834,920 bytes.
+This is emulator evidence, not a new physical-phone validation report.
 Device checks still needed: red-marker smoothness/latency, fast repeated seeks, long
 clip/zoomed timeline ergonomics, TalkBack/large fonts, source codecs and exact A/V sync.
 The prior export gap-confirmation and single-track render limitations remain.
+
+
+Final-batch APK: https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39728248796/app-debug.apk
+Checksum: the same release's `app-debug.apk.sha256` asset. Both assets were verified
+as uploaded using release metadata; the target commit matches the tested source.
+Full zipped Actions logs were not retrievable in this sandbox (redirect host EOF).
+Actions report artifact upload hit repository storage quota; this non-gating upload
+failure does not invalidate the successful emulator step or the published release.
+Detailed XML/lint artifacts were therefore not independently downloaded/inspected;
+verification above refers to the explicit successful CI steps, not an invented count.
+No production signing/update-key scheme is introduced: save projects before changing
+debug installations. If Android reports signature mismatch, do not erase app data
+without a project backup and a deliberate recovery/relink plan.

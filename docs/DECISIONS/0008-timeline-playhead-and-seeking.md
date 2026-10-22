@@ -67,6 +67,7 @@ position, advancing playback cursor, split/Undo anchor and gap without project m
 Run all prior render/publication/history/lifecycle regressions before publishing an APK.
 
 First executed verification: run `39727045607` passed the full suite for `aa57e0d`.
-Final review guards and the non-selected-clip drag/preview regression are being rerun
-before the final APK is offered. Scope does not change: no compositor, gap rendering,
+Final review guards and the non-selected-clip drag/preview regression passed in
+run `39728248796` for `8f5df51`; portable run `39728248775` passed too. The verified
+APK is prerelease `phone-test-39728248796` (6,834,920 bytes). Scope does not change: no compositor, gap rendering,
 advanced tools, grading or RAW is claimed.

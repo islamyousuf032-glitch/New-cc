@@ -223,10 +223,10 @@ added C++ AddClipCommand and JNI routing, with host undo/redo/split and failed-c
 history tests. Validator fixture exposed negative AAC pre-roll PTS being mistaken for
 EOF; loops now use sampleTrackIndex for EOS. Existing new tests remain intact.
 
-## Timeline interaction checkpoint (Android verification pending)
+## Timeline interaction checkpoint — verified emulator batch (2026-10-22)
 
 User reports the basic-hardening APK works correctly on their phone, with some
-unspecified remaining issues. Next requested batch adds an original red timeline
+unspecified remaining issues. This requested batch adds an original red timeline
 playhead, HH:MM:SS:FF ruler/time label, unified lane scrolling, tap-to-seek, marker-head
 scrubbing, follow toggle/manual browse, proportional short clips/adaptive long scale,
 source/sequence time separation and Undo anchor preservation. Native C++ owns point
@@ -235,8 +235,15 @@ requests closest-frame seeks and waits for initial seek completion before playba
 No project schema/output-preset/new dependency or advanced-tool/RAW claim is added.
 
 See DECISIONS/0008 for research, clock/conversion/interaction details and test scope.
-New host tests pass with `make test`; `git diff --check` passes. Android build/lint and
-new UI/real-player tests are pending; no new APK is offered until those tests pass.
+Host `make test` and `git diff --check` passed. Final code `8f5df51` passed
+portable CI `39728248775` and Android CI `39728248796` (job `119657088154`):
+APK build/lint, AndroidTest compilation, 16 KB alignment and the full Android 35
+x86_64 emulator suite, including the new Canvas/touch/JNI/real-MediaPlayer seek,
+playback advancement, split/Undo and non-selected clip move/source checks. Existing
+render, publication, project-I/O and lifecycle tests also passed.
+Phone-test prerelease: `phone-test-39728248796`, target
+`8f5df51622fec4bd29542921875b330905c475b9`, APK 6,834,920 bytes.
+This is emulator evidence, not a new physical-phone validation report.
 Device checks still needed: red-marker smoothness/latency, fast repeated seeks, long
 clip/zoomed timeline ergonomics, TalkBack/large fonts, source codecs and exact A/V sync.
 The prior export gap-confirmation and single-track render limitations remain.
@@ -253,4 +260,5 @@ source-slider availability/reset, seek-after-end callback reuse, decoder-error s
 state recovery, delayed-surface metadata guards, visible/accessibility hover/focus
 handling and reveal-on-keyboard/accessible seek. Moving a non-selected clip now loads
 that clip's source instead of leaving the old preview paired with the new selection;
-the real-player regression is extended to cover this. Final CI rerun pending.
+the real-player regression is extended to cover this. Final CI rerun passed as
+recorded above; no further implementation changes after `8f5df51`.
