@@ -150,3 +150,36 @@ Flow এখনও read-only, কার্যকর node editor নয়—সে�
 নতুন APK: https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk
 Android `39777165014` এবং portable `39777165246` পাস; আপনার ফোনে নতুন layout/theme
 এখনও যাচাই হয়নি। গুরুত্বপূর্ণ project externally Save As করে তারপর APK বদলাবেন।
+
+## নতুন reliability ও update ব্যবস্থা — ২০২৬-১০-২২
+
+Quiet layout/themes অনুমোদনের পর advanced architecture-এর Phase B শুরু হয়েছে।
+একই managed project-এর দ্বিতীয় writer আটকানো, rotation-এ owner ধরে রাখা, বাইরের
+পরিবর্তন দেখে primary overwrite বন্ধ করা, bounded snapshot থেকে project/recovery
+খোলা এবং নষ্ট catalog metadata রেখে repair করার ব্যবস্থা যোগ হয়েছে। পুরো session
+coordinator বা node renderer এখনো তৈরি হয়নি।
+
+অগ্রগতির হিসাব `docs/plans/readiness.json`-এ ১০০টি weighted readiness point দিয়ে
+রাখা হয়েছে। এটি কাজের ঘণ্টা বা সব professional feature-এর মাপ নয়; pending/blocked
+কাজের জন্য কোনো point যোগ হয় না। `python3 scripts/progress.py` বর্তমান হিসাব দেখায়।
+
+**APK নিয়ে জরুরি কথা:** পুরোনো build runner-generated debug key ব্যবহার করত। নতুন
+APK-এর নাম “patch” করলেই update হয় না—আগের signing identity লাগবে। পুরোনো private
+key পাওয়া না গেলে তার public certificate/APK থেকে সেটি উদ্ধার করা যায় না। তাই এখনকার
+app uninstall/data clear করবেন না। স্থায়ী key, password এবং public certificate pin
+শুধু repository owner-এর নিরাপদ GitHub Actions settings-এ সেট করতে হবে; chat-এ নয়।
+নির্দেশনা: `docs/UPDATE_APKS.md`। এই integration-এ secrets management permission
+HTTP 403 হওয়ায় এখানে তা করা যায়নি।
+
+CI এখন কম version-এর APK-তে native project ও আসল language/theme preference রেখে
+বেশি version `install -r` করে সেগুলো টিকে থাকে কি না যাচাই করে। স্থায়ী signing
+configuration না থাকলে downloadable APK প্রকাশ করা বন্ধ। একটি runner-এর debug
+update পরীক্ষা পাশ মানেই আপনার পুরোনো APK-এর signature মিলে গেছে—এমন দাবি নয়।
+
+এই ব্যাচের প্রকৃত ফল: source 8a6aab4-এর build/lint/full emulator suite পাস; আলাদা
+install-over পরীক্ষা ব্যর্থ। কারণ ধরতে নতুন diagnostic যোগ হয়েছে, কিন্তু পরের CI
+job শুরু হয়নি—GitHub account payment/spending-limit error দিয়েছে। Owner-এর GitHub
+Billing & plans/Billing & licensing দেখতে হবে; এটি app build error বা signing setup
+একই সমস্যা নয়। কোনো GitHub password/token এখানে দেবেন না। মোট readiness **২৫% শেষ,
+৭৫% বাকি**; নতুন কাজ পুরো checkpoint পাস না হওয়ায় এখনো অতিরিক্ত ৩ point যোগ হয়নি।
+নতুন patch প্রকাশ হয়নি। এখনকার app অক্ষত রাখুন।

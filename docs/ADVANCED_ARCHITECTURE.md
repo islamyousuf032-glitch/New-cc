@@ -286,3 +286,16 @@ portable run `39748116580` passed. APK/checksum prerelease `phone-test-397481165
 was verified as uploaded, targeting the exact tested source. Details, the initially
 incorrect test-fixture path and optional report-storage quota limitation are recorded
 in PROGRESS/BUILD_AND_TEST; no claim of physical-device validation for this batch.
+
+### Phase B implementation checkpoint — 2026-10-22
+
+Managed project I/O now goes through a retained single-writer store: bounded stable
+read snapshots, fingerprint preflight before native atomic checkpoint, validated
+recovery and explicit catalog repair preserving metadata. MainActivity still owns
+editing/lifecycle orchestration; **the full EditorCoordinator and durable revision
+journal are not done**. No evaluator/compositor is implied by this storage work.
+
+Readiness v1 weights/evidence live in `plans/readiness.json`; run
+`python3 scripts/progress.py`. Credits are estimated scope weights, not hours or
+professional feature equivalence. Signing delivery is a separate blocked package;
+UPDATE_APKS specifies secure owner setup and the lost legacy-debug-key limitation.

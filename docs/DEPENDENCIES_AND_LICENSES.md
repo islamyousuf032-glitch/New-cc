@@ -71,3 +71,10 @@ Managed-storage/patch batch adds no dependency: platform FileLock/MessageDigest 
 existing native codec, SDK apksigner/aapt2/zipalign, JDK signing config, Python standard
 library verifier/ledger tests. Secrets are runner-temporary only; no signing key ships
 in source or app. UPDATE_APKS documents owner setup and old-debug-key constraints.
+
+Actions currently warns that setup-gradle@v4/upload-artifact@v5 target deprecated
+Node20 and are forced onto Node24 by hosted runners. Existing tasks worked through
+emulator gates; updating action majors is a separate compatibility checkpoint.
+Artifact report upload still hits quota; this does not imply app test success/failure.
+Latest CI startup is blocked by account payment/spending limits, not a native build
+failure. No signing keys or downloaded reference APKs are repository files.

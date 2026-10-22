@@ -49,7 +49,7 @@
       "id": "managed_storage",
       "weight": 3,
       "status": "in_progress",
-      "evidence": "New writer lease/conflict/recovery/catalog repair; CI pending"
+      "evidence": "Implemented; Android 39796552264 at 8a6aab4 full emulator suite passed, but integrated install-over gate failed. Follow-up diagnostic blocked by billing; no readiness credit yet."
     },
     {
       "id": "session_coordinator",

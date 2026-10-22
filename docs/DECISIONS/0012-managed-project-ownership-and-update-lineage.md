@@ -36,3 +36,15 @@ feature parity. Native graph validator alone earns 2; persisted/evaluated graph 
 uncredited. Reweight only with a recorded scope change. Overall baseline 25/100;
 managed-storage package can add 3 only after full Android gate. Remaining coordinator
 and signing packages are not automatically credited by this work.
+
+POSIX lease caveat: refuse duplicate same-process opens through a canonical-anchor
+registry before opening another descriptor. Closing any descriptor for an inode can
+release POSIX process locks; relying only on OverlappingFileLockException is unsafe.
+Keep registry removal and descriptor release serialized; do not simplify this away.
+
+Publication also requires matching the approved old APK signer, not merely a new
+keystore and its own matching pin. Lost old private key remains a real delivery block.
+Current readiness remains 25/100: the managed-storage work is implemented and passed
+its emulator suite, but this integrated checkpoint is not fully verified. Install-over
+gate failed; improved diagnostics could not run after account billing/limit rejection.
+Do not report 28/100 or ship an APK until outstanding integration gates are resolved.

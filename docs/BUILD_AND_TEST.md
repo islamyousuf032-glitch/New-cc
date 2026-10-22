@@ -270,5 +270,27 @@ returned 403; owner-side setup is required, never passwords or keys in chat.
 
 Readiness ledger v1 is a weighted scope estimate: baseline 25% credited, 75% remaining.
 New managed storage 3 points remains pending Android gate; signing delivery is blocked,
-not credited. Local core/resource and 5 mocked metadata-verifier tests passed; full
-Android and real install-over checks pending. No patch APK offered before those gates.
+not credited. Local core/resource, 7 mocked signer/manifest/reference-verifier scenarios and
+3 emulator-reset refusal tests passed (metadata scenarios also with Python -O).
+At source 8a6aab4, Android 39796552264/job119885073164 passed build/lint/alignment
+and the full Android 35 x86_64 suite, but the separate install-over gate failed.
+Its initial annotations were truncated by GitHub; diagnosis is not resolved.
+Source a1bb412 Android 39799182223 failed before job startup: GitHub reports failed
+account payment or spending-limit exhaustion. Latest diagnostic/reference-signer
+and CI-only-emulator guard changes are host/syntax tested, not emulator verified.
+No new APK was published; stable signing is not configured, and first-patch signer
+must also match approved phone-test-39777165014. Do not uninstall/clear user data.
+
+New cheap gates:
+```
+python3 tests/test_patch_metadata.py
+python3 -O tests/test_patch_metadata.py
+python3 tests/test_install_over_guard.py
+python3 scripts/progress.py
+```
+The seven metadata scenarios mock SDK tool output; they do not cryptographically verify an
+APK. Real verification uses SDK apksigner/aapt2/zipalign only in configured signing CI.
+`UpdatePersistenceTest` methods intentionally skip in a normal full suite; CI selects
+`#seed` / `#verify` explicitly across install-over. No uninstall/data-clear occurs
+between seeding and verifying. Its fixture is a valid native project with test URIs,
+not proof of phone media grants, codec behavior, or playability after updating.

@@ -41,6 +41,9 @@ was generated and uploaded to Git, releases, artifacts or this conversation.
 5. Restrict access to signing secrets/workflows, review code before signing, and
    consider protected-environment approval before production distribution. Do not
    rotate/replace the key or pin casually: future install-over continuity depends on it.
+   The pipeline also checks against approved `phone-test-39777165014`: generating a
+   new key plus matching pin cannot bypass that identity. Any deliberately different
+   lineage needs a separately agreed migration and explicit reference-policy change.
 
 ## Pipeline behavior
 
@@ -55,6 +58,8 @@ was generated and uploaded to Git, releases, artifacts or this conversation.
 - A configured release also installs over that tested debug variant (same certificate)
   and repeats persistence assertions. Signature verification pins the certificate,
   verifies actual manifest package/version and rejects debuggable release output.
+  It additionally verifies signer/package/version against the previously approved
+  phone-test APK. New key+pin alone is not legacy install-over compatibility.
 - Alignment, output checksum and public `update-metadata.json` accompany releases named
   `app-patch-<run>`. Public metadata does not expose a private key or password.
 
@@ -63,3 +68,22 @@ mechanism/data retention in that job only. They do **not** prove cross-run signe
 continuity or compatibility with the user's currently installed legacy APK. Stable-key
 release verification remains blocked until owner configuration is supplied. This is
 not yet a Play Store/production signing rollout or a delta patch distribution service.
+
+## Actual checkpoint status (not an install-over success claim)
+
+Android 39796552264 at 8a6aab4: build/lint/alignment and full emulator suite passed;
+separate N−1→N install-over step failed. The first diagnostic exceeded GitHub's
+10-error-per-step annotation limit. A single escaped full-context annotation now
+replaces that output, but Android 39799182223 at a1bb412 could not start: account
+payment/spending limit failure. Owner must resolve GitHub Settings → Billing & plans
+(or Billing & licensing in newer UI) before rerunning. This is distinct from signing
+secrets permissions/configuration. No successful real install-over test or signed
+release verification is claimed for this batch; no new patch is published.
+
+The extracted test helper refuses outside GitHub Actions and refuses any physical or
+multiple-device target before reset. Wrapper waits for log tee completion and emits
+one diagnostic annotation, avoiding partial output/annotation truncation. Host guard
+and verifier tests pass, including signer mismatch with the approved legacy APK.
+Workflow concurrency supersedes older runs on the same ref; publication rejects
+reruns not newer than the most recently published app-patch version. These latest
+Android-facing changes still require an actual CI run once billing is restored.
