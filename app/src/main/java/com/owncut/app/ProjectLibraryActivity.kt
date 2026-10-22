@@ -33,11 +33,11 @@ class ProjectLibraryActivity : LocalizedActivity() {
         body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(18), dp(18), dp(24))
-            setBackgroundColor(0xFF0B1019.toInt())
+            setBackgroundColor(StudioUi.background)
             fitsSystemWindows = true
         }
         setContentView(ScrollView(this).apply {
-            setBackgroundColor(0xFF0B1019.toInt())
+            setBackgroundColor(StudioUi.background)
             addView(body)
             setOnApplyWindowInsetsListener { view, insets ->
                 @Suppress("DEPRECATION")
@@ -70,6 +70,20 @@ class ProjectLibraryActivity : LocalizedActivity() {
         }
     }
 
+    private fun showPreferences() {
+        AlertDialog.Builder(this).setTitle(AppLanguage.text(R.string.settings))
+            .setItems(arrayOf(AppLanguage.text(R.string.language),AppLanguage.text(R.string.appearance),AppLanguage.text(R.string.message_0a0b1b77c1))) { _, index ->
+                when(index) { 0 -> showSettings(); 1 -> showThemes(); else -> refresh() }
+            }.show()
+    }
+    private fun showThemes() {
+        val ids = listOf("graphite","midnight","ember")
+        AlertDialog.Builder(this).setTitle(AppLanguage.text(R.string.appearance))
+            .setSingleChoiceItems(arrayOf(AppLanguage.text(R.string.theme_graphite),AppLanguage.text(R.string.theme_midnight),AppLanguage.text(R.string.theme_ember)),ids.indexOf(StudioUi.theme(this))) { dialog,index ->
+                dialog.dismiss(); StudioUi.select(this,ids[index]); recreate()
+            }.setNegativeButton(AppLanguage.text(R.string.message_ca21daf138),null).show()
+    }
+
     private fun showSettings() {
         if (languageDialog?.isShowing == true) return
         val dialog = AlertDialog.Builder(this).setTitle(AppLanguage.text(R.string.message_d10c8a8dd8))
@@ -96,7 +110,8 @@ class ProjectLibraryActivity : LocalizedActivity() {
         heading.addView(StudioUi.label(this, "OWNCUT", 28f).apply {
             setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL))
         }, LinearLayout.LayoutParams(0, -2, 1f))
-        heading.addView(StudioButton(this).apply { icon = StudioIcon.SETTINGS; text = AppLanguage.text(R.string.message_d10c8a8dd8); setOnClickListener { if (!busy) showSettings() } }, LinearLayout.LayoutParams(dp(52), dp(52)))
+        heading.addView(StudioButton(this).apply { icon = StudioIcon.SETTINGS; text = AppLanguage.text(R.string.message_d10c8a8dd8); setOnClickListener { if (!busy) showPreferences() } }, LinearLayout.LayoutParams(dp(52), dp(52)))
+        heading.addView(StudioButton(this).apply { icon = StudioIcon.INFO; text = AppLanguage.text(R.string.message_e5c32c0cb4); setOnClickListener { showCapabilities() } },LinearLayout.LayoutParams(dp(52),dp(52)))
         body.addView(heading)
         label(AppLanguage.text(R.string.message_f4693deac0), 28f)
         label(AppLanguage.text(R.string.message_2cd5fdd10c), 15f)
@@ -110,12 +125,6 @@ class ProjectLibraryActivity : LocalizedActivity() {
                     type = "*/*"; addCategory(Intent.CATEGORY_OPENABLE)
                 }, IMPORT)
             }
-        }
-        button(AppLanguage.text(R.string.message_0a0b1b77c1), StudioIcon.REFRESH) { refresh() }
-        button(AppLanguage.text(R.string.message_e5c32c0cb4), StudioIcon.INFO) {
-            AlertDialog.Builder(this).setTitle(AppLanguage.text(R.string.message_c82ca42c8d))
-                .setMessage(AppLanguage.text(R.string.message_35d6f4944d))
-                .setPositiveButton(AppLanguage.text(R.string.message_b7722d9327), null).show()
         }
         status = label(if (busy) AppLanguage.text(R.string.message_8c5e3ee801) else AppLanguage.text(R.string.message_ef9732b90d, listing.projects.size), 13f)
         if (listing.projects.isEmpty()) label(AppLanguage.text(R.string.message_49396f3024), 16f)
@@ -141,6 +150,11 @@ class ProjectLibraryActivity : LocalizedActivity() {
             body.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
         }
         listing.warnings.forEach { label(it, 12f) }
+    }
+    private fun showCapabilities() {
+            AlertDialog.Builder(this).setTitle(AppLanguage.text(R.string.message_c82ca42c8d))
+                .setMessage(AppLanguage.text(R.string.message_35d6f4944d))
+                .setPositiveButton(AppLanguage.text(R.string.message_b7722d9327), null).show()
     }
     private fun open(project: LibraryProject) {
         startActivity(Intent(this, MainActivity::class.java).putExtra(MainActivity.EXTRA_LIBRARY_ID, project.id))
@@ -172,7 +186,7 @@ class ProjectLibraryActivity : LocalizedActivity() {
     }
     private fun ui(action: () -> Unit) = runOnUiThread { if (!isDestroyed && !isFinishing) action() }
     private fun label(text: String, size: Float) = TextView(this).apply {
-        this.text = text; textSize = size; setTextColor(0xFFF0F4FC.toInt()); setPadding(0, dp(8), 0, dp(6))
+        this.text = text; textSize = size; setTextColor(StudioUi.text); setPadding(0, dp(8), 0, dp(6))
         body.addView(this, ViewGroup.LayoutParams(-1, -2))
     }
     private fun button(text: String, icon: StudioIcon, action: () -> Unit) {

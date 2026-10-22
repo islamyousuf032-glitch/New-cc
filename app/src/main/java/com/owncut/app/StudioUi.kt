@@ -16,13 +16,31 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 internal object StudioUi {
-    val background = 0xFF0B1019.toInt()
-    val surface = 0xFF151D2B.toInt()
-    val raised = 0xFF1E2A3D.toInt()
-    val border = 0xFF34445C.toInt()
-    val text = 0xFFF0F4FC.toInt()
-    val muted = 0xFFAABAD0.toInt()
-    val accent = 0xFF8BCBFF.toInt()
+    private var palettes: org.json.JSONObject? = null
+    @Volatile private var current = emptyMap<String,Int>()
+    fun initialize(context: Context) {
+        if (palettes == null) palettes = org.json.JSONObject(context.assets.open("studio_themes.json").bufferedReader().use { it.readText() })
+        val palette = palettes!!.getJSONObject(theme(context))
+        current = palette.keys().asSequence().associateWith { Color.parseColor("#" + palette.getString(it)) }
+    }
+    fun theme(context: Context): String {
+        val value = context.getSharedPreferences("owncut_preferences", Context.MODE_PRIVATE).getString("theme", "graphite")
+        return if(value in listOf("graphite","midnight","ember")) value!! else "graphite"
+    }
+    fun select(context: Context, id: String) {
+        require(id in listOf("graphite","midnight","ember"))
+        context.getSharedPreferences("owncut_preferences",Context.MODE_PRIVATE).edit().putString("theme",id).apply()
+        initialize(context.applicationContext)
+    }
+    private fun color(role: String) = current.getValue(role)
+    val background get() = color("background")
+    val surface get() = color("surface")
+    val raised get() = color("raised")
+    val border get() = color("border")
+    val text get() = color("text")
+    val muted get() = color("muted")
+    val accent get() = color("accent")
+    val selection get() = color("selection")
     fun dp(context: Context, value: Int) = (value * context.resources.displayMetrics.density).toInt()
     fun shape(context: Context, color: Int = surface, radius: Int = 16) = GradientDrawable().apply {
         setColor(color); cornerRadius = dp(context, radius).toFloat(); setStroke(dp(context, 1), border)
@@ -57,7 +75,7 @@ internal class StudioButton @JvmOverloads constructor(context: Context, attrs: A
         gravity = Gravity.CENTER
         stateListAnimator = null
         backgroundTintList = null
-        background = RippleDrawable(ColorStateList.valueOf(0x338BCBFF), StudioUi.shape(context, StudioUi.surface, 12), null)
+        background = RippleDrawable(ColorStateList.valueOf((StudioUi.accent and 0x00FFFFFF) or 0x33000000), android.graphics.drawable.ColorDrawable(Color.TRANSPARENT), null)
         isFocusable = true
     }
     override fun setText(text: CharSequence?, type: android.widget.TextView.BufferType?) {
@@ -77,7 +95,7 @@ internal class StudioButton @JvmOverloads constructor(context: Context, attrs: A
         canvas.translate(width / 2f - 12f * scale, height / 2f - 12f * scale)
         canvas.scale(scale, scale)
         ink.strokeWidth = 1.8f
-        ink.color = if (!isEnabled) 0xFF69798F.toInt() else if (isSelected) StudioUi.accent else StudioUi.text
+        ink.color = if (!isEnabled) StudioUi.muted else if (isSelected) StudioUi.accent else StudioUi.text
         fun line(x: Float, y: Float, xx: Float, yy: Float) = canvas.drawLine(x,y,xx,yy,ink)
         fun path(vararg values: Float) { val p = Path(); p.moveTo(values[0], values[1]); for(i in 2 until values.size step 2) p.lineTo(values[i],values[i+1]); canvas.drawPath(p,ink) }
         fun box(l: Float,t: Float,r: Float,b: Float) = canvas.drawRoundRect(RectF(l,t,r,b),2f,2f,ink)
@@ -119,8 +137,20 @@ internal class StudioButton @JvmOverloads constructor(context: Context, attrs: A
         }
         canvas.restoreToCount(save)
         if (isSelected || isFocused) {
-            ink.color = StudioUi.accent; ink.strokeWidth = StudioUi.dp(context,2).toFloat()
+            ink.color = StudioUi.accent; ink.strokeWidth = StudioUi.dp(context,1).toFloat()
             canvas.drawRoundRect(RectF(2f,2f,width-2f,height-2f),StudioUi.dp(context,12).toFloat(),StudioUi.dp(context,12).toFloat(),ink)
         }
+    }
+}
+
+/** Routine progress stays contextual. Important failures/recovery also reach the quiet Edit view. */
+internal class EditorStatusView(context: Context) : TextView(context) {
+    var onImportant: ((String) -> Unit)? = null
+    private var previousImportant: String? = null
+    override fun setText(text: CharSequence?, type: BufferType?) {
+        super.setText(text,type)
+        val value = text?.toString().orEmpty()
+        val important = listOf("failed", "could not", "cannot", "warning", "snapshot is available", "snapshot আছে", "ব্যর্থ", "হয়নি", "যায়নি", "সতর্কতা").any { value.lowercase().contains(it) }
+        if(important && value != previousImportant) { previousImportant = value; onImportant?.invoke(value) }
     }
 }

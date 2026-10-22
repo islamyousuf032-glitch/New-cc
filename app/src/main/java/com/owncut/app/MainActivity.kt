@@ -43,6 +43,8 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     private var projectName = AppLanguage.text(R.string.workspace_name)
     private var workspacePage = "Edit"
     private var projectTitle: TextView? = null
+    private var projectToolsScroll: HorizontalScrollView? = null
+    private var detailsPanel: ScrollView? = null
     private val workspaceTabs = mutableMapOf<String, Button>()
     private val workspacePanels = mutableMapOf<String, MutableList<android.view.View>>()
     private lateinit var preview: AspectRatioTextureView
@@ -213,7 +215,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         metadataExecutor.execute {
             try {
                 val name = ProjectLibrary(filesDir).read(id).name
-                mainHandler.post { if (!isDestroyed) { projectName = name; projectTitle?.text = "Owncut · ${name} · ${pageLabel(workspacePage)}" } }
+                mainHandler.post { if (!isDestroyed) { projectName = name; projectTitle?.text = "${name} · ${pageLabel(workspacePage)}" } }
             } catch (_: Exception) { /* Native retained session stays usable even if catalog metadata is damaged. */ }
         }
     }
@@ -231,7 +233,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
                 library.touch(id)
                 mainHandler.post {
                     if (!isDestroyed) {
-                        projectName = record.name; projectTitle?.text = "Owncut · ${projectName} · ${pageLabel(workspacePage)}"
+                        projectName = record.name; projectTitle?.text = "${projectName} · ${pageLabel(workspacePage)}"
                         projectIoBusy = false; projectIoOperation = null
                         updateEngineStatus(); showFirstClip(session)
                         statusText.text = if (record.recovery)
@@ -301,12 +303,12 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         val message = TextView(this).apply {
             text = AppLanguage.text(R.string.message_b266d68863, error.javaClass.simpleName, error.message ?: AppLanguage.text(R.string.message_bcef4ffd8a), details)
             textSize = 15f
-            setTextColor(0xFFF0F4FC.toInt())
+            setTextColor(StudioUi.text)
             setTextIsSelectable(true)
             setPadding(dp(20), dp(24), dp(20), dp(24))
         }
         setContentView(ScrollView(this).apply {
-            setBackgroundColor(0xFF0B1019.toInt())
+            setBackgroundColor(StudioUi.background)
             addView(message)
         })
     }
@@ -317,13 +319,13 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             setPadding(dp(16), dp(12), dp(16), dp(12))
-            setBackgroundColor(0xFF0B1019.toInt())
+            setBackgroundColor(StudioUi.background)
         }
         val title = TextView(this).apply {
             text = getString(R.string.app_name)
-            textSize = 22f
+            textSize = 16f
             setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL))
-            setTextColor(0xFFF0F4FC.toInt())
+            setTextColor(StudioUi.text)
             gravity = Gravity.CENTER_VERTICAL
         }
         projectTitle = title
@@ -353,14 +355,14 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         mediaText = TextView(this).apply {
             text = AppLanguage.text(R.string.message_ab6daf2ef3)
             textSize = 14f
-            setTextColor(0xFFAABAD0.toInt())
+            setTextColor(StudioUi.muted)
         }
         root.addView(mediaText, matchWrap())
 
         selectedClipText = TextView(this).apply {
             text = AppLanguage.text(R.string.message_a89bb287f6)
             textSize = 13f
-            setTextColor(0xFFF0F4FC.toInt())
+            setTextColor(StudioUi.text)
             setPadding(0, dp(10), 0, dp(4))
         }
         root.addView(selectedClipText, matchWrap())
@@ -412,11 +414,11 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         val editHelpText = TextView(this).apply {
             text = AppLanguage.text(R.string.message_85149b860c)
             textSize = 12f
-            setTextColor(0xFFAABAD0.toInt())
+            setTextColor(StudioUi.muted)
             setPadding(0, dp(2), 0, dp(6))
         }
         root.addView(editHelpText, matchWrap())
-        workspacePanels.getOrPut("Edit") { mutableListOf() }.add(editHelpText)
+        workspacePanels.getOrPut("Tools") { mutableListOf() }.add(editHelpText)
 
         val editScroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
         val editControls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -441,7 +443,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         val deliverPanel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         deliverPanel.addView(TextView(this).apply {
             text = AppLanguage.text(R.string.message_fd76f9371a)
-            setTextColor(0xFFF0F4FC.toInt()); textSize = 14f
+            setTextColor(StudioUi.text); textSize = 14f
         })
         deliverPanel.addView(actionButton(AppLanguage.text(R.string.message_323a11800b), StudioIcon.EXPORT) { launchExportPicker() }, matchWrap())
         cancelExportButton = StudioButton(this).apply {
@@ -457,6 +459,8 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         workspacePanels.getOrPut("Deliver") { mutableListOf() }.add(deliverPanel)
         projectControls.addView(projectButtons)
         root.addView(projectControls, matchWrap())
+        projectToolsScroll = projectControls
+        workspacePanels.getOrPut("Tools") { mutableListOf() }.add(projectControls)
 
         val controls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val importButton = StudioButton(this).apply {
@@ -486,27 +490,25 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         deliverPanel.setPadding(dp(16),dp(16),dp(16),dp(16))
         root.addView(deliverPanel, matchWrap())
         workspacePanels.getOrPut("Media") { mutableListOf() }.add(controls)
-        val editImport = actionButton(AppLanguage.text(R.string.message_865e38304e), StudioIcon.IMPORT) { launchVideoPicker() }
-        root.addView(editImport, matchWrap())
-        workspacePanels.getOrPut("Edit") { mutableListOf() }.add(editImport)
         val flow = TextView(this).apply {
             text = AppLanguage.text(R.string.message_4f099c46c1)
-            textSize = 15f; setTextColor(0xFFF0F4FC.toInt()); setPadding(0, dp(10), 0, dp(10))
+            textSize = 15f; setTextColor(StudioUi.text); setPadding(0, dp(10), 0, dp(10))
         }
         root.addView(flow, matchWrap())
         workspacePanels.getOrPut("Flow") { mutableListOf() }.add(flow)
         showWorkspacePage(workspacePage)
 
-        statusText = TextView(this).apply {
+        statusText = EditorStatusView(this).apply {
+            onImportant = { message -> if(workspacePage == "Edit" && !isDestroyed) Toast.makeText(this@MainActivity,message,Toast.LENGTH_LONG).show() }
             textSize = 12f
-            setTextColor(0xFFAABAD0.toInt())
+            setTextColor(StudioUi.muted)
             setPadding(0, dp(12), 0, 0)
         }
         root.addView(statusText, matchWrap())
         engineStatusText = TextView(this).apply {
             visibility = android.view.View.GONE // native diagnostics are not a permanent customer-facing toolbar
             textSize = 12f
-            setTextColor(0xFFAABAD0.toInt())
+            setTextColor(StudioUi.muted)
             setPadding(0, dp(6), 0, 0)
         }
         root.addView(engineStatusText, matchWrap())
@@ -529,6 +531,49 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
             }
             insets
         }
+        // Assemble the real editor: fixed chrome, fitted viewer, transport, one timeline,
+        // one focused tool row. Secondary information is contextual, never permanent logs.
+        root.removeAllViews()
+        header.addView(actionButton(AppLanguage.text(R.string.tools), StudioIcon.SETTINGS) {
+            showWorkspacePage(if(workspacePage == "Tools") "Edit" else "Tools")
+        }, LinearLayout.LayoutParams(dp(52),dp(52)))
+        root.addView(header, matchWrap())
+        val compactFallback = resources.configuration.screenHeightDp < 560 || resources.configuration.fontScale > 1.35f
+        val viewer = FrameLayout(this).apply {
+            setBackgroundColor(android.graphics.Color.BLACK)
+            addView(preview, FrameLayout.LayoutParams(-1,-1,Gravity.CENTER))
+        }
+        root.addView(viewer, if(compactFallback) LinearLayout.LayoutParams(-1,dp(180)) else LinearLayout.LayoutParams(-1,0,1f))
+        // Move Play to the transport; eliminate full-width Play and duplicate Import bars.
+        transportRow.addView(playButton, 0, LinearLayout.LayoutParams(dp(52),dp(52)))
+        transportRow.addView(actionButton(AppLanguage.text(R.string.message_f04897b60d), StudioIcon.IMPORT) { launchVideoPicker() }, LinearLayout.LayoutParams(dp(52),dp(52)))
+        timelinePositionText.typeface = android.graphics.Typeface.MONOSPACE
+        timelinePositionText.setTextColor(StudioUi.text)
+        root.addView(transportRow,matchWrap())
+        root.addView(timelineScroll,LinearLayout.LayoutParams(-1,dp(112)))
+        val secondaryTools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        // Trim and ripple remain accessible in Tools; Split/Delete + history are primary.
+        val advanced = listOf(editControls.getChildAt(1),editControls.getChildAt(2),editControls.getChildAt(4))
+        for(view in advanced) { editControls.removeView(view); secondaryTools.addView(view,wrapButtonParams()) }
+        val undo = projectButtons.getChildAt(0); val redo = projectButtons.getChildAt(1)
+        projectButtons.removeView(undo); projectButtons.removeView(redo)
+        editControls.addView(undo,0,wrapButtonParams()); editControls.addView(redo,wrapButtonParams())
+        root.addView(editScroll,matchWrap())
+        val contextBody = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(8),0,dp(8),0) }
+        contextBody.addView(mediaText,matchWrap()); contextBody.addView(selectedClipText,matchWrap()); contextBody.addView(seekBar,matchWrap())
+        workspacePanels.getOrPut("Media") { mutableListOf() }.addAll(listOf(mediaText,selectedClipText,seekBar))
+        contextBody.addView(controls,matchWrap()); contextBody.addView(secondaryTools,matchWrap())
+        workspacePanels.getOrPut("Tools") { mutableListOf() }.add(secondaryTools)
+        contextBody.addView(projectControls,matchWrap()); contextBody.addView(editHelpText,matchWrap())
+        contextBody.addView(deliverPanel,matchWrap()); contextBody.addView(flow,matchWrap())
+        contextBody.addView(statusText,matchWrap()); contextBody.addView(engineStatusText,matchWrap())
+        workspacePanels.getOrPut("Tools") { mutableListOf() }.add(statusText)
+        val contextScroll = ScrollView(this).apply { addView(contextBody); background = StudioUi.shape(this@MainActivity,StudioUi.surface,8) }
+        detailsPanel = contextScroll
+        root.addView(contextScroll,LinearLayout.LayoutParams(-1,dp(176)))
+        root.addView(navigation,matchWrap())
+        showWorkspacePage(workspacePage)
+        if (!compactFallback) { setContentView(root); return }
         val workspaceScroll = ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
@@ -541,15 +586,17 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     }
 
     private fun pageLabel(page: String) = AppLanguage.text(when(page) {
-        "Edit" -> R.string.page_edit; "Media" -> R.string.page_media; "Flow" -> R.string.page_flow; else -> R.string.page_deliver
+        "Tools" -> R.string.tools; "Edit" -> R.string.page_edit; "Media" -> R.string.page_media; "Flow" -> R.string.page_flow; else -> R.string.page_deliver
     })
 
     private fun showWorkspacePage(page: String) {
         workspacePage = page
+        detailsPanel?.visibility = if(page == "Edit") android.view.View.GONE else android.view.View.VISIBLE
         workspaceTabs.forEach { (key, button) -> button.isSelected = key == page }
         for ((key, views) in workspacePanels) for (view in views)
             view.visibility = if (key == page) android.view.View.VISIBLE else android.view.View.GONE
-        projectTitle?.text = "Owncut · ${projectName} · ${pageLabel(page)}"
+        if (::statusText.isInitialized) statusText.visibility = if(page == "Edit" || page == "Flow") android.view.View.GONE else android.view.View.VISIBLE
+        projectTitle?.text = "${projectName} · ${pageLabel(page)}"
     }
 
     private fun actionButton(label: String, icon: StudioIcon = StudioIcon.INFO, action: () -> Unit): Button = StudioButton(this).apply {

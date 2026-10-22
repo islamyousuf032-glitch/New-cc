@@ -27,8 +27,12 @@ def luminance(rgb):
     channels = [c / 12.92 if c <= .04045 else ((c + .055) / 1.055) ** 2.4 for c in channels]
     return sum(c * w for c, w in zip(channels, (.2126, .7152, .0722)))
 
-for foreground in ('F0F4FC', 'AABAD0', '8BCBFF'):
-    for background in ('0B1019', '151D2B', '1E2A3D', '214A70', '263951'):
-        a, b = sorted((luminance(foreground), luminance(background)))
-        assert (b + .05) / (a + .05) >= 4.5, (foreground, background)
-print(f'{len(en)} complete English/Bengali strings; placeholders, references and palette contrast passed')
+import json
+palettes = json.loads((ROOT / 'app/src/main/assets/studio_themes.json').read_text())
+assert set(palettes) == {'graphite','midnight','ember'}
+for name, palette in palettes.items():
+    for foreground in ('text','muted','accent'):
+        for background in ('background','surface','raised','selection'):
+            a, b = sorted((luminance(palette[foreground]),luminance(palette[background])))
+            assert (b+.05)/(a+.05) >= 4.5, (name,foreground,background)
+print(f'{len(en)} bilingual strings; resource parity and all three theme contrasts passed')

@@ -39,12 +39,18 @@ internal object AppLanguage {
 }
 
 class OwncutApplication : Application() {
-    override fun onCreate() { super.onCreate(); AppLanguage.initialize(this) }
+    override fun onCreate() { super.onCreate(); AppLanguage.initialize(this); StudioUi.initialize(this) }
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig); AppLanguage.initialize(this)
     }
 }
 
 open class LocalizedActivity : Activity() {
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        setTheme(when(StudioUi.theme(this)) { "ember" -> R.style.AppThemeEmber; "midnight" -> R.style.AppThemeMidnight; else -> R.style.AppTheme })
+        super.onCreate(savedInstanceState)
+        window.statusBarColor = StudioUi.background
+        window.navigationBarColor = StudioUi.background
+    }
     override fun attachBaseContext(newBase: Context) { super.attachBaseContext(AppLanguage.wrap(newBase)) }
 }

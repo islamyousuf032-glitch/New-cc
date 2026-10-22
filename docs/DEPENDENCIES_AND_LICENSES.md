@@ -62,3 +62,7 @@ Canvas/Path; no third-party icon assets/fonts or product UI copied. Configuratio
 SharedPreferences, platform dark Material theme and native tooltips already support
 min API 26. Python resource gate uses standard library only. Existing Media3/AndroidX
 maintenance/license pins are unchanged. ADR 0010 links official Android guidance.
+
+Quiet-editor/theme pass adds no dependency. Palette JSON, platform layouts, existing
+Canvas icons and dark-theme variants are original app code/data. ADR 0011 records
+official public color guidance; no third-party UI/source/assets redistributed.

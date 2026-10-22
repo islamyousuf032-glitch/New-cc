@@ -255,4 +255,9 @@
     <string name="timeline_empty" formatted="false">Your timeline is ready. Import media to begin.</string>
     <string name="workspace_name">Workspace</string>
     <string name="generic_video">Video</string>
+    <string name="tools">Tools &amp; project</string>
+    <string name="appearance">Appearance</string>
+    <string name="theme_graphite">Graphite · neutral / ice</string>
+    <string name="theme_midnight">Midnight · blue / periwinkle</string>
+    <string name="theme_ember">Ember · warm / amber</string>
 </resources>

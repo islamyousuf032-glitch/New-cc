@@ -152,3 +152,19 @@ and SHA-256 asset were verified as uploaded via release metadata. Optional Actio
 report upload still exceeded storage quota: no independently downloaded XML/lint
 report or full-screen screenshot review is claimed. Explicit CI step outcomes were
 checked. Documentation-only follow-up does not change the tested APK implementation.
+
+
+## Quiet editor / theme checkpoint (2026-10-22)
+
+User phone screenshots show the studio-icon build works but still looks cluttered.
+ADR 0011 records screenshot-driven hierarchy changes and official color-role research.
+A fixed portrait editor prioritizes fitted viewer, transport, timeline and one focused
+edit row; metadata/source seek, help and secondary/project tools are contextual.
+Small-height/large-font windows retain a scroll fallback. Three persisted role-based
+themes (Graphite, Midnight, Ember) share palette JSON and contrast tests. Home Settings
+selects language or Appearance. Existing processing/render behavior is unchanged; Flow
+is read-only. Quiet status retains important-failure/recovery notifications.
+
+Resource/three-palette contrast checks and host tests are run below; Android layout/
+theme/full regression and actual-phone aesthetic approval are separate gates. No new
+dependency, proprietary assets, project migration, grade or node renderer added.

@@ -255,4 +255,9 @@
     <string name="timeline_empty" formatted="false">আপনার টাইমলাইন প্রস্তুত। শুরু করতে মিডিয়া ইমপোর্ট করুন।</string>
     <string name="workspace_name">ওয়ার্কস্পেস</string>
     <string name="generic_video">ভিডিও</string>
+    <string name="tools">টুল ও প্রজেক্ট</string>
+    <string name="appearance">থিম ও রং</string>
+    <string name="theme_graphite">গ্রাফাইট · নিরপেক্ষ / হালকা নীল</string>
+    <string name="theme_midnight">মিডনাইট · নীল / পেরিউইঙ্কল</string>
+    <string name="theme_ember">এম্বার · উষ্ণ / অ্যাম্বার</string>
 </resources>

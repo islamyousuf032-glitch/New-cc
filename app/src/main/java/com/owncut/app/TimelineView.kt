@@ -99,7 +99,7 @@ internal class TimelineView(context: Context) : View(context) {
         paint.color = StudioUi.background
         canvas.drawRect(visible.left.toFloat(), 0f, visible.right.toFloat(), rulerHeight, paint)
         for (lane in tracks.indices) {
-            paint.color = if (lane % 2 == 0) StudioUi.surface else 0xFF111A28.toInt()
+            paint.color = if (lane % 2 == 0) StudioUi.surface else StudioUi.background
             canvas.drawRect(visible.left.toFloat(), rulerHeight + lane * laneHeight, visible.right.toFloat(), rulerHeight + (lane+1) * laneHeight, paint)
             paint.color = StudioUi.border; paint.strokeWidth = density
             canvas.drawLine(visible.left.toFloat(), rulerHeight + (lane+1)*laneHeight, visible.right.toFloat(), rulerHeight + (lane+1)*laneHeight, paint)
@@ -119,7 +119,7 @@ internal class TimelineView(context: Context) : View(context) {
             paint.color = StudioUi.muted
             canvas.drawLine(x, rulerHeight - 8 * density, x, rulerHeight, paint)
             canvas.drawText(TimelineGeometry.timecode(tick).substringBeforeLast(':'), x + 4 * density, 14 * density, paint)
-            paint.color = 0xFF263449.toInt(); paint.strokeWidth = density
+            paint.color = StudioUi.border; paint.strokeWidth = density
             canvas.drawLine(x, rulerHeight, x, height.toFloat(), paint)
             for (minor in 1..3) {
                 val minorX = x + (tickFrames * pixelsPerFrame * minor / 4).toFloat()
@@ -136,7 +136,7 @@ internal class TimelineView(context: Context) : View(context) {
             val rect = clipRect(clip)
             if (movingClip?.id == clip.id) rect.offset(moveDelta, 0f)
             if (rect.right < visible.left || rect.left > visible.right) continue
-            paint.color = if (clip.id == selectedId) 0xFF214A70.toInt() else 0xFF263951.toInt()
+            paint.color = if (clip.id == selectedId) StudioUi.selection else StudioUi.raised
             canvas.drawRoundRect(rect, 7 * density, 7 * density, paint)
             if (clip.id == selectedId) {
                 paint.color = StudioUi.accent; paint.style = Paint.Style.STROKE; paint.strokeWidth = density
@@ -144,7 +144,7 @@ internal class TimelineView(context: Context) : View(context) {
             }
             canvas.save()
             canvas.clipRect(rect)
-            paint.color = if(clip.id == selectedId) StudioUi.accent else 0xFF607D9E.toInt()
+            paint.color = if(clip.id == selectedId) StudioUi.accent else StudioUi.muted
             canvas.drawRect(rect.left, rect.top, rect.right, rect.top+3*density, paint)
             if (clip.id == selectedId && rect.width() > 30*density) {
                 canvas.drawRoundRect(RectF(rect.left+3*density,rect.top+17*density,rect.left+5*density,rect.bottom-10*density),density,density,paint)
