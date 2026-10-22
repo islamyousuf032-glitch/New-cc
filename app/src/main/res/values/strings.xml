@@ -266,5 +266,5 @@
     <string name="unsupported_repair">Unknown catalog version; repair was refused. No project was changed.</string>
     <string name="repair_catalog">Repair project entry · %1$s</string>
     <string name="repair_catalog_title">Repair library entry (original metadata is preserved)</string>
-    <string name="external_saved_only">External project saved. Local project/recovery was kept: %1$s</string>
+    <string name="external_saved_only">Warning: External project saved, but the local checkpoint did not complete; recovery was not cleared: %1$s</string>
 </resources>

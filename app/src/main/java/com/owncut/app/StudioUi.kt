@@ -151,6 +151,7 @@ internal class EditorStatusView(context: Context) : TextView(context) {
         super.setText(text,type)
         val value = text?.toString().orEmpty()
         val important = listOf("failed", "could not", "cannot", "warning", "snapshot is available", "snapshot আছে", "ব্যর্থ", "হয়নি", "যায়নি", "সতর্কতা").any { value.lowercase().contains(it) }
+        if(!important) previousImportant = null
         if(important && value != previousImportant) { previousImportant = value; onImportant?.invoke(value) }
     }
 }

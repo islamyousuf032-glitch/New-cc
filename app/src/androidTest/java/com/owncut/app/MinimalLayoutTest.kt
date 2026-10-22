@@ -58,8 +58,11 @@ class MinimalLayoutTest {
             status.text = "Could not open source"
             status.text = "Could not open source"
             assertEquals(1,messages.size)
-            status.text = "ভিডিও decode হয়নি"
+            status.text = "Project saved"
+            status.text = "Could not open source"
             assertEquals(2,messages.size)
+            status.text = "ভিডিও decode হয়নি"
+            assertEquals(3,messages.size)
         }
     }
 }
