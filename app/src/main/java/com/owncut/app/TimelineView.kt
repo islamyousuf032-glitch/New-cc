@@ -37,6 +37,7 @@ internal class TimelineView(context: Context) : View(context) {
     private var downX = 0f
     private var moveDelta = 0f
     private var focusedVirtualId = View.NO_ID
+    private var hoveredVirtualId = View.NO_ID
     var onSeek: (String, Long) -> Unit = { _, _ -> }
     var onScrub: (Long, Boolean) -> Unit = { _, _ -> }
     var onScrubCancel: () -> Unit = {}
@@ -44,12 +45,17 @@ internal class TimelineView(context: Context) : View(context) {
 
     init {
         isFocusable = true
+        isFocusableInTouchMode = true
         isClickable = true
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         contentDescription = "Timeline; ruler-এ ট্যাপ বা লাল playhead ধরে seek করুন"
     }
 
     fun setTimeline(values: List<ClipSnapshot>, selected: String?) {
+        if (clips != values) {
+            focusedVirtualId = View.NO_ID
+            sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
+        }
         clips = values
         tracks = values.map { it.trackId }.distinct().sorted()
         selectedId = selected
@@ -153,6 +159,7 @@ internal class TimelineView(context: Context) : View(context) {
         if (!isEnabled || clips.isEmpty()) return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                requestFocus()
                 downX = event.x
                 draggingHead = event.y < rulerHeight && kotlin.math.abs(event.x - xForFrame(playheadFrame)) < 22f * density
                 if (draggingHead) {
@@ -199,6 +206,24 @@ internal class TimelineView(context: Context) : View(context) {
         return true
     }
 
+    override fun dispatchHoverEvent(event: MotionEvent): Boolean {
+        val manager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as android.view.accessibility.AccessibilityManager
+        if (!manager.isEnabled || !manager.isTouchExplorationEnabled) return super.dispatchHoverEvent(event)
+        val next = if (event.actionMasked == MotionEvent.ACTION_HOVER_EXIT) View.NO_ID else
+            clips.indexOfFirst { clipRect(it).contains(event.x, event.y) }.let { if (it < 0) View.NO_ID else it + 1 }
+        if (next != hoveredVirtualId) {
+            for ((id, type) in listOf(hoveredVirtualId to AccessibilityEvent.TYPE_VIEW_HOVER_EXIT,
+                next to AccessibilityEvent.TYPE_VIEW_HOVER_ENTER)) {
+                if (id == View.NO_ID) continue
+                val changed = AccessibilityEvent.obtain(type)
+                changed.setSource(this, id); changed.packageName = context.packageName
+                parent?.requestSendAccessibilityEvent(this, changed)
+            }
+            hoveredVirtualId = next
+        }
+        return next != View.NO_ID || event.actionMasked == MotionEvent.ACTION_HOVER_EXIT
+    }
+
     private val nodes = object : AccessibilityNodeProvider() {
         override fun createAccessibilityNodeInfo(id: Int): AccessibilityNodeInfo? {
             if (id == View.NO_ID) return AccessibilityNodeInfo.obtain(this@TimelineView).also { info ->
@@ -216,7 +241,10 @@ internal class TimelineView(context: Context) : View(context) {
                 info.isAccessibilityFocused = focusedVirtualId == id
                 info.setBoundsInParent(bounds)
                 val location = IntArray(2); getLocationOnScreen(location); bounds.offset(location[0], location[1]); info.setBoundsInScreen(bounds)
-                info.isVisibleToUser = isShown
+                val visible = Rect()
+                val localBounds = Rect(); clipRect(clip).roundOut(localBounds)
+                info.isVisibleToUser = isShown && getLocalVisibleRect(visible) && Rect.intersects(visible, localBounds)
+                info.isSelected = clip.id == selectedId
                 info.addAction(AccessibilityNodeInfo.ACTION_CLICK)
                 info.addAction(if (focusedVirtualId == id) AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS else AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)
             }

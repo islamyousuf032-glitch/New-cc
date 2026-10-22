@@ -65,3 +65,8 @@ Android tests: JNI mapping, bounded long-timeline geometry/timecode, real red Ca
 pixels, ruler taps/head scrubs/accessible clip action, real non-keyframe MediaPlayer
 position, advancing playback cursor, split/Undo anchor and gap without project mutation.
 Run all prior render/publication/history/lifecycle regressions before publishing an APK.
+
+First executed verification: run `39727045607` passed the full suite for `aa57e0d`.
+Final review guards and the non-selected-clip drag/preview regression are being rerun
+before the final APK is offered. Scope does not change: no compositor, gap rendering,
+advanced tools, grading or RAW is claimed.

@@ -152,6 +152,14 @@ class TimelinePlayheadTest {
                     assertNull(field("selectedUri").get(activity))
                     assertEquals(100L, (field("timelineView").get(activity) as TimelineView).playheadFrame)
                     assertEquals(before, (field("engine").get(activity) as EngineSession).clips())
+                    // Moving a non-selected clip must also prepare that clip's source, not retain the old preview.
+                    invoke(activity, "moveClipToFreeSlot", arrayOf(ClipSnapshot::class.java, String::class.java, Long::class.javaPrimitiveType!!), before[1], "v1", 180L)
+                }
+                awaitReady(scenario)
+                scenario.onActivity { activity ->
+                    assertEquals(1000L, field("previewPositionMs").getLong(activity))
+                    assertEquals(180L, (field("timelineView").get(activity) as TimelineView).playheadFrame)
+                    assertEquals(android.net.Uri.fromFile(file), field("selectedUri").get(activity))
                 }
             }
         } finally { file.delete() }

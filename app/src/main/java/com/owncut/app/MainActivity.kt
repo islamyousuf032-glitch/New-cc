@@ -94,6 +94,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 } catch (_: IllegalStateException) { null }
                 if (tick != null) mainHandler.post {
                     if (generation == playerGeneration && player === current) {
+                        if (timelineScrubbing || isSeeking || previewSeeking) return@post
                         val (position, reachedClipEnd) = tick
                         if (!isSeeking && !timelineScrubbing && !previewSeeking) {
                             seekBar.progress = position
@@ -280,6 +281,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         root.addView(timelineScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(164)))
 
         seekBar = SeekBar(this).apply {
+            isEnabled = false
             max = 1
             contentDescription = "Selected source clip seek bar; red timeline playhead shows project time"
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -429,13 +431,14 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 onSeek = { track, frame -> seekTimelineAt(track, frame) }
                 onScrub = { frame, commit ->
                     if (!projectIoBusy) {
+                        val startingScrub = !timelineScrubbing && !commit
                         timelineScrubbing = !commit
                         timelineFrame = frame; setPlayheadDisplay(frame)
                         if (commit) {
                             val track = timelineClips.firstOrNull { it.id == selectedClipId }?.trackId
                                 ?: timelineClips.firstOrNull()?.trackId
                             if (track != null) seekTimelineAt(track, frame)
-                        } else pauseForTimelineScrub()
+                        } else if (startingScrub) pauseForTimelineScrub()
                     }
                 }
                 onScrubCancel = { timelineScrubbing = false; updateTimelinePlayhead() }
@@ -530,8 +533,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 metadataRequestSequence += 1; selectedMediaLoading = false
                 selectedClipId = null; selectedUri = null
                 previewStartMs = 0L; previewEndMs = 0L; previewPositionMs = 0L
+                seekBar.max = 1; seekBar.progress = 0; durationMs = 0L
                 releasePlayer(); preview.alpha = 0f; timelineGapPosition = true; timelineFrame = frame
                 refreshTimeline()
+                revealPlayhead()
                 mediaText.text = "Timeline-এর এই স্থানে কোনো clip নেই"
                 statusText.text = "Gap / timeline শেষ · clip-এ ট্যাপ করে preview করুন; project বদলায়নি"
                 return
@@ -542,12 +547,13 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 seekPreviewTo(target.sourcePositionMs)
             } else selectClip(clip, sourcePositionMs = target.sourcePositionMs)
             setPlayheadDisplay(target.timelineFrame)
+            revealPlayhead()
         } catch (error: Exception) { showError(error); updateTimelinePlayhead() }
     }
 
-    private fun seekPreviewTo(sourceMs: Long, resumeIfPlaying: Boolean = false) {
+    private fun seekPreviewTo(sourceMs: Long, resumeIfPlaying: Boolean = false, startAfterSeek: Boolean = false) {
         val current = player ?: return
-        if (!playerPrepared) return
+        if (!playerPrepared || previewSeeking) return
         val target = sourceMs.coerceIn(previewStartMs, (previewEndMs - 1L).coerceAtLeast(previewStartMs))
         val serial = ++seekSerial
         val generation = playerGeneration
@@ -558,7 +564,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         mediaHandler.post {
             if (player !== current || generation != playerGeneration) return@post
             try {
-                val resume = resumeIfPlaying && current.isPlaying
+                val resume = startAfterSeek || (resumeIfPlaying && current.isPlaying)
                 if (current.isPlaying) current.pause()
                 current.setOnSeekCompleteListener { ready ->
                     if (player === ready && generation == playerGeneration && serial == seekSerial) {
@@ -589,9 +595,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     }
 
     private fun moveClipToFreeSlot(clip: ClipSnapshot, trackId: String, proposedStart: Long) {
-        if (projectIoBusy || selectedMediaLoading) return
+        if (projectIoBusy || selectedMediaLoading || previewSeeking) return
         val session = engine ?: return
         try {
+            val wasSelected = selectedClipId == clip.id
             val others = session.clips().filter { it.trackId == trackId && it.id != clip.id }
             val duration = clip.durationFrames
             fun isFree(start: Long): Boolean = others.none { other ->
@@ -615,6 +622,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             session.moveClip(clip.id, trackId, destination)
             selectedClipId = clip.id
             refreshTimeline()
+            if (!wasSelected) session.clips().firstOrNull { it.id == clip.id }?.let { selectClip(it) }
             scheduleAutosave()
             updateEngineStatus()
             statusText.text = if (destination == proposedStart) "Timeline clip সরানো হয়েছে" else "Clip সংঘর্ষ এড়াতে নিকটতম ফাঁকা স্থানে বসানো হয়েছে"
@@ -1203,6 +1211,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         if (projectIoBusy) return
         val request = ++metadataRequestSequence
         selectedMediaLoading = true
+        seekBar.isEnabled = false
         statusText.text = "ভিডিওর metadata পড়া হচ্ছে…"
         metadataExecutor.execute {
             var duration = 0L
@@ -1338,6 +1347,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                                 if (generation == playerGeneration && player === ready) {
                                     durationMs = readyDuration.toLong()
                                     previewPositionMs = startPosition
+                                    seekBar.isEnabled = true
                                     seekBar.max = readyDuration.coerceAtLeast(1)
                                     seekBar.progress = startPosition.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                                     updateTimelinePlayhead(follow = shouldResume)
@@ -1376,6 +1386,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                         resumeAfterSelection = false
                         player = null
                         playerPrepared = false
+                        previewSeeking = false
                         failed.release()
                         mainHandler.post {
                             clearFirstFrameDiagnostic()
@@ -1394,6 +1405,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 if (player === candidate) {
                     player = null
                     playerPrepared = false
+                    previewSeeking = false
                 }
                 candidate.release()
                 mainHandler.post {
@@ -1422,7 +1434,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     private fun togglePlayback() {
         val current = player
-        if (!playerPrepared || current == null) {
+        if (!playerPrepared || current == null || previewSeeking) {
             statusText.text = "ভিডিও এখনো প্রস্তুত নয়—clip নির্বাচন করে একটু অপেক্ষা করুন।"
             return
         }
@@ -1441,15 +1453,13 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 } else {
                     val position = current.currentPosition.toLong()
                     if (position < previewStartMs || position >= previewEndMs) {
-                        current.setOnSeekCompleteListener { ready ->
-                            if (generation == playerGeneration && player === ready) {
-                                ready.setOnSeekCompleteListener(null)
-                                ready.start()
-                                mainHandler.post { if (generation == playerGeneration) mainHandler.post(playbackTicker) }
-                            }
+                        mainHandler.post {
+                            if (generation == playerGeneration && player === current)
+                                seekPreviewTo(previewStartMs, startAfterSeek = true)
                         }
-                        current.seekTo(previewStartMs, MediaPlayer.SEEK_CLOSEST)
-                    } else current.start()
+                        return@post
+                    }
+                    current.start()
                     mainHandler.post {
                         playButton.text = "বিরতি"
                         if (!firstVideoFrameRendered) {
@@ -1475,6 +1485,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         val old = player
         player = null
         playerPrepared = false
+        isSeeking = false; timelineScrubbing = false
+        if (::seekBar.isInitialized) seekBar.isEnabled = false
         playerGeneration += 1
         playButtonOrNull()?.let { it.isEnabled = false; it.text = "ভিডিও চালান" }
         if (old != null) mediaHandler.post {
@@ -1489,7 +1501,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         try {
             previewSurface = Surface(texture)
             surfaceReady = true
-            selectedUri?.let(::preparePlayer)
+            if (!selectedMediaLoading) selectedUri?.let(::preparePlayer)
         } catch (error: RuntimeException) {
             showStartupFailure(error)
         }
@@ -1537,7 +1549,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     override fun onStart() {
         super.onStart()
-        if (surfaceReady) selectedUri?.let(::preparePlayer)
+        if (surfaceReady && !selectedMediaLoading && player == null) selectedUri?.let(::preparePlayer)
     }
 
     override fun onStop() {

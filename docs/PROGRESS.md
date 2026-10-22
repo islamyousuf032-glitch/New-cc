@@ -240,3 +240,17 @@ new UI/real-player tests are pending; no new APK is offered until those tests pa
 Device checks still needed: red-marker smoothness/latency, fast repeated seeks, long
 clip/zoomed timeline ergonomics, TalkBack/large fonts, source codecs and exact A/V sync.
 The prior export gap-confirmation and single-track render limitations remain.
+
+Timeline first full run `39727045607` (`aa57e0d`) passed Android build/lint,
+AndroidTest compilation, 16 KB alignment and the expanded emulator suite, including
+real preview seek/clock advancement, split/Undo anchor, JNI/native mapping and red
+Canvas/ruler/scrub/accessibility actions. Portable CI `39727045626` passed. No phone
+validation of the new playhead yet. The automatically published first checkpoint is
+not being offered as the final batch while review fixes remain.
+
+Final review source adds scrub/seek stale-tick guards, one pause request per scrub,
+source-slider availability/reset, seek-after-end callback reuse, decoder-error seek
+state recovery, delayed-surface metadata guards, visible/accessibility hover/focus
+handling and reveal-on-keyboard/accessible seek. Moving a non-selected clip now loads
+that clip's source instead of leaving the old preview paired with the new selection;
+the real-player regression is extended to cover this. Final CI rerun pending.
