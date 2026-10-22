@@ -46,3 +46,7 @@ Validation: palette/resource gate, host engine tests, Android layout/context/the
 status regression plus existing language, real-player/edit/history/render/storage
 suite. Actual phone ergonomics, user font override, TalkBack and aesthetic approval
 still require phone validation. Current architecture/coordinator roadmap is unchanged.
+
+Executed: `cb5bfa7`, Android `39777165014`, portable `39777165246` passed.
+Verified APK/checksum: `phone-test-39777165014`. Physical aesthetic/ergonomic
+review is still pending. See BUILD_AND_TEST for exact evidence and artifact limits.

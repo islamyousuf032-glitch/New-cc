@@ -132,3 +132,21 @@ Android run `39764813788` ও portable `39764813603` পাস। নতুন A
 https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39764813788/app-debug.apk
 ফোনে দুই ভাষা, Settings, ছোট পর্দা/বড় font, tooltips, rotation এবং আগের render/Gallery
 flow বিশেষ করে দেখবেন। ইনস্টলের আগে external project backup রাখবেন।
+
+
+## Screenshot অনুযায়ী পরিষ্কার layout ও theme
+
+স্বাভাবিক portrait Edit-এ এখন viewer → ছোট transport row → timeline →
+Undo/Split/Delete/Redo। নিচে workspace navigation; header-এর Tools icon দিয়ে
+trim/ripple এবং Save/Save As/Open saved/Recover পাওয়া যাবে। Source slider ও
+বিস্তারিত metadata শুধু Media-তে; নির্দেশনা/সাধারণ status মূল Edit-এ নয়।
+গুরুত্বপূর্ণ error/recovery notification থাকে। Deliver-এ render/cancel/status।
+Short landscape/বড় font-এ layout scroll করার fallback আছে।
+
+Home gear → Appearance থেকে Graphite, Midnight বা Ember বাছাই করুন। একই Settings
+menu-তে Language আছে। এই রং শুধু app-এর; footage/render grading বদলায় না।
+Flow এখনও read-only, কার্যকর node editor নয়—সেটি স্থাপত্যের পরবর্তী বাস্তবায়ন।
+
+নতুন APK: https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk
+Android `39777165014` এবং portable `39777165246` পাস; আপনার ফোনে নতুন layout/theme
+এখনও যাচাই হয়নি। গুরুত্বপূর্ণ project externally Save As করে তারপর APK বদলাবেন।

@@ -1,5 +1,5 @@
-> **Latest verified debug APK:** [Studio UI + Bengali/English](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39764813788/app-debug.apk)
-> — original icon controls, refreshed timeline/library and persistent app language; emulator regression verified.
+> **Latest verified debug APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
+> — contextual tools, focused portrait workspace, persisted theme and app language; emulator regression verified.
 > Save important project documents externally before changing debug installations.
 
 > **Forward design:** [Owncut advanced architecture v1](docs/ADVANCED_ARCHITECTURE.md)
@@ -168,3 +168,23 @@ is read-only. Quiet status retains important-failure/recovery notifications.
 Resource/three-palette contrast checks and host tests are run below; Android layout/
 theme/full regression and actual-phone aesthetic approval are separate gates. No new
 dependency, proprietary assets, project migration, grade or node renderer added.
+
+
+### Quiet editor / themes — verified execution
+
+Code `cb5bfa7cc476b435f3fa6c35b68bcec0302b5a7e` passed Android run
+`39777165014` / job `119818925802`: bilingual/three-theme contrast gate, build/lint,
+AndroidTest compilation, APK alignment, and full Android 35 x86_64 emulator suite.
+New tests verify quiet default Edit (no metadata/source slider/status/log toolbar),
+one visible Play/Import, contextual Media/Tools, same viewer/timeline instances,
+three persisted/recreated themes, and important failure notification deduplication.
+Existing language/icon, playhead/real seek, history/lifecycle, project/library, render
+and publication regression tests passed. Portable CMake/build/CTest run `39777165246`
+passed. Local `make test`, 261-pair resource/contrast gate and diff check passed.
+
+Verified prerelease `phone-test-39777165014` targets that exact source; uploaded APK
+7,021,315 bytes plus SHA-256 asset. Optional Actions report upload hit storage quota;
+step outcomes and release metadata were checked, not independently downloaded XML
+or full-screen screenshots. Actual aesthetic approval, TalkBack, user font overrides,
+short-window/large-font scrolling and phone codecs remain phone-validation tasks.
+No claim that automated layout checks certify professional appearance.
