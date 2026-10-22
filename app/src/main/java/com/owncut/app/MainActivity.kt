@@ -969,11 +969,12 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         hasUnsavedChanges = true
         editGeneration += 1
         val scheduledGeneration = editGeneration
+        val scheduledStore = managedStore
         pendingAutosave?.cancel(false)
         pendingAutosave = metadataExecutor.schedule({
             if (handingOffEngine) return@schedule
             try {
-                if (managedStore != null) managedStore!!.autosave(session) else session.saveAutosave(projectPath)
+                scheduledStore?.autosave(session) { !handingOffEngine } ?: session.saveAutosave(projectPath)
                 mainHandler.post { if (!isDestroyed && !projectIoBusy && editGeneration == scheduledGeneration) statusText.text = AppLanguage.text(R.string.message_80236dfc68) }
             } catch (error: Exception) {
                 mainHandler.post { if (!isDestroyed) statusText.text = AppLanguage.text(R.string.message_eeae4b4c38, error.message) }

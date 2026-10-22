@@ -28,7 +28,10 @@ internal class ManagedProjectStore private constructor(private val file: File, p
         expected = fingerprint()
         session.clearAutosave(file.absolutePath)
     }
-    @Synchronized fun autosave(session: EngineSession) { checkOpen(); check(loaded); session.saveAutosave(file.absolutePath) }
+    @Synchronized fun autosave(session: EngineSession, canWrite: () -> Boolean = { true }) {
+        checkOpen(); check(loaded)
+        if (canWrite()) session.saveAutosave(file.absolutePath)
+    }
     @Synchronized fun recover(session: EngineSession): Boolean {
         checkOpen(); check(loaded)
         val recovery = File(file.absolutePath + ".autosave")
