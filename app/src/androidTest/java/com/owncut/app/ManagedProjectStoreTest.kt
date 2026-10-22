@@ -21,6 +21,9 @@ class ManagedProjectStoreTest {
                 File(file.absolutePath+".autosave").writeText("corrupt")
                 assertThrows(Exception::class.java) { store.recover(session) }
                 assertEquals(before,session.clips())
+                java.io.RandomAccessFile(File(file.absolutePath+".autosave"),"rw").use { it.setLength(ProjectDocumentIo.MAX_PROJECT_BYTES+1) }
+                assertThrows(IllegalArgumentException::class.java) { store.recover(session) }
+                assertEquals(before,session.clips())
                 assertFalse(dir.listFiles()!!.any { it.name.startsWith("read-") })
                 store.autosave(session)
                 val recovery = File(file.absolutePath+".autosave").readBytes()

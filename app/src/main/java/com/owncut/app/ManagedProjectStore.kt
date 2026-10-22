@@ -8,7 +8,7 @@ import java.security.MessageDigest
 /** Single-writer platform storage seam; native engine still owns codec and edit semantics.
  * Acquire/use/close on workers. Retain the same owner across Activity recreation.
  */
-internal class ManagedProjectStore private constructor(private val file: File, private val lockFile: RandomAccessFile, private val lease: FileLock) : AutoCloseable {
+internal class ManagedProjectStore private constructor(private val file: File, private val lockFile: RandomAccessFile, private val lease: FileLock, private val identity: String) : AutoCloseable {
     private var expected: String? = null
     private var loaded = false
     private var closed = false
@@ -68,15 +68,26 @@ internal class ManagedProjectStore private constructor(private val file: File, p
     @Synchronized override fun close() {
         if(closed) return
         closed = true
-        try { lease.release() } finally { lockFile.close() }
+        synchronized(writers) {
+            try { lease.release() } finally {
+                try { lockFile.close() } finally { writers.remove(identity) }
+            }
+        }
     }
     companion object {
-        fun acquire(file: File): ManagedProjectStore {
-            val owner = RandomAccessFile(File(file.parentFile,"writer.lock"),"rw")
+        // POSIX fcntl locks may be released by closing *any* descriptor for that inode.
+        // Refuse same-process duplicates before opening another descriptor, not after tryLock.
+        private val writers = mutableSetOf<String>()
+        fun acquire(file: File): ManagedProjectStore = synchronized(writers) {
+            val anchor = File(file.parentFile,"writer.lock").canonicalFile
+            val identity = anchor.path
+            check(identity !in writers) { AppLanguage.text(R.string.project_already_open) }
+            val owner = RandomAccessFile(anchor,"rw")
             try {
                 val lease = try { owner.channel.tryLock() } catch (_: java.nio.channels.OverlappingFileLockException) { null }
                 check(lease != null) { AppLanguage.text(R.string.project_already_open) }
-                return ManagedProjectStore(file,owner,lease)
+                writers.add(identity)
+                ManagedProjectStore(file,owner,lease,identity)
             } catch(error: Exception) { owner.close(); throw error }
         }
     }
