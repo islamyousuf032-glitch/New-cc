@@ -14,10 +14,11 @@ internal class ManagedProjectStore private constructor(private val file: File, p
     private var closed = false
     @Synchronized fun load(session: EngineSession) {
         checkOpen()
-        val before = fingerprint()
-        session.loadProject(file.absolutePath)
-        check(before == fingerprint()) { AppLanguage.text(R.string.project_conflict) }
-        expected = before; loaded = true
+        stableSnapshot(file) { snapshot, hash ->
+            session.loadProject(snapshot.absolutePath) // native parse before live-state replacement
+            expected = hash
+            loaded = true
+        }
     }
     @Synchronized fun checkpoint(session: EngineSession) {
         checkOpen(); check(loaded) { AppLanguage.text(R.string.project_not_loaded) }
@@ -36,11 +37,23 @@ internal class ManagedProjectStore private constructor(private val file: File, p
         checkOpen(); check(loaded)
         val recovery = File(file.absolutePath + ".autosave")
         if (!recovery.exists()) return false
-        EngineSession().use { it.loadProject(recovery.absolutePath) }
-        return session.loadAutosave(file.absolutePath)
+        stableSnapshot(recovery) { snapshot, _ -> session.loadProject(snapshot.absolutePath) }
+        return true
     }
     private fun checkOpen() { check(!closed) { "Managed store closed" } }
-    private fun fingerprint(): String? {
+    /** No live-state mutation until the exact bounded snapshot passes revision checks. */
+    private fun stableSnapshot(source: File, consume: (File, String) -> Unit) {
+        val before = requireNotNull(fingerprint(source)) { "Project file is missing" }
+        val snapshot = File.createTempFile("read-", ".owncut", file.parentFile)
+        try {
+            source.inputStream().buffered().use { input ->
+                snapshot.outputStream().buffered().use { output -> ProjectDocumentIo.copy(input,output) }
+            }
+            check(before == fingerprint(source) && before == fingerprint(snapshot)) { AppLanguage.text(R.string.project_conflict) }
+            consume(snapshot,before)
+        } finally { snapshot.delete() }
+    }
+    private fun fingerprint(file: File = this.file): String? {
         if (!file.exists()) return null
         require(file.length() <= ProjectDocumentIo.MAX_PROJECT_BYTES) { "Project size exceeds safety limit" }
         val digest = MessageDigest.getInstance("SHA-256")

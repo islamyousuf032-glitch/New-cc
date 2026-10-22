@@ -21,6 +21,7 @@ class ManagedProjectStoreTest {
                 File(file.absolutePath+".autosave").writeText("corrupt")
                 assertThrows(Exception::class.java) { store.recover(session) }
                 assertEquals(before,session.clips())
+                assertFalse(dir.listFiles()!!.any { it.name.startsWith("read-") })
                 store.autosave(session)
                 val recovery = File(file.absolutePath+".autosave").readBytes()
                 EngineSession().use { foreign -> foreign.addMediaClip("content://test/foreign",2000); foreign.saveProject(file.absolutePath) }
