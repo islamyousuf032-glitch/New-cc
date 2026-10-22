@@ -109,3 +109,26 @@ import/edit/play/render ভেঙে নতুন page/node যোগ করা�
 ও navigation এখনও আপনার ফোনে যাচাই হয়নি। [পরীক্ষার APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39748116540/app-debug.apk)।
 ফোনে দুটি project আলাদাভাবে edit/ফিরে/reopen, recovery, rotation ও render/Gallery
 বিশেষ করে পরীক্ষা করবেন। বর্তমান local library-কে external backup ভাববেন না।
+
+
+## নতুন UI ও ভাষা (Studio UI ব্যাচ)
+
+নতুন ইনস্টল/পুরোনো ব্যাচ থেকে এই UI-তে প্রথমবার এলে আগে **English / বাংলা**
+নির্বাচন করতে হবে। পছন্দ রাখা থাকে। Projects-এর উপরের **gear icon** থেকে পরে
+বদলাতে পারবেন। ভাষা বদলাতে project file বা original media পরিবর্তন হয় না।
+System file picker/codec/provider-এর নিজস্ব ভাষা app-এর নিয়ন্ত্রণের বাইরে।
+
+Editing, history, save/recovery, import/relink, playback ও delivery action এখন
+icon দিয়ে দেখানো হয়। বোতাম ধরে রাখলে নির্বাচিত ভাষায় tooltip; accessibility
+label-ও থাকে। Workspace navigation-ও icon, বর্তমান বিভাগে outline। Project name,
+confirmation, capability/read-only ব্যাখ্যা এবং language choice পড়ার মতো text-এই
+রয়েছে—সম্মতি বোঝাতে শুধু অস্পষ্ট icon নয়।
+
+Timeline-এ dark ruler, grid, আলাদা lane, source name, selected clip accent/handles
+ও আগের red playhead আছে। সাজানোর জন্য fake waveform/thumbnail যোগ করা হয়নি।
+এটি presentation update; node processing বা render preset-এর নতুন দাবি নয়।
+
+Android run `39764813788` ও portable `39764813603` পাস। নতুন APK:
+https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39764813788/app-debug.apk
+ফোনে দুই ভাষা, Settings, ছোট পর্দা/বড় font, tooltips, rotation এবং আগের render/Gallery
+flow বিশেষ করে দেখবেন। ইনস্টলের আগে external project backup রাখবেন।

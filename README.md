@@ -1,5 +1,5 @@
-> **Latest verified debug APK:** [Project-workspace batch](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39748116540/app-debug.apk)
-> — native project library / workspace navigation; Android emulator regression verified.
+> **Latest verified debug APK:** [Studio UI + Bengali/English](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39764813788/app-debug.apk)
+> — original icon controls, refreshed timeline/library and persistent app language; emulator regression verified.
 > Save important project documents externally before changing debug installations.
 
 > **Forward design:** [Owncut advanced architecture v1](docs/ADVANCED_ARCHITECTURE.md)
@@ -127,7 +127,28 @@ diagnostics remain untouched. ADR 0010 records scope and platform references.
 
 No new dependency, project schema, editing semantics or render preset. Current Flow
 is still read-only. Host `make test`, resource/format/reference/contrast checks and
-`git diff --check` passed; Android build/lint/new UI/full regression execution pending.
+`git diff --check` passed; Android execution passed as recorded below.
 This new visual design has not been visually inspected on a physical phone. Large
 fonts, icon discovery, TalkBack, portrait/landscape and both-language provider flows
 need device validation; do not claim host tests prove those.
+
+
+### Studio UI batch — executed evidence
+
+Final UI source `1e701d4b08bfcc71811fe54865101ce64db8098c`: Android run
+`39764813788`, job `119777525804`, passed resource gate, APK build/lint,
+AndroidTest compilation, alignment and full Android 35 x86_64 emulator regression.
+New tests passed: mandatory first-run choice, Bengali context after recreation,
+real Settings dialog selection back to English, preference retention, both-language
+editor icon semantics/tooltips/minimum targets, icon bitmap unchanged by semantic
+label length, and page switching without native timeline mutation. Existing project,
+playhead, JNI, lifecycle, real-media render and publication regressions passed too.
+Portable run `39764813603` passed resource gate, CMake configure/build and CTest.
+Local `make test`, Python resource/reference/placeholder/contrast gate (256 pairs)
+and diff check passed. No physical-phone visual/TalkBack/ergonomic validation yet.
+
+Prerelease `phone-test-39764813788` targets that exact source; APK 7,018,288 bytes
+and SHA-256 asset were verified as uploaded via release metadata. Optional Actions
+report upload still exceeded storage quota: no independently downloaded XML/lint
+report or full-screen screenshot review is claimed. Explicit CI step outcomes were
+checked. Documentation-only follow-up does not change the tested APK implementation.

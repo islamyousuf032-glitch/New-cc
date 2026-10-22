@@ -36,3 +36,7 @@ parity and 4.5:1 palette checks run as a dependency-free Python gate. New Androi
 exercise first-run language choice, retention/recreation, real Settings switch and
 both-language accessible icon editor controls. Host tests cannot validate Android
 rendered layout; full regression CI and phone ergonomics remain separate gates.
+
+Executed: final `1e701d4`, Android `39764813788` and portable `39764813603`
+passed. APK/checksum published as `phone-test-39764813788`. Physical phone visual
+review remains pending; see BUILD_AND_TEST for exact gate/optional artifact limits.
