@@ -148,7 +148,7 @@ jobs:
           adb uninstall com.owncut.app.test || true
           adb uninstall com.owncut.app || true
           adb install app/build/outputs/apk/debug/app-debug.apk
-          adb install app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb install -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           adb shell am instrument -w -e class com.owncut.app.UpdatePersistenceTest#seed com.owncut.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/seed.txt"
           grep -q 'OK (1 test)' "$RUNNER_TEMP/seed.txt"
           adb install -r "$RUNNER_TEMP/current.apk"

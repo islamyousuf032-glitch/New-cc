@@ -70,9 +70,12 @@ class ProjectLibraryTest {
         InstrumentationRegistry.getInstrumentation().context.assets.open("render-a.mp4").use { input -> fixture.outputStream().use { input.copyTo(it) } }
         val intent = Intent(context, MainActivity::class.java).putExtra(MainActivity.EXTRA_LIBRARY_ID, project.id)
         try {
+            var owner: Any? = null
             ActivityScenario.launch<MainActivity>(intent).use { scenario ->
                 waitFor { var ready = false; scenario.onActivity { ready = !field("projectIoBusy").getBoolean(it) }; ready }
                 scenario.onActivity { activity ->
+                    owner = field("managedStore").get(activity)
+                    assertNotNull(owner)
                     val session = field("engine").get(activity) as EngineSession
                     session.addMediaClip(android.net.Uri.fromFile(fixture).toString(), 3000)
                     call(activity, "scheduleAutosave")
@@ -83,6 +86,7 @@ class ProjectLibraryTest {
                 }
                 scenario.recreate()
                 scenario.onActivity { activity ->
+                    assertSame(owner,field("managedStore").get(activity))
                     assertEquals("Deliver", field("workspacePage").get(activity))
                     assertEquals(1, (field("engine").get(activity) as EngineSession).clips().size)
                     call(activity, "returnToLibrary")

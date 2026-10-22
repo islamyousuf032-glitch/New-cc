@@ -76,7 +76,7 @@ internal class ProjectLibrary(private val filesDir: File) {
         val dir = directory(id)
         // Never replace an unknown-future catalog version through the repair UI.
         val metadata = File(dir,"metadata.json")
-        val existing = runCatching { org.json.JSONObject(metadata.readText()).getInt("version") }.getOrNull()
+        val existing = if(metadata.length() <= 16L*1024L) runCatching { org.json.JSONObject(metadata.readText()).getInt("version") }.getOrNull() else null
         require(existing == null || existing == 1) { AppLanguage.text(R.string.unsupported_repair) }
         ManagedProjectStore.acquire(projectFile(id)).use { store ->
             EngineSession().use { store.load(it) }
