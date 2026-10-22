@@ -20,6 +20,10 @@ private source, full training videos or an exhaustive benchmark):
 - [Node Video official Quick Start](https://nodevideo.com/guide/quick-start):
   layer/root selection, timeline, contextual properties, keyframes/curves, preview
   quality independent of export, and projects/drafts on returning home.
+- [Node Video official FAQ](https://www.nodevideo.com/guide/faq): preview cache
+  invalidation, resource pressure and preview/export quality separation inform the
+  need for bounded caches/capability diagnostics. Vendor sync/quality claims are not
+  independent performance evidence for Owncut or a promised result.
 - [Node Video project exchange](https://www.nodevideo.com/guide/import-export-project):
   distinguishes editable project exchange from rendered video; documents packages
   and limitations. Owncut does **not** implement their package or template format.
@@ -198,7 +202,8 @@ maintenance/license review and device measurements, not speculative dependency a
 
 App-private `files/projects/<UUID>/metadata.json` (Android AtomicFile, schema 1, bounded
 16 KiB) plus `project.owncut` (native atomic save), `project.owncut.autosave`.
-List scans at most 1000 entries, sorts by last-open/checkpoint metadata, and reports
+Catalog operations serialize process-wide across Activity recreation. Creation rejects
+a full library before writing a new project. Listing validates at most 1000 entries, sorts by last-open/checkpoint metadata, and reports
 bad metadata without deleting documents. Metadata and native document are not one
 transaction: a crash can leave an orphan directory; report and preserve it, do not
 silently delete or fabricate a catalog card. Project names 1–80 characters, no control
@@ -257,6 +262,11 @@ ordering. Source-cadence export and 30-fps editorial grid currently differ delib
 configurable project rate must update native serialization, UI geometry, JNI and tests
 as one change, not just expose a preference.
 
+Normal navigation has one editor. Before adding multiple windows/sessions, implement
+per-project writer leases and revision/conflict checking across sessions, not only a
+command queue inside one session. Concurrent independently opened writers are not a
+supported conflict-resolving workflow in this batch.
+
 ## 10. Evidence and remaining validation
 
 Baseline playhead batch `8f5df51`, Android run `39728248796`, portable `39728248775`
@@ -269,3 +279,10 @@ non-destructive legacy migration, malformed metadata/path protection, launcher r
 managed checkpoint/reopen and page retention. Physical phone checks still needed:
 edge-to-edge layout, small screen/large fonts, Back/save failure, multiple projects,
 process kill/recovery, URI providers, and continued rendering/Gallery behavior.
+
+
+Final execution: `f652c38`, Android run `39748116540` (job `119721585167`) and
+portable run `39748116580` passed. APK/checksum prerelease `phone-test-39748116540`
+was verified as uploaded, targeting the exact tested source. Details, the initially
+incorrect test-fixture path and optional report-storage quota limitation are recorded
+in PROGRESS/BUILD_AND_TEST; no claim of physical-device validation for this batch.

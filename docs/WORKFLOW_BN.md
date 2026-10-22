@@ -100,3 +100,12 @@ color/audio time, cancellation, licensing ও testing gate নির্ধার
 এই নথি ও engineering baseline update করব; বড় সিদ্ধান্তে নতুন ADR রাখব। Saved project
 compatibility, output-এর পরিবর্তন এবং migration tests একই সঙ্গে বদলাবে। আগে কাজ করা
 import/edit/play/render ভেঙে নতুন page/node যোগ করাকে অগ্রগতি ধরা হবে না।
+
+
+## যাচাইয়ের অবস্থা
+
+বর্তমান code `f652c38`-এর Android build/lint, alignment এবং পুরো emulator suite
+পাস করেছে (`39748116540`); portable CMake/CTest-ও পাস (`39748116580`)। নতুন library
+ও navigation এখনও আপনার ফোনে যাচাই হয়নি। [পরীক্ষার APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39748116540/app-debug.apk)।
+ফোনে দুটি project আলাদাভাবে edit/ফিরে/reopen, recovery, rotation ও render/Gallery
+বিশেষ করে পরীক্ষা করবেন। বর্তমান local library-কে external backup ভাববেন না।

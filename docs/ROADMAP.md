@@ -154,3 +154,25 @@ Host tests and Android verification for this batch are recorded in the final evi
 entry below when executed. Physical-phone verification of this new navigation is pending.
 Test on phone: create two projects, import/edit/back/reopen isolation, external Save As,
 legacy recovery, large fonts/rotation, media relink, render/Gallery, and Back during I/O.
+
+
+### Executed architecture-batch evidence
+
+Final implementation `f652c381316d209eb6be2bb5b736c89ede802e12` passed Android
+run `39748116540` / job `119721585167`: APK build/lint, AndroidTest compilation,
+16 KB alignment, KVM and full Android 35 x86_64 instrumentation. New catalog tests
+cover isolated documents, names/path validation, non-destructive/idempotent legacy
+migration, malformed/oversized metadata with valid cards preserved, launcher routing,
+managed checkpoint/reopen and retained workspace page without replacing the viewer.
+Existing playhead/JNI/lifecycle/project-I/O/render/publication regressions also passed.
+Portable CMake/build/CTest run `39748116580` passed. Local `make test` and a strict-warning
+ASan/UBSan execution of the unchanged native engine sources passed. Local CMake was
+not installed; do not confuse CI execution with a local run.
+
+Verified published prerelease `phone-test-39748116540` targets the tested source;
+APK `app-debug.apk` is 6,867,764 bytes and checksum asset is uploaded. Actions' optional
+report artifact upload still exceeded storage quota; step outcomes/release metadata
+were checked, but downloadable XML/lint reports were not independently inspected.
+This is emulator/host evidence; physical-phone validation of the new library/navigation
+is pending. The user's latest successful phone report refers to the earlier playhead
+APK, not this architecture batch. Later documentation-only changes do not alter APK code.

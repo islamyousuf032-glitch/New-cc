@@ -1,5 +1,9 @@
+> **Latest verified debug APK:** [Project-workspace batch](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39748116540/app-debug.apk)
+> — native project library / workspace navigation; Android emulator regression verified.
+> Save important project documents externally before changing debug installations.
+
 > **Forward design:** [Owncut advanced architecture v1](docs/ADVANCED_ARCHITECTURE.md)
-> specifies Projects → workspace → typed node processing → delivery, with implemented
+> and [বাংলা workflow guide](docs/WORKFLOW_BN.md) describe Projects → workspace → typed node processing → delivery, with implemented
 > versus planned capabilities and phased acceptance gates. Current Flow is read-only.
 
 # Owncut
@@ -107,5 +111,5 @@ clip/zoomed timeline ergonomics, TalkBack/large fonts, source codecs and exact A
 The prior export gap-confirmation and single-track render limitations remain.
 
 
-[Download the verified timeline phone-test APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39728248796/app-debug.apk)
+[Previous timeline-only APK (superseded by the workspace batch)](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39728248796/app-debug.apk)
 (debug prerelease; back up saved projects before changing installations).

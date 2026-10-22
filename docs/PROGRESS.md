@@ -294,4 +294,26 @@ so it could not be discovered. Corrected the fixture path without removing the
 assertion, expanded it to malformed JSON and oversized metadata, and retained
 valid-card count and no-deletion assertions. The emulator annotations reported no
 other test failure. Added create-time library-budget guard and launcher native-load
-error reporting. Full rerun pending; no APK from the failed run is offered.
+error reporting. Full rerun evidence follows below; no APK from the failed run is offered.
+
+
+### Executed architecture-batch evidence
+
+Final implementation `f652c381316d209eb6be2bb5b736c89ede802e12` passed Android
+run `39748116540` / job `119721585167`: APK build/lint, AndroidTest compilation,
+16 KB alignment, KVM and full Android 35 x86_64 instrumentation. New catalog tests
+cover isolated documents, names/path validation, non-destructive/idempotent legacy
+migration, malformed/oversized metadata with valid cards preserved, launcher routing,
+managed checkpoint/reopen and retained workspace page without replacing the viewer.
+Existing playhead/JNI/lifecycle/project-I/O/render/publication regressions also passed.
+Portable CMake/build/CTest run `39748116580` passed. Local `make test` and a strict-warning
+ASan/UBSan execution of the unchanged native engine sources passed. Local CMake was
+not installed; do not confuse CI execution with a local run.
+
+Verified published prerelease `phone-test-39748116540` targets the tested source;
+APK `app-debug.apk` is 6,867,764 bytes and checksum asset is uploaded. Actions' optional
+report artifact upload still exceeded storage quota; step outcomes/release metadata
+were checked, but downloadable XML/lint reports were not independently inspected.
+This is emulator/host evidence; physical-phone validation of the new library/navigation
+is pending. The user's latest successful phone report refers to the earlier playhead
+APK, not this architecture batch. Later documentation-only changes do not alter APK code.
