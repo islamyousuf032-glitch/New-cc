@@ -5,6 +5,12 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val patchCode = providers.gradleProperty("patchVersionCode").orElse(providers.environmentVariable("OWNCUT_VERSION_CODE")).orElse("2").get().toInt()
+require(patchCode in 2..2100000000) { "Invalid patch version code" }
+val signingPath = System.getenv("OWNCUT_KEYSTORE_PATH")
+val hasSigning = !signingPath.isNullOrBlank()
+if (providers.gradleProperty("requireStableSigning").orNull == "true") require(hasSigning) { "Stable signing is required for downloadable patches" }
+
 android {
     namespace = "com.owncut.app"
     compileSdk = 36
@@ -14,8 +20,8 @@ android {
         applicationId = "com.owncut.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = patchCode
+        versionName = "0.2.$patchCode"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
         externalNativeBuild {
@@ -26,8 +32,19 @@ android {
         }
     }
 
+    signingConfigs {
+        if(hasSigning) create("patch") {
+            storeFile = file(signingPath!!)
+            storePassword = requireNotNull(System.getenv("OWNCUT_KEYSTORE_PASSWORD"))
+            keyAlias = requireNotNull(System.getenv("OWNCUT_KEY_ALIAS"))
+            keyPassword = requireNotNull(System.getenv("OWNCUT_KEY_PASSWORD"))
+        }
+    }
     buildTypes {
+        debug { if(hasSigning) signingConfig = signingConfigs.getByName("patch") }
+
         release {
+            if(hasSigning) signingConfig = signingConfigs.getByName("patch")
             isMinifyEnabled = false
         }
     }

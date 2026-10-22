@@ -188,3 +188,24 @@ step outcomes and release metadata were checked, not independently downloaded XM
 or full-screen screenshots. Actual aesthetic approval, TalkBack, user font overrides,
 short-window/large-font scrolling and phone codecs remain phone-validation tasks.
 No claim that automated layout checks certify professional appearance.
+
+
+## Phase B storage and install-over delivery checkpoint (2026-10-22)
+
+User accepts quiet UI and requests planned substantive work, progress percentages and
+full APK updates over the existing app. ADR 0012 and UPDATE_APKS define the delivery
+contract and old-key limitation. New managed store owns a cooperative writer lease,
+retained across rotation, checks bounded file fingerprints before native checkpoint,
+validates recovery before replacing state, and guards catalog repair with metadata
+archives. External Save As reports managed-primary conflict separately. Native edit
+math/project schema unchanged; full coordinator/journal and node evaluator remain future.
+
+CI now tests N−1→N install-over with real native project and actual app preferences,
+and publishes only when durable signing + pinned certificate configuration is present.
+Legacy random-debug-key compatibility is not promised. GitHub secret management
+returned 403; owner-side setup is required, never passwords or keys in chat.
+
+Readiness ledger v1 is a weighted scope estimate: baseline 25% credited, 75% remaining.
+New managed storage 3 points remains pending Android gate; signing delivery is blocked,
+not credited. Local core/resource and 5 mocked metadata-verifier tests passed; full
+Android and real install-over checks pending. No patch APK offered before those gates.

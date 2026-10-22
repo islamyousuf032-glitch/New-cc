@@ -8,16 +8,45 @@ permissions:
 jobs:
   android-debug:
     runs-on: ubuntu-24.04
+    env:
+      OWNCUT_KEYSTORE_PASSWORD: ${{ secrets.OWNCUT_KEYSTORE_PASSWORD }}
+      OWNCUT_KEY_ALIAS: ${{ secrets.OWNCUT_KEY_ALIAS }}
+      OWNCUT_KEY_PASSWORD: ${{ secrets.OWNCUT_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v6
       - name: Verify bilingual resources and UI palette
-        run: python3 tests/check_ui_resources.py
+        run: |
+          python3 tests/check_ui_resources.py
+          python3 tests/test_patch_metadata.py
+          python3 scripts/progress.py
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v4.0.4
       - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare update version and optional stable signing
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.OWNCUT_KEYSTORE_BASE64 }}
+          CERT_SHA256: ${{ vars.OWNCUT_SIGNING_CERT_SHA256 }}
+        run: |
+          echo "OWNCUT_VERSION_CODE=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          if [[ -n "$KEYSTORE_BASE64" ]]; then
+            test -n "$OWNCUT_KEYSTORE_PASSWORD" && test -n "$OWNCUT_KEY_ALIAS" && test -n "$OWNCUT_KEY_PASSWORD" && test -n "$CERT_SHA256"
+            python3 - <<'PYKEY'
+          import os, base64
+          from pathlib import Path
+          path = Path(os.environ['RUNNER_TEMP']) / 'owncut-patch.jks'
+          path.write_bytes(base64.b64decode(os.environ['KEYSTORE_BASE64'], validate=True))
+          path.chmod(0o600)
+          with open(os.environ['GITHUB_ENV'], 'a') as f: f.write('OWNCUT_KEYSTORE_PATH=' + str(path) + '\n')
+          PYKEY
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo '::warning::Stable signing is not configured. Tests will run; no downloadable APK will be published.'
+          fi
       - name: Install pinned Android SDK components
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platforms;android-35" "ndk;28.2.13676358" "cmake;3.22.1" "system-images;android-35;google_apis;x86_64"
       - name: Build APK and run lint before emulator startup
@@ -112,20 +141,48 @@ jobs:
                       text = (case.get('name', '') + ': ' + (failure.text or failure.get('message', '')))[:6000]
                       print('::error::' + text.replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D'))
           PYTEST
+      - name: Verify higher-version install-over retains project and settings
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/current.apk"
+          ./gradlew --no-daemon :app:assembleDebugAndroidTest :app:assembleDebug -PpatchVersionCode=$((OWNCUT_VERSION_CODE - 1))
+          adb uninstall com.owncut.app.test || true
+          adb uninstall com.owncut.app || true
+          adb install app/build/outputs/apk/debug/app-debug.apk
+          adb install app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb shell am instrument -w -e class com.owncut.app.UpdatePersistenceTest#seed com.owncut.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/seed.txt"
+          grep -q 'OK (1 test)' "$RUNNER_TEMP/seed.txt"
+          adb install -r "$RUNNER_TEMP/current.apk"
+          adb shell am instrument -w -e class com.owncut.app.UpdatePersistenceTest#verify com.owncut.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/verify.txt"
+          grep -q 'OK (1 test)' "$RUNNER_TEMP/verify.txt"
+          cp "$RUNNER_TEMP/current.apk" app/build/outputs/apk/debug/app-debug.apk
+      - name: Verify pinned signing certificate and assemble release patch
+        if: steps.signing.outputs.ready == 'true'
+        env:
+          CERT_SHA256: ${{ vars.OWNCUT_SIGNING_CERT_SHA256 }}
+        run: |
+          ./gradlew --no-daemon :app:assembleRelease -PrequireStableSigning=true
+          python3 scripts/verify_patch.py app/build/outputs/apk/release/app-release.apk "$ANDROID_HOME/build-tools/36.0.0/apksigner" "$CERT_SHA256" "$OWNCUT_VERSION_CODE"
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 app/build/outputs/apk/release/app-release.apk
+          adb install -r app/build/outputs/apk/release/app-release.apk
+          adb shell am instrument -w -e class com.owncut.app.UpdatePersistenceTest#verify com.owncut.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/release-verify.txt"
+          grep -q 'OK (1 test)' "$RUNNER_TEMP/release-verify.txt"
       - name: Publish private phone-test APK release
-        if: success() && steps.kvm.outputs.available == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/arena/6e511b63-new-cc'
+        if: success() && steps.signing.outputs.ready == 'true' && steps.kvm.outputs.available == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/arena/6e511b63-new-cc'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          apk=app/build/outputs/apk/debug/app-debug.apk
+          apk=app/build/outputs/apk/release/app-release.apk
           sha256sum "$apk" > "$apk.sha256"
-          tag="phone-test-${GITHUB_RUN_ID}"
-          gh release create "$tag" "$apk" "$apk.sha256" \
+          tag="app-patch-${GITHUB_RUN_ID}"
+          gh release create "$tag" "$apk" "$apk.sha256" app/build/outputs/apk/release/update-metadata.json \
             --target "$GITHUB_SHA" \
             --prerelease \
-            --title "Owncut phone-test build ${GITHUB_RUN_NUMBER}" \
-            --notes "Debug APK for manual phone testing. Not a production release. Includes arm64-v8a and x86_64. Built from ${GITHUB_SHA}."
+            --title "Owncut app patch ${OWNCUT_VERSION_CODE}" \
+            --notes "Signed full update APK, versionCode ${OWNCUT_VERSION_CODE}. Same-certificate installation required. Legacy random-key debug APKs are not guaranteed compatible. Built from ${GITHUB_SHA}."
           echo "APK release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/owncut-patch.jks"
       - name: Upload debug APK and Android reports for device testing
         if: always()
         continue-on-error: true
@@ -133,7 +190,6 @@ jobs:
         with:
           name: owncut-debug-android-test
           path: |
-            app/build/outputs/apk/debug/app-debug.apk
             app/build/reports/lint-results-debug.html
             app/build/outputs/androidTest-results/connected/**
             app/build/diagnostics/gradle-build.log

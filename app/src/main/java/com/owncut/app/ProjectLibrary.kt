@@ -6,7 +6,7 @@ import java.io.File
 import java.util.UUID
 
 internal data class LibraryProject(val id: String, val name: String, val updatedAt: Long, val recovery: Boolean)
-internal data class LibraryListing(val projects: List<LibraryProject>, val warnings: List<String>)
+internal data class LibraryListing(val projects: List<LibraryProject>, val warnings: List<String>, val repairable: List<String> = emptyList())
 
 /** App-private catalog metadata only; native EngineSession owns project contents and validation.
  * All calls are blocking and must run on a worker. No media bytes are copied into this catalog.
@@ -40,12 +40,14 @@ internal class ProjectLibrary(private val filesDir: File) {
         val dirs = root.listFiles() ?: error(AppLanguage.text(R.string.message_04e2fb0e61))
         require(dirs.size <= 1000) { AppLanguage.text(R.string.message_5b44580b10) }
         val warnings = mutableListOf<String>()
+        val repairable = mutableListOf<String>()
         val items = dirs.filter { it.isDirectory }.mapNotNull { dir ->
             try { read(dir.name) } catch (_: Exception) {
+                if (runCatching { projectFile(dir.name).isFile }.getOrDefault(false)) repairable += dir.name
                 warnings += AppLanguage.text(R.string.message_ea1cce60a0, dir.name); null
             }
         }
-        return LibraryListing(items.sortedWith(compareByDescending<LibraryProject> { it.updatedAt }.thenBy { it.id }), warnings)
+        return LibraryListing(items.sortedWith(compareByDescending<LibraryProject> { it.updatedAt }.thenBy { it.id }), warnings, repairable)
     }
     fun create(name: String, source: File? = null): LibraryProject = synchronized(lock) { createUnlocked(name, source) }
     private fun createUnlocked(name: String, source: File?): LibraryProject {
@@ -68,6 +70,24 @@ internal class ProjectLibrary(private val filesDir: File) {
             // Leave any successfully written native document available for manual recovery.
             throw IllegalStateException(AppLanguage.text(R.string.message_20c86043bf, dir.name), error)
         }
+    }
+    fun repair(id: String, name: String): LibraryProject = synchronized(lock) {
+        val label = validName(name)
+        val dir = directory(id)
+        // Never replace an unknown-future catalog version through the repair UI.
+        val metadata = File(dir,"metadata.json")
+        val existing = runCatching { org.json.JSONObject(metadata.readText()).getInt("version") }.getOrNull()
+        require(existing == null || existing == 1) { AppLanguage.text(R.string.unsupported_repair) }
+        ManagedProjectStore.acquire(projectFile(id)).use { store ->
+            EngineSession().use { store.load(it) }
+            val stamp = java.util.UUID.randomUUID().toString()
+            for (filename in listOf("metadata.json","metadata.json.bak")) {
+                val damaged = File(dir,filename)
+                if(damaged.isFile) damaged.copyTo(File(dir,"$filename.preserved-$stamp"))
+            }
+            write(id,label)
+        }
+        read(id)
     }
     fun rename(id: String, name: String): LibraryProject = synchronized(lock) { read(id); write(id, validName(name)); read(id) }
     fun touch(id: String) = synchronized(lock) { val old = read(id); write(id, old.name) }

@@ -149,6 +149,15 @@ class ProjectLibraryActivity : LocalizedActivity() {
             card.addView(row)
             body.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
         }
+        for(id in listing.repairable) button(AppLanguage.text(R.string.repair_catalog, id.take(8)),StudioIcon.RECOVER) {
+            askName(AppLanguage.text(R.string.repair_catalog_title), "") { name ->
+                task(AppLanguage.text(R.string.repair_catalog_title)) {
+                    library.repair(id,name)
+                    val next = library.list()
+                    ui { listing = next; render() }
+                }
+            }
+        }
         listing.warnings.forEach { label(it, 12f) }
     }
     private fun showCapabilities() {

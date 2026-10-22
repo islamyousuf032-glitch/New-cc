@@ -260,4 +260,11 @@
     <string name="theme_graphite">গ্রাফাইট · নিরপেক্ষ / হালকা নীল</string>
     <string name="theme_midnight">মিডনাইট · নীল / পেরিউইঙ্কল</string>
     <string name="theme_ember">এম্বার · উষ্ণ / অ্যাম্বার</string>
+    <string name="project_conflict">সংরক্ষিত প্রজেক্ট অন্য সেশন থেকে বদলেছে। আলাদা ফাইলে Save As করুন; original overwrite হয়নি।</string>
+    <string name="project_not_loaded">প্রজেক্ট লোড হয়নি; সংরক্ষণ বন্ধ রাখা হয়েছে।</string>
+    <string name="project_already_open">এই প্রজেক্ট অন্য এডিটরে খোলা আছে। আগে সেই এডিটর বন্ধ করুন।</string>
+    <string name="unsupported_repair">অজানা ক্যাটালগ সংস্করণ; repair করা হয়নি। কোনো প্রজেক্ট বদলায়নি।</string>
+    <string name="repair_catalog">প্রজেক্ট এন্ট্রি মেরামত · %1$s</string>
+    <string name="repair_catalog_title">লাইব্রেরি এন্ট্রি মেরামত (পুরোনো metadata রেখে)</string>
+    <string name="external_saved_only">বাইরের প্রজেক্ট ফাইল সেভ হয়েছে। Local project/recovery রাখা হয়েছে: %1$s</string>
 </resources>

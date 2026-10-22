@@ -17,3 +17,6 @@
 - Editing action buttons use original semantic icons, localized accessibility/tooltips and at least 48dp targets. Keep confirmation/language-choice copy readable; don't replace consent with ambiguous icons.
 
 - Follow ADR 0011: keep default Edit quiet and prioritize viewer/transport/timeline. Put metadata, source-only seek and secondary tools in contextual panels; important errors/recovery must still notify users. Palette roles live in `studio_themes.json`; test every theme, not just default colors.
+
+- Publish downloadable APKs only with durable signing/pinned public certificate and monotonically managed versionCode; never call random debug artifacts install-over patches. Never store private signing material in Git, chat or release assets.
+- Keep readiness.json weights/status/evidence explicit; only verified packages earn credit. Preserve writer ownership across rotation and do not bypass guarded checkpoints for managed projects.

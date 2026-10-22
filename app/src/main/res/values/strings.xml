@@ -260,4 +260,11 @@
     <string name="theme_graphite">Graphite · neutral / ice</string>
     <string name="theme_midnight">Midnight · blue / periwinkle</string>
     <string name="theme_ember">Ember · warm / amber</string>
+    <string name="project_conflict">The saved project changed outside this session. Save As to a separate file; the original was not overwritten.</string>
+    <string name="project_not_loaded">Project was not loaded; saving is blocked.</string>
+    <string name="project_already_open">This project is already open in another editor. Close that editor first.</string>
+    <string name="unsupported_repair">Unknown catalog version; repair was refused. No project was changed.</string>
+    <string name="repair_catalog">Repair project entry · %1$s</string>
+    <string name="repair_catalog_title">Repair library entry (original metadata is preserved)</string>
+    <string name="external_saved_only">External project saved. Local project/recovery was kept: %1$s</string>
 </resources>

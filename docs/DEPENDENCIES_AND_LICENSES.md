@@ -66,3 +66,8 @@ maintenance/license pins are unchanged. ADR 0010 links official Android guidance
 Quiet-editor/theme pass adds no dependency. Palette JSON, platform layouts, existing
 Canvas icons and dark-theme variants are original app code/data. ADR 0011 records
 official public color guidance; no third-party UI/source/assets redistributed.
+
+Managed-storage/patch batch adds no dependency: platform FileLock/MessageDigest and
+existing native codec, SDK apksigner/aapt2/zipalign, JDK signing config, Python standard
+library verifier/ledger tests. Secrets are runner-temporary only; no signing key ships
+in source or app. UPDATE_APKS documents owner setup and old-debug-key constraints.

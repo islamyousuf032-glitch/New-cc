@@ -39,6 +39,7 @@ import kotlin.math.roundToInt
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     private var engine: EngineSession? = null
+    @Volatile private var managedStore: ManagedProjectStore? = null
     private var libraryId: String? = null
     private var projectName = AppLanguage.text(R.string.workspace_name)
     private var workspacePage = "Edit"
@@ -142,6 +143,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     private data class RetainedEditorState(
         val engine: EngineSession,
         val projectPath: String,
+        val managedStore: ManagedProjectStore?,
         val selectedUri: String?,
         val selectedClipId: String?,
         val hasUnsavedChanges: Boolean,
@@ -174,6 +176,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         val retained = lastNonConfigurationInstance as? RetainedEditorState
         if (retained != null) {
             engine = retained.engine
+            managedStore = retained.managedStore
             workspacePage = retained.workspacePage
             projectPath = retained.projectPath
             selectedUri = retained.selectedUri?.let { Uri.parse(it) }
@@ -229,7 +232,9 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
             try {
                 val library = ProjectLibrary(filesDir)
                 val record = library.read(id)
-                session.loadProject(projectPath)
+                val store = ManagedProjectStore.acquire(File(projectPath))
+                managedStore = store
+                store.load(session)
                 library.touch(id)
                 mainHandler.post {
                     if (!isDestroyed) {
@@ -267,8 +272,9 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         val changed = hasUnsavedChanges
         metadataExecutor.execute {
             try {
-                if (changed) { session.saveProject(projectPath); session.clearAutosave(projectPath) }
+                if (changed) { if (managedStore != null) managedStore!!.checkpoint(session) else session.saveProject(projectPath); session.clearAutosave(projectPath) }
                 ProjectLibrary(filesDir).touch(id)
+                managedStore?.close() // release before Home can reopen this project
                 mainHandler.post {
                     if (!isDestroyed) {
                         hasUnsavedChanges = false; projectIoBusy = false; projectIoOperation = null
@@ -965,8 +971,9 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         val scheduledGeneration = editGeneration
         pendingAutosave?.cancel(false)
         pendingAutosave = metadataExecutor.schedule({
+            if (handingOffEngine) return@schedule
             try {
-                session.saveAutosave(projectPath)
+                if (managedStore != null) managedStore!!.autosave(session) else session.saveAutosave(projectPath)
                 mainHandler.post { if (!isDestroyed && !projectIoBusy && editGeneration == scheduledGeneration) statusText.text = AppLanguage.text(R.string.message_80236dfc68) }
             } catch (error: Exception) {
                 mainHandler.post { if (!isDestroyed) statusText.text = AppLanguage.text(R.string.message_eeae4b4c38, error.message) }
@@ -990,7 +997,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
                 statusText.text = AppLanguage.text(R.string.message_725e31767e)
                 metadataExecutor.execute {
                     try {
-                        session.saveProject(projectPath)
+                        if (managedStore != null) managedStore!!.checkpoint(session) else session.saveProject(projectPath)
                         session.clearAutosave(projectPath)
                         mainHandler.post {
                             if (!isDestroyed) {
@@ -1029,8 +1036,8 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
                 statusText.text = AppLanguage.text(R.string.message_d36d2b9e2d)
                 metadataExecutor.execute {
                     try {
-                        session.saveAutosave(projectPath)
-                        session.loadProject(projectPath)
+                        if (managedStore != null) managedStore!!.autosave(session) else session.saveAutosave(projectPath)
+                        if (managedStore != null) managedStore!!.load(session) else session.loadProject(projectPath)
                         mainHandler.post {
                             if (!isDestroyed) {
                                 projectIoBusy = false
@@ -1070,7 +1077,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
                 statusText.text = AppLanguage.text(R.string.message_a94f180f47)
                 metadataExecutor.execute {
                     try {
-                        val recovered = session.loadAutosave(projectPath)
+                        val recovered = managedStore?.recover(session) ?: session.loadAutosave(projectPath)
                         mainHandler.post {
                             if (!isDestroyed) {
                                 projectIoBusy = false
@@ -1297,15 +1304,19 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
                 contentResolver.openOutputStream(uri, "wt")?.use { output ->
                     temporary.inputStream().buffered().use { input -> ProjectDocumentIo.copy(input, output) }
                 } ?: throw IllegalStateException(AppLanguage.text(R.string.message_9c49f1f1b6))
-                if (libraryId != null) session.saveProject(projectPath)
-                session.clearAutosave(projectPath)
+                // External backup succeeded even if a managed primary has a conflict.
+                val localError = try {
+                    if (libraryId != null) { managedStore?.checkpoint(session) ?: session.saveProject(projectPath) }
+                    session.clearAutosave(projectPath)
+                    null
+                } catch(error: Exception) { error }
                 temporary.delete()
                 mainHandler.post {
                     if (!isDestroyed) {
                         projectIoBusy = false
                         projectIoOperation = null
-                        if (editGeneration == generationAtSave) hasUnsavedChanges = false
-                        statusText.text = AppLanguage.text(R.string.message_59b7d93902)
+                        if (localError == null && editGeneration == generationAtSave) hasUnsavedChanges = false
+                        statusText.text = if(localError == null) AppLanguage.text(R.string.message_59b7d93902) else AppLanguage.text(R.string.external_saved_only, localError.message)
                     }
                 }
             } catch (error: Exception) {
@@ -1336,7 +1347,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
                 metadataExecutor.execute {
                     val temporary = File(cacheDir, "project-import-${System.nanoTime()}.owncut")
                     try {
-                        session.saveAutosave(projectPath)
+                        if (managedStore != null) managedStore!!.autosave(session) else session.saveAutosave(projectPath)
                         contentResolver.openInputStream(uri)?.buffered()?.use { input ->
                             temporary.outputStream().buffered().use { output -> ProjectDocumentIo.copy(input, output) }
                         } ?: throw IllegalStateException(AppLanguage.text(R.string.message_b89067ce69))
@@ -1763,6 +1774,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         val retained = RetainedEditorState(
             engine = currentEngine,
             projectPath = projectPath,
+            managedStore = managedStore,
             selectedUri = selectedUri?.toString(),
             selectedClipId = selectedClipId,
             hasUnsavedChanges = hasUnsavedChanges,
@@ -1776,6 +1788,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         )
         handingOffEngine = true
         engine = null
+        managedStore = null
         return retained
     }
 
@@ -1797,9 +1810,13 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         if (closingSession != null) {
             metadataExecutor.execute {
                 try {
-                    if (shouldWriteRecovery) closingSession.saveAutosave(projectPath)
+                    if (shouldWriteRecovery) { managedStore?.autosave(closingSession) ?: closingSession.saveAutosave(projectPath) }
                 } catch (_: Exception) { }
-                finally { closingSession.close() }
+                finally {
+                    try { closingSession.close() } finally {
+                        if (!handingOffEngine) { managedStore?.close(); managedStore = null }
+                    }
+                }
             }
         }
         metadataExecutor.shutdown()
