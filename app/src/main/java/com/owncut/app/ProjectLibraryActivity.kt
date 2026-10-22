@@ -125,6 +125,7 @@ class ProjectLibraryActivity : Activity() {
         worker.execute {
             try { action(); ui { busy = false; status.text = "${listing.projects.size} projects" } }
             catch (error: Exception) { ui { busy = false; status.text = "কাজ হয়নি: ${error.message}" } }
+            catch (error: LinkageError) { ui { busy = false; status.text = "Native engine চালু হয়নি: ${error.javaClass.simpleName}: ${error.message}" } }
         }
     }
     private fun ui(action: () -> Unit) = runOnUiThread { if (!isDestroyed && !isFinishing) action() }

@@ -45,10 +45,16 @@ class ProjectLibraryTest {
             assertEquals(3, library.list().projects.size)
             assertArrayEquals(before, old.readBytes())
             assertTrue(library.list().projects.single { it.name == "আগের workspace" }.recovery)
-            val bad = File(dir, "bad-entry").apply { mkdirs() }
+            val catalogRoot = File(dir, "projects")
+            val bad = File(catalogRoot, "bad-entry").apply { mkdirs() }
             File(bad, "metadata.json").writeText("broken")
-            assertEquals(1, library.list().warnings.size)
-            assertTrue(bad.exists())
+            val malformed = File(catalogRoot, UUID.randomUUID().toString()).apply { mkdirs() }
+            File(malformed, "metadata.json").writeText("broken")
+            val oversized = File(catalogRoot, UUID.randomUUID().toString()).apply { mkdirs() }
+            File(oversized, "metadata.json").writeBytes(ByteArray(16 * 1024 + 1))
+            assertEquals(3, library.list().warnings.size)
+            assertEquals(3, library.list().projects.size)
+            assertTrue(bad.exists()); assertTrue(malformed.exists()); assertTrue(oversized.exists())
         } finally { dir.deleteRecursively() }
     }
     @Test fun launcherIsLibraryAndManagedEditorSavesReopensAndRetainsPage() {

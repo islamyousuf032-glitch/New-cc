@@ -283,3 +283,15 @@ Host tests and Android verification for this batch are recorded in the final evi
 entry below when executed. Physical-phone verification of this new navigation is pending.
 Test on phone: create two projects, import/edit/back/reopen isolation, external Save As,
 legacy recovery, large fonts/rotation, media relink, render/Gallery, and Back during I/O.
+
+
+Architecture batch `c1bc69b`: `make test`, strict-warning ASan/UBSan host execution,
+and portable CMake/CTest run `39746688048` passed. Local CMake was unavailable (not
+claimed run); the CI portable job did run configure/build/CTest. Android run
+`39746688501` passed build/lint/alignment but correctly stopped publication on the
+new malformed-catalog test: its bad-entry fixture was outside `files/projects`,
+so it could not be discovered. Corrected the fixture path without removing the
+assertion, expanded it to malformed JSON and oversized metadata, and retained
+valid-card count and no-deletion assertions. The emulator annotations reported no
+other test failure. Added create-time library-budget guard and launcher native-load
+error reporting. Full rerun pending; no APK from the failed run is offered.

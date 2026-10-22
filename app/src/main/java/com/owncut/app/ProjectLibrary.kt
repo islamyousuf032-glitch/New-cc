@@ -50,6 +50,10 @@ internal class ProjectLibrary(private val filesDir: File) {
     fun create(name: String, source: File? = null): LibraryProject = synchronized(lock) { createUnlocked(name, source) }
     private fun createUnlocked(name: String, source: File?): LibraryProject {
         val safeName = validName(name)
+        if (root.exists()) {
+            val entries = root.listFiles() ?: error("Project library পড়া যাচ্ছে না")
+            require(entries.size < 1000) { "Library পূর্ণ; নতুন project তৈরির আগে backup/পরিচর্যা প্রয়োজন" }
+        }
         val id = UUID.randomUUID().toString()
         val dir = directory(id)
         check(dir.mkdirs()) { "Project folder তৈরি হয়নি" }
