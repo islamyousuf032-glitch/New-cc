@@ -11,7 +11,7 @@ import java.io.File
 /** Invoked explicitly before/after adb install -r by CI; excluded from normal suite via assume. */
 class UpdatePersistenceTest {
     private fun context() = ApplicationProvider.getApplicationContext<Context>()
-    private fun selected(method: String) = InstrumentationRegistry.getArguments().getString("class")?.endsWith("#$method") == true
+    private fun selected(method: String) = InstrumentationRegistry.getArguments().getString("owncutUpgradeStage") == method
     @Test fun seed() {
         assumeTrue(selected("seed"))
         val context = context()

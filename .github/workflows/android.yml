@@ -143,16 +143,20 @@ jobs:
           PYTEST
       - name: Verify higher-version install-over retains project and settings
         run: |
+          set -Eeuo pipefail
+          log="$RUNNER_TEMP/update-check.log"
+          exec > >(tee "$log") 2>&1
+          trap 'code=$?; trap - ERR; tail -n 35 "$log" | while IFS= read -r line; do echo "::error title=Install-over verification::$line"; done; exit "$code"' ERR
           cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/current.apk"
           ./gradlew --no-daemon :app:assembleDebugAndroidTest :app:assembleDebug -PpatchVersionCode=$((OWNCUT_VERSION_CODE - 1))
           adb uninstall com.owncut.app.test || true
           adb uninstall com.owncut.app || true
           adb install app/build/outputs/apk/debug/app-debug.apk
           adb install -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-          adb shell am instrument -w -e class com.owncut.app.UpdatePersistenceTest#seed com.owncut.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/seed.txt"
+          adb shell am instrument -w -e owncutUpgradeStage seed -e class com.owncut.app.UpdatePersistenceTest#seed com.owncut.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/seed.txt"
           grep -q 'OK (1 test)' "$RUNNER_TEMP/seed.txt"
           adb install -r "$RUNNER_TEMP/current.apk"
-          adb shell am instrument -w -e class com.owncut.app.UpdatePersistenceTest#verify com.owncut.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/verify.txt"
+          adb shell am instrument -w -e owncutUpgradeStage verify -e class com.owncut.app.UpdatePersistenceTest#verify com.owncut.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/verify.txt"
           grep -q 'OK (1 test)' "$RUNNER_TEMP/verify.txt"
           cp "$RUNNER_TEMP/current.apk" app/build/outputs/apk/debug/app-debug.apk
       - name: Verify pinned signing certificate and assemble release patch
@@ -164,7 +168,7 @@ jobs:
           python3 scripts/verify_patch.py app/build/outputs/apk/release/app-release.apk "$ANDROID_HOME/build-tools/36.0.0/apksigner" "$CERT_SHA256" "$OWNCUT_VERSION_CODE"
           "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 app/build/outputs/apk/release/app-release.apk
           adb install -r app/build/outputs/apk/release/app-release.apk
-          adb shell am instrument -w -e class com.owncut.app.UpdatePersistenceTest#verify com.owncut.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/release-verify.txt"
+          adb shell am instrument -w -e owncutUpgradeStage verify -e class com.owncut.app.UpdatePersistenceTest#verify com.owncut.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/release-verify.txt"
           grep -q 'OK (1 test)' "$RUNNER_TEMP/release-verify.txt"
       - name: Publish private phone-test APK release
         if: success() && steps.signing.outputs.ready == 'true' && steps.kvm.outputs.available == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/arena/6e511b63-new-cc'
