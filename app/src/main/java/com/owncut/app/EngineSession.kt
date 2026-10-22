@@ -152,6 +152,18 @@ internal class EngineSession : AutoCloseable {
         }
     }
 
+    @Synchronized
+    fun saveCopy(path: String) {
+        check(handle != 0L) { AppLanguage.text(R.string.message_bf5f0d21b6) }
+        nativeSaveCopy(handle,path)
+    }
+    @Synchronized
+    fun restoreDraft(path: String) {
+        check(handle != 0L) { AppLanguage.text(R.string.message_bf5f0d21b6) }
+        nativeRestoreDraft(handle,path)
+    }
+    private external fun nativeSaveCopy(handle: Long, path: String)
+    private external fun nativeRestoreDraft(handle: Long, path: String)
     private external fun nativeCreate(): Long
     private external fun nativeGetStatus(handle: Long): String
     private external fun nativeGetTimelineSnapshot(handle: Long): String

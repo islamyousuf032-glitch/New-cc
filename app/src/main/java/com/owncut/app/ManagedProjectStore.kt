@@ -37,7 +37,7 @@ internal class ManagedProjectStore private constructor(private val file: File, p
         checkOpen(); check(loaded)
         val recovery = File(file.absolutePath + ".autosave")
         if (!recovery.exists()) return false
-        stableSnapshot(recovery) { snapshot, _ -> session.loadProject(snapshot.absolutePath) }
+        stableSnapshot(recovery) { snapshot, _ -> session.restoreDraft(snapshot.absolutePath) }
         return true
     }
     private fun checkOpen() { check(!closed) { "Managed store closed" } }

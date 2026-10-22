@@ -183,3 +183,13 @@ Billing & plans/Billing & licensing দেখতে হবে; এটি app bui
 একই সমস্যা নয়। কোনো GitHub password/token এখানে দেবেন না। মোট readiness **২৫% শেষ,
 ৭৫% বাকি**; নতুন কাজ পুরো checkpoint পাস না হওয়ায় এখনো অতিরিক্ত ৩ point যোগ হয়নি।
 নতুন patch প্রকাশ হয়নি। এখনকার app অক্ষত রাখুন।
+
+## পরবর্তী Phase B ব্যাচ: native session coordinator
+
+C++-এ edit/history/save/load/recovery-এর owner আলাদা হয়েছে; JNI এখন সেটি ব্যবহার
+করে। Revision-checked ২৫৬-clip page, failed edit rollback, Save As copy ও recovery
+draft-এর পৃথক নিয়ম এবং concurrent edit/read পরীক্ষা যোগ হয়েছে। Local Make, CMake/
+CTest, ASan/UBSan এবং official JNI header দিয়ে host syntax check পাস। Android-এর
+নতুন bridge tests এখনো চালানো হয়নি; host check Android ABI/phone test নয়। পুরো
+Activity controller ও durable journal এখনো বাকি। তাই অগ্রগতি **২৫% শেষ / ৭৫% বাকি**
+অপরিবর্তিত; নতুন APK বা install-over সাফল্য দাবি করা হচ্ছে না।

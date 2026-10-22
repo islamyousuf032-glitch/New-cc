@@ -1,0 +1,150 @@
+#include "editor/session_coordinator.hpp"
+#include <algorithm>
+#include <limits>
+#include <stdexcept>
+
+namespace editor {
+SessionCoordinator::SessionCoordinator(std::string id, TimeBase base)
+    : project_(std::move(id), "Untitled", base) {
+    project_.timeline.add_track({"v1", TrackKind::video, false, false, {}});
+    project_.timeline.add_track({"a1", TrackKind::audio, false, false, {}});
+}
+void SessionCoordinator::require_revision_capacity() const {
+    if (revision_ == std::numeric_limits<std::uint64_t>::max())
+        throw std::overflow_error("session revision exhausted");
+}
+SessionSnapshot SessionCoordinator::snapshot() const {
+    std::lock_guard lock(mutex_);
+    return {project_, revision_};
+}
+SessionStatus SessionCoordinator::status() const {
+    std::lock_guard lock(mutex_);
+    std::size_t clips = 0;
+    for (const auto& track : project_.timeline.tracks()) clips += track.clips.size();
+    return {project_.name, project_.timeline.tracks().size(), clips, revision_,
+            revision_ != saved_revision_, history_.can_undo(), history_.can_redo()};
+}
+ClipPage SessionCoordinator::clip_page(std::size_t offset, std::size_t limit,
+                                      std::optional<std::uint64_t> expected_revision) const {
+    std::lock_guard lock(mutex_);
+    if (limit == 0 || limit > max_page_size) throw std::invalid_argument("invalid snapshot page size");
+    if (expected_revision && *expected_revision != revision_)
+        throw std::runtime_error("snapshot revision changed; restart read");
+    std::size_t total = 0;
+    for (const auto& track : project_.timeline.tracks()) total += track.clips.size();
+    if (offset > total) throw std::invalid_argument("snapshot offset out of range");
+    ClipPage result{{}, total, offset, revision_};
+    result.clips.reserve(std::min(limit, total - offset));
+    std::size_t index = 0;
+    for (const auto& track : project_.timeline.tracks()) {
+        for (const auto& clip : track.clips) {
+            if (index++ < offset) continue;
+            result.clips.push_back({track.id, clip});
+            if (result.clips.size() == limit) break;
+        }
+        if (result.clips.size() == limit) break;
+    }
+    result.next_offset += result.clips.size();
+    return result;
+}
+std::optional<PlayheadPosition> SessionCoordinator::resolve_playhead(const std::string& track, Timestamp at) const {
+    std::lock_guard lock(mutex_);
+    return project_.timeline.resolve_playhead(track, at);
+}
+void SessionCoordinator::execute_locked(std::unique_ptr<EditCommand> command) {
+    require_revision_capacity();
+    auto before = project_.timeline;
+    try { history_.execute(project_.timeline, std::move(command)); }
+    catch (...) { project_.timeline = std::move(before); throw; }
+    ++revision_;
+}
+void SessionCoordinator::execute(std::unique_ptr<EditCommand> command) {
+    std::lock_guard lock(mutex_);
+    execute_locked(std::move(command));
+}
+std::string SessionCoordinator::add_media(const std::string& media, std::int64_t duration_ms) {
+    std::lock_guard lock(mutex_);
+    if (duration_ms <= 0) throw std::invalid_argument("media duration must be positive");
+    const auto& tracks = project_.timeline.tracks();
+    const auto track = std::find_if(tracks.begin(), tracks.end(), [](const Track& t) { return t.kind == TrackKind::video; });
+    if (track == tracks.end()) throw std::logic_error("project has no video track");
+    const auto base = project_.timeline.frame_time_base();
+    Timestamp append_at{0, base};
+    for (const auto& clip : track->clips) {
+        const auto end = clip.timeline_start + (clip.source_out - clip.source_in).rescaled(base);
+        if (append_at < end) append_at = end;
+    }
+    std::string id;
+    for (;;) {
+        if (next_clip_id_ == std::numeric_limits<std::uint64_t>::max())
+            throw std::overflow_error("clip identifier exhausted");
+        id = "clip-" + std::to_string(next_clip_id_++);
+        try { (void)project_.timeline.locate_clip(id); }
+        catch (const std::invalid_argument&) { break; }
+    }
+    execute_locked(std::make_unique<AddClipCommand>(track->id,
+        Clip{id, media, append_at, {0, {1, 1000}}, {duration_ms, {1, 1000}}}));
+    return id;
+}
+bool SessionCoordinator::undo() {
+    std::lock_guard lock(mutex_);
+    if (!history_.can_undo()) return false;
+    require_revision_capacity();
+    auto before = project_.timeline;
+    try { if (!history_.undo(project_.timeline)) return false; }
+    catch (...) { project_.timeline = std::move(before); throw; }
+    ++revision_; return true;
+}
+bool SessionCoordinator::redo() {
+    std::lock_guard lock(mutex_);
+    if (!history_.can_redo()) return false;
+    require_revision_capacity();
+    auto before = project_.timeline;
+    try { if (!history_.redo(project_.timeline)) return false; }
+    catch (...) { project_.timeline = std::move(before); throw; }
+    ++revision_; return true;
+}
+void SessionCoordinator::save(const std::filesystem::path& path) {
+    std::lock_guard lock(mutex_);
+    ProjectStore::save_atomic(path, project_);
+    saved_revision_ = revision_; // only after native save/fsync succeeds
+}
+void SessionCoordinator::load(const std::filesystem::path& path) {
+    std::lock_guard lock(mutex_);
+    require_revision_capacity();
+    auto loaded = ProjectStore::load(path);
+    project_ = std::move(loaded);
+    history_.clear();
+    saved_revision_ = ++revision_;
+}
+void SessionCoordinator::save_copy(const std::filesystem::path& path) {
+    std::lock_guard lock(mutex_);
+    ProjectStore::save_atomic(path, project_); // backup/export does not mark primary clean
+}
+void SessionCoordinator::restore_draft(const std::filesystem::path& path) {
+    std::lock_guard lock(mutex_);
+    require_revision_capacity();
+    auto draft = ProjectStore::load(path);
+    project_ = std::move(draft);
+    history_.clear();
+    ++revision_;
+}
+void SessionCoordinator::autosave(const std::filesystem::path& primary) {
+    std::lock_guard lock(mutex_);
+    ProjectStore::save_autosave(primary, project_);
+}
+bool SessionCoordinator::recover(const std::filesystem::path& primary) {
+    std::lock_guard lock(mutex_);
+    require_revision_capacity();
+    auto recovered = ProjectStore::load_autosave(primary);
+    if (!recovered) return false;
+    project_ = std::move(*recovered);
+    history_.clear();
+    ++revision_; // recovery is a dirty draft; never silently promotes primary
+    return true;
+}
+void SessionCoordinator::clear_recovery(const std::filesystem::path& primary) {
+    std::lock_guard lock(mutex_);
+    ProjectStore::clear_autosave(primary);
+}
+} // namespace editor

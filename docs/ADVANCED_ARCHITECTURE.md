@@ -299,3 +299,17 @@ Readiness v1 weights/evidence live in `plans/readiness.json`; run
 `python3 scripts/progress.py`. Credits are estimated scope weights, not hours or
 professional feature equivalence. Signing delivery is a separate blocked package;
 UPDATE_APKS specifies secure owner setup and the lost legacy-debug-key limitation.
+
+
+### Native session coordinator checkpoint — 2026-10-22
+
+Phase B now extracts native project/history ownership into C++20 SessionCoordinator
+and routes JNI operations through it. Revision-checked 256-entry pages, failure
+rollback, explicit save-copy/draft-restore and portable concurrency/recovery tests
+are included. See ADR 0013 for contracts and limits. Host core/session tests, strict
+CMake/CTest, ASan+UBSan and host JNI-header syntax checks passed. New Android bridge
+tests are added but unrun; Activity orchestration and durable journal remain pending.
+No graph evaluation, UI-memory virtualization, Android ABI/device verification or
+install-over success is claimed. Readiness stays 25% credited / 75% remaining.
+APK publication remains gated by UPDATE_APKS; earlier delivery blockers are not fixed
+by this native refactor.

@@ -294,3 +294,27 @@ APK. Real verification uses SDK apksigner/aapt2/zipalign only in configured sign
 `#seed` / `#verify` explicitly across install-over. No uninstall/data-clear occurs
 between seeding and verifying. Its fixture is a valid native project with test URIs,
 not proof of phone media grants, codec behavior, or playability after updating.
+
+
+### Native session coordinator checkpoint — 2026-10-22
+
+Phase B now extracts native project/history ownership into C++20 SessionCoordinator
+and routes JNI operations through it. Revision-checked 256-entry pages, failure
+rollback, explicit save-copy/draft-restore and portable concurrency/recovery tests
+are included. See ADR 0013 for contracts and limits. Host core/session tests, strict
+CMake/CTest, ASan+UBSan and host JNI-header syntax checks passed. New Android bridge
+tests are added but unrun; Activity orchestration and durable journal remain pending.
+No graph evaluation, UI-memory virtualization, Android ABI/device verification or
+install-over success is claimed. Readiness stays 25% credited / 75% remaining.
+APK publication remains gated by UPDATE_APKS; earlier delivery blockers are not fixed
+by this native refactor.
+
+`make test` now builds/runs both core and native session executables. CMake adds
+`owncut_session_tests` to CTest and links platform Threads. The session suite covers
+rollback after partial mutation, revision/dirty behavior, snapshots, save failures,
+corrupt load/recovery, copy/draft distinction, v0 load, ID collisions, track-boundary
+pages, stale/invalid pages and simultaneous writers/readers. ASan/UBSan were run on
+the session suite locally; TSan and Android tests were not run.
+
+`NativeCoordinatorContractTest` must pass on Android before distributing this JNI
+refactor. This does not waive the separate install-over and approved-signer gates.

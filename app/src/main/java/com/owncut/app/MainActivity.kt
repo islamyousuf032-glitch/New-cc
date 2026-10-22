@@ -1300,7 +1300,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         metadataExecutor.execute {
             val temporary = File(cacheDir, "project-export-${System.nanoTime()}.owncut")
             try {
-                session.saveProject(temporary.absolutePath)
+                session.saveCopy(temporary.absolutePath)
                 if (temporary.length() > ProjectDocumentIo.MAX_PROJECT_BYTES) throw IllegalStateException(AppLanguage.text(R.string.message_413c4a66bd))
                 contentResolver.openOutputStream(uri, "wt")?.use { output ->
                     temporary.inputStream().buffered().use { input -> ProjectDocumentIo.copy(input, output) }

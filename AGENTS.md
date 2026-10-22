@@ -20,3 +20,7 @@
 
 - Publish downloadable APKs only with durable signing/pinned public certificate and monotonically managed versionCode; never call random debug artifacts install-over patches. Never store private signing material in Git, chat or release assets.
 - Keep readiness.json weights/status/evidence explicit; only verified packages earn credit. Preserve writer ownership across rotation and do not bypass guarded checkpoints for managed projects.
+
+- Native project/history mutation belongs in SessionCoordinator, not JNI fields. Keep JNI result keys and Kotlin synchronized-handle lifetime contract compatible.
+- Pages reject stale revisions; do not silently assemble mixed snapshots. Whole JSON/Kotlin lists are still materialized; do not describe this as end-to-end bounded UI memory.
+- save_copy must not mark a primary checkpoint clean, and restore_draft must stay dirty. Native saved revision does not replace Activity dirty state until managed checkpoint/catalog transactions are unified.

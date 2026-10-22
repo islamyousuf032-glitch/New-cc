@@ -78,3 +78,10 @@ emulator gates; updating action majors is a separate compatibility checkpoint.
 Artifact report upload still hits quota; this does not imply app test success/failure.
 Latest CI startup is blocked by account payment/spending limits, not a native build
 failure. No signing keys or downloaded reference APKs are repository files.
+
+Native coordinator checkpoint: no new app/runtime third-party dependency. C++20
+mutex/thread facilities use the existing standard library/platform Threads. Host JNI
+syntax checks used official OpenJDK `jdk-17+35` headers from openjdk/jdk (GPLv2 with
+Classpath exception); these temporary check headers are not copied into the project
+or app. Local CMake tooling was installed in excluded sandbox cache, not vendored.
+Existing app/tool dependency pins are unchanged.

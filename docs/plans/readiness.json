@@ -54,8 +54,8 @@
     {
       "id": "session_coordinator",
       "weight": 4,
-      "status": "planned",
-      "evidence": "Full serialized owner/controller extraction and durable revision journal remain"
+      "status": "in_progress",
+      "evidence": "Native C++ coordinator extracted into JNI with revision paging, rollback and copy/draft operations; portable and sanitizer tests passed. Android bridge tests, Activity controller and durable journal remain pending; ADR 0013."
     },
     {
       "id": "update_delivery",
