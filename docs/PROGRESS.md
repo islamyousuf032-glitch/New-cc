@@ -222,3 +222,21 @@ was published. Last-import undo exposed that native import bypassed command hist
 added C++ AddClipCommand and JNI routing, with host undo/redo/split and failed-command
 history tests. Validator fixture exposed negative AAC pre-roll PTS being mistaken for
 EOF; loops now use sampleTrackIndex for EOS. Existing new tests remain intact.
+
+## Timeline interaction checkpoint (Android verification pending)
+
+User reports the basic-hardening APK works correctly on their phone, with some
+unspecified remaining issues. Next requested batch adds an original red timeline
+playhead, HH:MM:SS:FF ruler/time label, unified lane scrolling, tap-to-seek, marker-head
+scrubbing, follow toggle/manual browse, proportional short clips/adaptive long scale,
+source/sequence time separation and Undo anchor preservation. Native C++ owns point
+lookup, exclusive clip boundaries and gap/overlap validation. Android preview now
+requests closest-frame seeks and waits for initial seek completion before playback.
+No project schema/output-preset/new dependency or advanced-tool/RAW claim is added.
+
+See DECISIONS/0008 for research, clock/conversion/interaction details and test scope.
+New host tests pass with `make test`; `git diff --check` passes. Android build/lint and
+new UI/real-player tests are pending; no new APK is offered until those tests pass.
+Device checks still needed: red-marker smoothness/latency, fast repeated seeks, long
+clip/zoomed timeline ergonomics, TalkBack/large fonts, source codecs and exact A/V sync.
+The prior export gap-confirmation and single-track render limitations remain.

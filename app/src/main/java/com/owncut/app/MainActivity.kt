@@ -45,6 +45,18 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private lateinit var engineStatusText: TextView
     private lateinit var mediaText: TextView
     private lateinit var timelineContainer: LinearLayout
+    private var timelineView: TimelineView? = null
+    private var timelineViewport: HorizontalScrollView? = null
+    private lateinit var timelinePositionText: TextView
+    private lateinit var followPlayheadButton: Button
+    private var timelineClips = emptyList<ClipSnapshot>()
+    private var timelineFrame = 0L
+    private var timelineGapPosition = false
+    private var timelineScrubbing = false
+    private var followPlayhead = true
+    private var restoreTimelineScrollX: Int? = null
+    @Volatile private var previewSeeking = false
+    @Volatile private var seekSerial = 0
     private lateinit var selectedClipText: TextView
     private var selectedClipId: String? = null
     private var hasUnsavedChanges = false
@@ -70,12 +82,12 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             mediaHandler.post {
                 val current = player
                 val tick = try {
-                    if (current != null && current.isPlaying) {
+                    if (current != null && !previewSeeking && current.isPlaying) {
                         val position = current.currentPosition
                         val end = previewEndMs.coerceAtMost(current.duration.toLong()).coerceAtLeast(0L).toInt()
                         if (position >= end) {
                             current.pause()
-                            current.seekTo(end)
+                            current.seekTo(end.toLong(), MediaPlayer.SEEK_CLOSEST)
                             end to true
                         } else position to false
                     } else null
@@ -83,9 +95,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 if (tick != null) mainHandler.post {
                     if (generation == playerGeneration && player === current) {
                         val (position, reachedClipEnd) = tick
-                        if (!isSeeking) {
+                        if (!isSeeking && !timelineScrubbing && !previewSeeking) {
                             seekBar.progress = position
                             previewPositionMs = position.toLong()
+                            updateTimelinePlayhead(follow = true)
                         }
                         if (reachedClipEnd) {
                             advanceOrStopTimeline(generation, current)
@@ -93,7 +106,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                             if (firstVideoFrameRendered) {
                                 statusText.text = "ভিডিও চলছে · ${formatTime(position.toLong())} / ${formatTime(durationMs)}"
                             }
-                            mainHandler.postDelayed(this, 200L)
+                            mainHandler.postDelayed(this, 50L)
                         }
                     }
                 }
@@ -125,6 +138,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         val hasUnsavedChanges: Boolean,
         val editGeneration: Long,
         val previewPositionMs: Long,
+        val timelineFrame: Long,
+        val timelineGapPosition: Boolean,
+        val followPlayhead: Boolean,
+        val timelineScrollX: Int,
     )
 
     private var projectIoOperation: ProjectIoOperation? = null
@@ -152,6 +169,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             hasUnsavedChanges = retained.hasUnsavedChanges
             editGeneration = retained.editGeneration
             previewPositionMs = retained.previewPositionMs
+            timelineFrame = retained.timelineFrame
+            timelineGapPosition = retained.timelineGapPosition
+            followPlayhead = retained.followPlayhead
+            restoreTimelineScrollX = retained.timelineScrollX
             engine?.clips()?.firstOrNull { it.id == selectedClipId }?.let {
                 previewStartMs = it.sourceInMs
                 previewEndMs = it.sourceOutMs
@@ -162,6 +183,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         }
         buildWorkspace()
         preview.surfaceTextureListener = this
+        if (timelineGapPosition) preview.alpha = 0f
         if (retained != null) {
             selectedUri?.let { readMetadataAndRegister(it, existingClipId = selectedClipId) }
             if (hasUnsavedChanges) scheduleAutosave()
@@ -236,39 +258,49 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             setPadding(0, dp(10), 0, dp(4))
         }
         root.addView(selectedClipText, matchWrap())
+        val transportRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        timelinePositionText = TextView(this).apply {
+            textSize = 12f; setTextColor(0xFFFF8991.toInt()); gravity = Gravity.CENTER_VERTICAL
+            contentDescription = "Timeline position"
+        }
+        transportRow.addView(timelinePositionText, LinearLayout.LayoutParams(0, dp(48), 1f))
+        followPlayheadButton = actionButton("প্লেহেড অনুসরণ") {
+            followPlayhead = !followPlayhead; updateFollowButton()
+            if (followPlayhead) revealPlayhead()
+        }
+        transportRow.addView(followPlayheadButton, wrapButtonParams())
+        root.addView(transportRow, matchWrap())
+        updateFollowButton()
         val timelineScroll = ScrollView(this).apply {
             isFillViewport = false
             isVerticalScrollBarEnabled = true
         }
         timelineContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         timelineScroll.addView(timelineContainer)
-        root.addView(timelineScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(116)))
+        root.addView(timelineScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(164)))
 
         seekBar = SeekBar(this).apply {
             max = 1
-            contentDescription = "Timeline playhead; drag to choose preview and edit position"
+            contentDescription = "Selected source clip seek bar; red timeline playhead shows project time"
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser) statusText.text = "Playhead: ${formatTime(progress.toLong())} / ${formatTime(durationMs)}"
+                    if (fromUser && !previewSeeking) {
+                        previewPositionMs = progress.toLong().coerceIn(previewStartMs, previewEndMs.coerceAtLeast(previewStartMs))
+                        updateTimelinePlayhead()
+                        statusText.text = "Source: ${formatTime(progress.toLong())} / ${formatTime(durationMs)}"
+                    }
                 }
                 override fun onStartTrackingTouch(bar: SeekBar) { isSeeking = true }
                 override fun onStopTrackingTouch(bar: SeekBar) {
                     isSeeking = false
-                    if (playerPrepared) {
-                        val current = player
-                        val position = bar.progress.toLong().coerceIn(previewStartMs,
-                            (previewEndMs - 1L).coerceAtLeast(previewStartMs)).toInt()
-                        bar.progress = position
-                        previewPositionMs = position.toLong()
-                        mediaHandler.post { if (player === current) current?.seekTo(position) }
-                    }
+                    if (playerPrepared && !previewSeeking) seekPreviewTo(bar.progress.toLong(), resumeIfPlaying = true)
                 }
             })
         }
         root.addView(seekBar, matchWrap())
 
         val editHelpText = TextView(this).apply {
-            text = "Clip নির্বাচন করতে ট্যাপ, একই track-এ সরাতে long-press করে drag; seek bar টেনে playhead বসান। বাম/ডান ছাঁটুন source range কমায়; কাটুন clip দুই ভাগ করে।"
+            text = "লাল রেখা timeline playhead। Ruler/clip-এ ট্যাপ করে seek; লাল মাথা ধরে scrub করুন। Clip সরাতে long-press; নিচের bar শুধু নির্বাচিত source-এর position। Gap-এ playback থামে।"
             textSize = 12f
             setTextColor(0xFF91A99A.toInt())
             setPadding(0, dp(2), 0, dp(6))
@@ -387,113 +419,173 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private fun refreshTimeline() {
         if (!::timelineContainer.isInitialized || !::selectedClipText.isInitialized) return
         val clips = try { engine?.clips().orEmpty().sortedBy { it.startFrame } } catch (error: Exception) {
-            statusText.text = "Timeline পড়া যায়নি: ${error.message}"
-            return
+            statusText.text = "Timeline পড়া যায়নি: ${error.message}"; return
         }
+        timelineClips = clips
         if (selectedClipId != null && clips.none { it.id == selectedClipId }) selectedClipId = null
-        timelineContainer.removeAllViews()
-        if (clips.isEmpty()) {
-            timelineContainer.addView(TextView(this).apply {
-                text = "ভিডিও নিলে clip এখানে timeline-এ দেখা যাবে"
-                textSize = 13f
-                setTextColor(0xFFB5C6BB.toInt())
-                setPadding(dp(8), dp(8), dp(8), dp(8))
-            }, matchWrap())
-        }
-        for ((trackId, trackClips) in clips.groupBy { it.trackId }.toSortedMap()) {
-            val endMs = trackClips.maxOfOrNull { frameToMs(it.startFrame + it.durationFrames) } ?: 0L
-            val contentWidth = timelinePixels(endMs).coerceAtLeast(dp(180))
-            val trackHeader = TextView(this).apply {
-                text = "TRACK · $trackId"
-                textSize = 10f
-                setTextColor(0xFF91A99A.toInt())
-                setPadding(dp(4), dp(1), dp(4), dp(1))
-            }
-            timelineContainer.addView(trackHeader, matchWrap())
-            val strip = FrameLayout(this).apply { setBackgroundColor(0xFF18221C.toInt()) }
-            for (clip in trackClips) {
-                val startMs = frameToMs(clip.startFrame)
-                val endClipMs = frameToMs(clip.startFrame + clip.durationFrames)
-                val left = timelinePixels(startMs).coerceAtMost(contentWidth - dp(72))
-                val width = timelinePixels(endClipMs - startMs)
-                    .coerceAtLeast(dp(84))
-                    .coerceAtMost((contentWidth - left).coerceAtLeast(dp(72)))
-                val selected = clip.id == selectedClipId
-                val block = TextView(this).apply {
-                    text = "${if (selected) "▶ " else ""}${clip.id.take(10)}\n${formatTime(startMs)}–${formatTime(endClipMs)}"
-                    textSize = 11f
-                    gravity = Gravity.CENTER
-                    setTextColor(if (selected) 0xFFE5EEE8.toInt() else 0xFFB5C6BB.toInt())
-                    setBackgroundColor(if (selected) 0xFF29634A.toInt() else 0xFF294638.toInt())
-                    contentDescription = "${clip.id}, ${formatTime(startMs)} থেকে ${formatTime(endClipMs)}; নির্বাচন করতে চাপুন, একই track-এ সরাতে ধরে টানুন"
-                    isClickable = true
-                    isFocusable = true
-                    setOnClickListener { selectClip(clip) }
-                }
-                var touchDownRawX = 0f
-                var dragStartFrame = clip.startFrame
-                var dragging = false
-                block.setOnLongClickListener {
-                    if (projectIoBusy) false else {
-                        dragging = true
-                        dragStartFrame = clip.startFrame
-                        block.alpha = 0.75f
-                        block.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                        true
+        if (timelineView == null) {
+            val canvas = TimelineView(this).apply {
+                minimumWidth = (resources.displayMetrics.widthPixels - dp(32)).coerceAtLeast(dp(180))
+                onSeek = { track, frame -> seekTimelineAt(track, frame) }
+                onScrub = { frame, commit ->
+                    if (!projectIoBusy) {
+                        timelineScrubbing = !commit
+                        timelineFrame = frame; setPlayheadDisplay(frame)
+                        if (commit) {
+                            val track = timelineClips.firstOrNull { it.id == selectedClipId }?.trackId
+                                ?: timelineClips.firstOrNull()?.trackId
+                            if (track != null) seekTimelineAt(track, frame)
+                        } else pauseForTimelineScrub()
                     }
                 }
-                block.setOnTouchListener { view, event ->
-                    when (event.actionMasked) {
-                        MotionEvent.ACTION_DOWN -> {
-                            touchDownRawX = event.rawX
-                            false // Preserve normal scrolling and click selection until a long-press starts a move.
-                        }
-                        MotionEvent.ACTION_MOVE -> if (dragging) {
-                            view.translationX = event.rawX - touchDownRawX
-                            true
-                        } else false
-                        MotionEvent.ACTION_UP -> if (dragging) {
-                            val deltaFrames = ((event.rawX - touchDownRawX) /
-                                (resources.displayMetrics.density.toDouble() * TIMELINE_DP_PER_SECOND) * 30.0).roundToInt()
-                            view.translationX = 0f
-                            view.alpha = 1f
-                            dragging = false
-                            moveClipToFreeSlot(clip, trackId, (dragStartFrame + deltaFrames).coerceAtLeast(0L))
-                            true
-                        } else false
-                        MotionEvent.ACTION_CANCEL -> if (dragging) {
-                            view.translationX = 0f
-                            view.alpha = 1f
-                            dragging = false
-                            true
-                        } else false
-                        else -> dragging
-                    }
-                }
-                strip.addView(block, FrameLayout.LayoutParams(width, dp(58), Gravity.TOP or Gravity.START).apply {
-                    leftMargin = left
-                })
+                onScrubCancel = { timelineScrubbing = false; updateTimelinePlayhead() }
+                onMove = { clip, frame -> moveClipToFreeSlot(clip, clip.trackId, frame) }
             }
-            val horizontalStrip = HorizontalScrollView(this).apply {
+            timelineView = canvas
+            val viewport = object : HorizontalScrollView(this) {
+                override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
+                    val intercepted = super.onInterceptTouchEvent(event)
+                    if (intercepted && event.actionMasked == MotionEvent.ACTION_MOVE) {
+                        followPlayhead = false; updateFollowButton()
+                    }
+                    return intercepted
+                }
+                override fun performAccessibilityAction(action: Int, arguments: Bundle?): Boolean {
+                    if (action == android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD ||
+                        action == android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD) {
+                        followPlayhead = false; updateFollowButton()
+                    }
+                    return super.performAccessibilityAction(action, arguments)
+                }
+            }.apply {
                 isHorizontalScrollBarEnabled = true
-                addView(strip, FrameLayout.LayoutParams(contentWidth, dp(60)))
+                addView(canvas, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             }
-            timelineContainer.addView(horizontalStrip, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(62),
-            ).apply { bottomMargin = dp(4) })
+            timelineViewport = viewport
+            timelineContainer.addView(viewport, matchWrap())
         }
+        timelineView?.apply { setTimeline(clips, selectedClipId); isEnabled = !projectIoBusy }
         val selected = clips.firstOrNull { it.id == selectedClipId }
         if (::relinkButton.isInitialized) relinkButton.isEnabled = selected != null && !projectIoBusy && !selectedMediaLoading
         selectedClipText.text = selected?.let {
             "Timeline · ${it.id} · source ${formatTime(it.sourceInMs)}–${formatTime(it.sourceOutMs)}"
-        } ?: "Timeline · ${clips.size} clip(s) · কোনো clip নির্বাচিত নয়"
+        } ?: if (clips.isEmpty()) "ভিডিও import করলে timeline এখানে দেখা যাবে" else "Timeline · ${clips.size} clips · gap / কোনো clip নির্বাচিত নয়"
+        updateTimelinePlayhead()
+        restoreTimelineScrollX?.let { saved ->
+            timelineViewport?.post { timelineViewport?.scrollTo(saved, 0) }
+            restoreTimelineScrollX = null
+        }
     }
 
-    private fun timelinePixels(milliseconds: Long): Int {
-        val scaledDp = (milliseconds.coerceAtLeast(0L).toDouble() * TIMELINE_DP_PER_SECOND / 1000.0)
-            .roundToInt()
-            .coerceIn(0, MAX_TIMELINE_DP)
-        return dp(scaledDp)
+    private fun updateFollowButton() {
+        if (::followPlayheadButton.isInitialized)
+            followPlayheadButton.text = if (followPlayhead) "অনুসরণ: চালু" else "অনুসরণ: বন্ধ"
+    }
+
+    private fun setPlayheadDisplay(frame: Long) {
+        timelineFrame = frame.coerceIn(0L, timelineView?.endFrame ?: 0L)
+        timelineView?.setPlayhead(timelineFrame)
+        if (::timelinePositionText.isInitialized)
+            timelinePositionText.text = "Timeline ${TimelineGeometry.timecode(timelineFrame)}"
+    }
+
+    private fun updateTimelinePlayhead(follow: Boolean = false) {
+        if (timelineScrubbing) return
+        val clip = timelineClips.firstOrNull { it.id == selectedClipId }
+        val frame = if (clip != null && !timelineGapPosition)
+            TimelineGeometry.frameForSource(clip, previewPositionMs) else timelineFrame
+        setPlayheadDisplay(frame)
+        if (follow && followPlayhead) revealPlayhead()
+    }
+
+    private fun revealPlayhead() {
+        val view = timelineView ?: return
+        val viewport = timelineViewport ?: return
+        if (viewport.width <= 0) return
+        val x = view.xForFrame(timelineFrame).toInt()
+        if (x < viewport.scrollX + dp(12) || x > viewport.scrollX + viewport.width - dp(32))
+            viewport.scrollTo((x - viewport.width / 3).coerceAtLeast(0), 0)
+    }
+
+    private fun pauseForTimelineScrub() {
+        mainHandler.removeCallbacks(playbackTicker)
+        val current = player
+        val generation = playerGeneration
+        mediaHandler.post {
+            if (current != null && player === current && generation == playerGeneration) {
+                try { if (current.isPlaying) current.pause() } catch (_: IllegalStateException) { }
+            }
+        }
+        playButton.text = "ভিডিও চালান"
+    }
+
+    private fun seekTimelineAt(track: String, frame: Long) {
+        if (projectIoBusy || previewSeeking) { blockWhileMediaLoads(); updateTimelinePlayhead(); return }
+        try {
+            val session = engine ?: return
+            val target = session.resolvePlayhead(track, frame)
+            timelineScrubbing = false
+            followPlayhead = true; updateFollowButton()
+            if (target == null) {
+                metadataRequestSequence += 1; selectedMediaLoading = false
+                selectedClipId = null; selectedUri = null
+                previewStartMs = 0L; previewEndMs = 0L; previewPositionMs = 0L
+                releasePlayer(); preview.alpha = 0f; timelineGapPosition = true; timelineFrame = frame
+                refreshTimeline()
+                mediaText.text = "Timeline-এর এই স্থানে কোনো clip নেই"
+                statusText.text = "Gap / timeline শেষ · clip-এ ট্যাপ করে preview করুন; project বদলায়নি"
+                return
+            }
+            val clip = session.clips().first { it.id == target.clipId }
+            timelineGapPosition = false
+            if (clip.id == selectedClipId && playerPrepared && !selectedMediaLoading) {
+                seekPreviewTo(target.sourcePositionMs)
+            } else selectClip(clip, sourcePositionMs = target.sourcePositionMs)
+            setPlayheadDisplay(target.timelineFrame)
+        } catch (error: Exception) { showError(error); updateTimelinePlayhead() }
+    }
+
+    private fun seekPreviewTo(sourceMs: Long, resumeIfPlaying: Boolean = false) {
+        val current = player ?: return
+        if (!playerPrepared) return
+        val target = sourceMs.coerceIn(previewStartMs, (previewEndMs - 1L).coerceAtLeast(previewStartMs))
+        val serial = ++seekSerial
+        val generation = playerGeneration
+        previewSeeking = true; previewPositionMs = target
+        seekBar.progress = target.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        updateTimelinePlayhead(); playButton.isEnabled = false
+        mainHandler.removeCallbacks(playbackTicker)
+        mediaHandler.post {
+            if (player !== current || generation != playerGeneration) return@post
+            try {
+                val resume = resumeIfPlaying && current.isPlaying
+                if (current.isPlaying) current.pause()
+                current.setOnSeekCompleteListener { ready ->
+                    if (player === ready && generation == playerGeneration && serial == seekSerial) {
+                        ready.setOnSeekCompleteListener(null); previewSeeking = false
+                        if (resume) ready.start()
+                        mainHandler.post {
+                            if (player === ready && generation == playerGeneration && serial == seekSerial) {
+                                previewPositionMs = target
+                                seekBar.progress = target.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                                playButton.isEnabled = true
+                                playButton.text = if (resume) "বিরতি" else "ভিডিও চালান"
+                                updateTimelinePlayhead(follow = resume)
+                                if (resume) mainHandler.post(playbackTicker)
+                            }
+                        }
+                    }
+                }
+                current.seekTo(target, MediaPlayer.SEEK_CLOSEST)
+            } catch (error: IllegalStateException) {
+                mainHandler.post {
+                    if (generation == playerGeneration) {
+                        previewSeeking = false; playButton.isEnabled = playerPrepared
+                        statusText.text = "Seek হয়নি: ${error.message}"
+                    }
+                }
+            }
+        }
     }
 
     private fun moveClipToFreeSlot(clip: ClipSnapshot, trackId: String, proposedStart: Long) {
@@ -531,7 +623,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         }
     }
 
-    private fun selectClip(clip: ClipSnapshot, resumePlayback: Boolean = false) {
+    private fun selectClip(clip: ClipSnapshot, resumePlayback: Boolean = false, sourcePositionMs: Long = clip.sourceInMs) {
         if (projectIoBusy) return
         resumeAfterSelection = resumePlayback
         selectedClipId = clip.id
@@ -540,7 +632,9 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         selectedUri = uri
         previewStartMs = clip.sourceInMs
         previewEndMs = clip.sourceOutMs
-        previewPositionMs = clip.sourceInMs
+        previewPositionMs = sourcePositionMs.coerceIn(clip.sourceInMs, clip.sourceOutMs - 1L)
+        timelineGapPosition = false
+        preview.alpha = 1f
         refreshTimeline()
         readMetadataAndRegister(uri, existingClipId = clip.id)
     }
@@ -562,6 +656,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         } else {
             mainHandler.removeCallbacks(playbackTicker)
             seekBar.progress = previewEndMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            previewPositionMs = previewEndMs
+            updateTimelinePlayhead(follow = true)
             playButton.text = "ভিডিও চালান"
             statusText.text = "Timeline playback শেষ"
         }
@@ -641,6 +737,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         if (blockWhileMediaLoads()) return
         val session = engine ?: return
         try {
+            val anchorFrame = timelineFrame
+            val anchorTrack = timelineClips.firstOrNull { it.id == selectedClipId }?.trackId ?: "v1"
             val changed = if (undo) session.undo() else session.redo()
             if (!changed) {
                 Toast.makeText(this, if (undo) "Undo history খালি" else "Redo history খালি", Toast.LENGTH_SHORT).show()
@@ -652,7 +750,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             scheduleAutosave()
             engineStatusText.text = session.status()
             if (clips.isEmpty()) showFirstClip(session)
-            else clips.firstOrNull { it.id == selectedClipId }?.let { selectClip(it) }
+            else seekTimelineAt(anchorTrack, anchorFrame)
         } catch (error: Exception) { showError(error) }
     }
 
@@ -796,6 +894,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     }
 
     private fun blockWhileMediaLoads(): Boolean {
+        if (previewSeeking) {
+            Toast.makeText(this, "Seek শেষ হতে অপেক্ষা করুন", Toast.LENGTH_SHORT).show()
+            return true
+        }
         if (projectIoBusy) {
             Toast.makeText(this, "চলমান save/load/export শেষ করুন বা export বাতিল করুন", Toast.LENGTH_SHORT).show()
             return true
@@ -809,7 +911,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         Toast.makeText(this, error.message ?: "Edit operation ব্যর্থ", Toast.LENGTH_LONG).show()
     }
 
-    private fun frameToMs(frames: Long): Long = ((frames.coerceAtLeast(0L).toDouble() * 1000.0) / 30.0).toLong()
+    private fun frameToMs(frames: Long): Long = Math.addExact(Math.multiplyExact(frames.coerceAtLeast(0L) / 30L, 1000L), (frames.coerceAtLeast(0L) % 30L * 1000L) / 30L)
 
     private fun launchExportPicker() {
         if (projectIoBusy || blockWhileMediaLoads()) return
@@ -861,6 +963,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         exportCancellation = cancellation
         projectIoBusy = true
         projectIoOperation = ProjectIoOperation.EXPORT
+        timelineView?.isEnabled = false
         cancelExportButton.text = "Export বাতিল"
         cancelExportButton.isEnabled = true
         statusText.text = "Export প্রস্তুত হচ্ছে…"
@@ -901,6 +1004,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                         projectIoBusy = false
                         projectIoOperation = null
                         cancelExportButton.isEnabled = false
+                        timelineView?.isEnabled = true
                         cancelExportButton.text = "Export বাতিল"
                         statusText.text = resultMessage
                     }
@@ -1169,11 +1273,12 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     if (addedNewClip) previewPositionMs = 0L
                     previewPositionMs = previewPositionMs.coerceIn(previewStartMs,
                         (previewEndMs - 1L).coerceAtLeast(previewStartMs))
+                    timelineGapPosition = false; preview.alpha = 1f
                     selectedUri = uri
                     durationMs = duration
                     preview.setVideoSize(displayWidth, displayHeight)
                     seekBar.max = duration.coerceAtMost(Int.MAX_VALUE.toLong()).toInt().coerceAtLeast(1)
-                    seekBar.progress = 0
+                    seekBar.progress = previewPositionMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                     val grantInfo = if (persistedGrant) {
                         "SAF read access সংরক্ষিত; Original media অপরিবর্তিত থাকবে।"
                     } else {
@@ -1218,41 +1323,47 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 candidate.setSurface(outputSurface)
                 candidate.setOnPreparedListener { ready ->
                     if (generation != playerGeneration || player !== ready) return@setOnPreparedListener
-                    playerPrepared = true
                     val readyDuration = ready.duration
                     val startPosition = previewPositionMs.coerceIn(previewStartMs,
                         (minOf(previewEndMs, readyDuration.toLong()) - 1L).coerceAtLeast(previewStartMs))
                     val shouldResume = resumeAfterSelection
                     resumeAfterSelection = false
-                    if (startPosition > 0L) ready.seekTo(startPosition.toInt())
-                    if (shouldResume) {
+                    fun positioned() {
+                        if (generation != playerGeneration || player !== ready) return
                         try {
-                            ready.start()
-                        } catch (error: IllegalStateException) {
-                            playerPrepared = false
-                            resumeAfterSelection = false
+                            ready.setOnSeekCompleteListener(null)
+                            previewSeeking = false; playerPrepared = true
+                            if (shouldResume) ready.start()
                             mainHandler.post {
                                 if (generation == playerGeneration && player === ready) {
-                                    playButton.isEnabled = false
-                                    statusText.text = "পরের clip চালু হয়নি: ${error.message}"
+                                    durationMs = readyDuration.toLong()
+                                    previewPositionMs = startPosition
+                                    seekBar.max = readyDuration.coerceAtLeast(1)
+                                    seekBar.progress = startPosition.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                                    updateTimelinePlayhead(follow = shouldResume)
+                                    playButton.isEnabled = true
+                                    if (shouldResume) {
+                                        playButton.text = "বিরতি"
+                                        scheduleFirstFrameDiagnostic(generation, ready)
+                                        mainHandler.removeCallbacks(playbackTicker)
+                                        mainHandler.post(playbackTicker)
+                                    } else statusText.text = "Preview প্রস্তুত · timeline-এ লাল playhead / ভিডিও চালান চাপুন"
                                 }
                             }
-                            return@setOnPreparedListener
+                        } catch (error: IllegalStateException) {
+                            playerPrepared = false; previewSeeking = false
+                            mainHandler.post { if (generation == playerGeneration) statusText.text = "Preview seek/start হয়নি: ${error.message}" }
                         }
                     }
-                    mainHandler.post {
-                        if (generation == playerGeneration && player === ready) {
-                            durationMs = readyDuration.toLong()
-                            seekBar.max = readyDuration.coerceAtLeast(1)
-                            seekBar.progress = startPosition.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-                            playButton.isEnabled = true
-                            if (shouldResume) {
-                                playButton.text = "বিরতি"
-                                scheduleFirstFrameDiagnostic(generation, ready)
-                                mainHandler.removeCallbacks(playbackTicker)
-                                mainHandler.post(playbackTicker)
-                            } else statusText.text = "Preview প্রস্তুত · ${formatTime(durationMs)} · চালাতে ভিডিও চালান চাপুন"
-                        }
+                    try {
+                        if (startPosition > 0L) {
+                            previewSeeking = true
+                            ready.setOnSeekCompleteListener { positioned() }
+                            ready.seekTo(startPosition, MediaPlayer.SEEK_CLOSEST)
+                        } else positioned()
+                    } catch (error: IllegalStateException) {
+                        previewSeeking = false
+                        mainHandler.post { if (generation == playerGeneration) statusText.text = "Preview seek হয়নি: ${error.message}" }
                     }
                 }
                 candidate.setOnCompletionListener { completed ->
@@ -1330,9 +1441,15 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 } else {
                     val position = current.currentPosition.toLong()
                     if (position < previewStartMs || position >= previewEndMs) {
-                        current.seekTo(previewStartMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
-                    }
-                    current.start()
+                        current.setOnSeekCompleteListener { ready ->
+                            if (generation == playerGeneration && player === ready) {
+                                ready.setOnSeekCompleteListener(null)
+                                ready.start()
+                                mainHandler.post { if (generation == playerGeneration) mainHandler.post(playbackTicker) }
+                            }
+                        }
+                        current.seekTo(previewStartMs, MediaPlayer.SEEK_CLOSEST)
+                    } else current.start()
                     mainHandler.post {
                         playButton.text = "বিরতি"
                         if (!firstVideoFrameRendered) {
@@ -1353,6 +1470,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         mainHandler.removeCallbacks(playbackTicker)
         clearFirstFrameDiagnostic()
         firstVideoFrameRendered = false
+        previewSeeking = false
+        seekSerial += 1
         val old = player
         player = null
         playerPrepared = false
@@ -1440,6 +1559,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             hasUnsavedChanges = hasUnsavedChanges,
             editGeneration = editGeneration,
             previewPositionMs = previewPositionMs,
+            timelineFrame = timelineFrame,
+            timelineGapPosition = timelineGapPosition,
+            followPlayhead = followPlayhead,
+            timelineScrollX = timelineViewport?.scrollX ?: 0,
         )
         handingOffEngine = true
         engine = null
@@ -1499,7 +1622,5 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         private const val REQUEST_PROJECT_OPEN = 4103
         private const val REQUEST_RELINK_MEDIA = 4104
         private const val REQUEST_EXPORT_VIDEO = 4105
-        private const val TIMELINE_DP_PER_SECOND = 48.0
-        private const val MAX_TIMELINE_DP = 10_000
     }
 }

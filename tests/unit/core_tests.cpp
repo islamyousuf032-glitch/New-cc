@@ -100,6 +100,25 @@ int main() {
         check(history.redo(imported));
         check(imported.locate_clip("right").clip.source_in == Timestamp{3000, milliseconds});
     }
+    {
+        Timeline seeking{TimeBase{1, 30}};
+        seeking.add_track({"v1", TrackKind::video, false, false, {}});
+        seeking.add_clip("v1", {"a", "source-a", {0, TimeBase{1, 30}}, {1000, milliseconds}, {2000, milliseconds}});
+        seeking.add_clip("v1", {"b", "source-b", {30, TimeBase{1, 30}}, {5000, milliseconds}, {6000, milliseconds}});
+        check(seeking.resolve_playhead("v1", {0, TimeBase{1, 30}})->source_position == Timestamp{1000, milliseconds});
+        const auto boundary = seeking.resolve_playhead("v1", {30, TimeBase{1, 30}});
+        check(boundary && boundary->clip_id == "b" && boundary->source_position == Timestamp{5000, milliseconds});
+        check(seeking.resolve_playhead("v1", {45, TimeBase{1, 30}})->source_position == Timestamp{5500, milliseconds});
+        check(!seeking.resolve_playhead("v1", {60, TimeBase{1, 30}}));
+        seeking.move_clip("b", "v1", {90, TimeBase{1, 30}});
+        check(!seeking.resolve_playhead("v1", {45, TimeBase{1, 30}}));
+        check(seeking.resolve_playhead("v1", {90, TimeBase{1, 30}})->source_position == Timestamp{5000, milliseconds});
+        expect_failure([&] { (void)seeking.resolve_playhead("missing", {0, TimeBase{1, 30}}); });
+        expect_failure([&] { (void)seeking.resolve_playhead("v1", {-1, TimeBase{1, 30}}); });
+        seeking.move_clip("b", "v1", {15, TimeBase{1, 30}});
+        expect_failure([&] { (void)seeking.resolve_playhead("v1", {15, TimeBase{1, 30}}); });
+        check(seeking.tracks()[0].clips.size() == 2); // Seeking never edits media/timing.
+    }
     check((TimeBase{2, 4} == TimeBase{1, 2}));
     check((Timestamp{30, ntsc_frame} == Timestamp{1001, TimeBase{1, 1000}}));
     check((Timestamp{1, TimeBase{1, 2}}.rescaled(milliseconds).ticks == 500));

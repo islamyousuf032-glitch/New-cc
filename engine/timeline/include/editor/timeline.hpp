@@ -3,6 +3,7 @@
 #include "editor/time.hpp"
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -32,6 +33,12 @@ struct ClipLocation final {
     Clip clip;
 };
 
+struct PlayheadPosition final {
+    std::string clip_id;
+    Timestamp timeline_position;
+    Timestamp source_position;
+};
+
 struct RippleDeleteResult final {
     ClipLocation removed;
     std::size_t original_index{0};
@@ -57,6 +64,9 @@ public:
     void set_track_state(const std::string& track_id, bool muted, bool locked);
     void move_clip(const std::string& clip_id, const std::string& destination_track_id,
                    Timestamp destination_start);
+    // Point lookup uses [start,end); gaps return null, ambiguous overlaps are rejected.
+    [[nodiscard]] std::optional<PlayheadPosition> resolve_playhead(
+        const std::string& track_id, Timestamp position) const;
     [[nodiscard]] ClipLocation locate_clip(const std::string& clip_id) const;
     [[nodiscard]] const std::vector<Track>& tracks() const noexcept { return tracks_; }
     [[nodiscard]] TimeBase frame_time_base() const noexcept { return frame_time_base_; }

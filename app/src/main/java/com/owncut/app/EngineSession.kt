@@ -12,6 +12,8 @@ internal data class ClipSnapshot(
     val sourceOutMs: Long,
 )
 
+internal data class PlayheadPosition(val clipId: String, val timelineFrame: Long, val sourcePositionMs: Long)
+
 /**
  * Owns one native engine session. Native work is intentionally batched at this boundary.
  * Project and autosave file methods are blocking; call them from a worker, not the UI thread.
@@ -47,6 +49,14 @@ internal class EngineSession : AutoCloseable {
                 ))
             }
         }
+    }
+
+    @Synchronized
+    fun resolvePlayhead(trackId: String, timelineFrame: Long): PlayheadPosition? {
+        check(handle != 0L) { "Engine session is closed" }
+        val json = nativeResolvePlayhead(handle, trackId, timelineFrame) ?: return null
+        val value = JSONObject(json)
+        return PlayheadPosition(value.getString("clipId"), value.getLong("timelineFrame"), value.getLong("sourcePositionMs"))
     }
 
     @Synchronized
@@ -145,6 +155,7 @@ internal class EngineSession : AutoCloseable {
     private external fun nativeCreate(): Long
     private external fun nativeGetStatus(handle: Long): String
     private external fun nativeGetTimelineSnapshot(handle: Long): String
+    private external fun nativeResolvePlayhead(handle: Long, trackId: String, timelineFrame: Long): String?
     private external fun nativeAddMediaClip(handle: Long, mediaId: String, durationMs: Long): String
     private external fun nativeRelinkClipMedia(handle: Long, clipId: String, replacementMediaId: String)
     private external fun nativeMoveClip(handle: Long, clipId: String, destinationTrackId: String, destinationStartFrame: Long)

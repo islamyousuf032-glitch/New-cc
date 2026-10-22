@@ -194,6 +194,23 @@ Java_com_owncut_app_EngineSession_nativeGetTimelineSnapshot(JNIEnv* env, jobject
 }
 
 extern "C" JNIEXPORT jstring JNICALL
+Java_com_owncut_app_EngineSession_nativeResolvePlayhead(JNIEnv* env, jobject, jlong handle,
+                                                        jstring track_id, jlong frame) {
+    try {
+        auto& session = require_session(handle);
+        const auto track = from_java(env, track_id);
+        std::lock_guard lock(session.mutex);
+        const auto resolved = session.project.timeline.resolve_playhead(track, Timestamp{frame, kFrameTimeBase});
+        if (!resolved) return nullptr;
+        std::string json{"{\"clipId\":"};
+        append_json_string(json, resolved->clip_id);
+        json += ",\"timelineFrame\":" + std::to_string(resolved->timeline_position.ticks);
+        json += ",\"sourcePositionMs\":" + std::to_string(resolved->source_position.rescaled(kMilliseconds).ticks) + "}";
+        return env->NewStringUTF(json.c_str());
+    } catch (const std::exception& error) { throw_java_argument(env, error.what()); return nullptr; }
+}
+
+extern "C" JNIEXPORT jstring JNICALL
 Java_com_owncut_app_EngineSession_nativeAddMediaClip(JNIEnv* env, jobject, jlong handle,
                                                       jstring media_id, jlong duration_ms) {
     try {

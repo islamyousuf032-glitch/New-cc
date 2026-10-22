@@ -8,6 +8,23 @@
 namespace editor {
 Timeline::Timeline(TimeBase frame_time_base) : frame_time_base_(frame_time_base) {}
 
+std::optional<PlayheadPosition> Timeline::resolve_playhead(
+    const std::string& track_id, Timestamp position) const {
+    if (position < Timestamp{0, frame_time_base_})
+        throw std::invalid_argument("playhead cannot be before timeline zero");
+    const auto track = std::ranges::find_if(tracks_, [&](const Track& value) { return value.id == track_id; });
+    if (track == tracks_.end()) throw std::invalid_argument("unknown playhead track");
+    position = position.rescaled(frame_time_base_);
+    std::optional<PlayheadPosition> result;
+    for (const auto& clip : track->clips) {
+        const auto end = clip.timeline_start + (clip.source_out - clip.source_in).rescaled(frame_time_base_);
+        if (position < clip.timeline_start || !(position < end)) continue;
+        if (result) throw std::logic_error("overlapping clips require a compositor for seeking");
+        result = PlayheadPosition{clip.id, position, clip.source_in + (position - clip.timeline_start)};
+    }
+    return result;
+}
+
 void Timeline::add_track(Track track) {
     if (track.id.empty()) throw std::invalid_argument("track id must not be empty");
     if (track.kind != TrackKind::video && track.kind != TrackKind::audio)
