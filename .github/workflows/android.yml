@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
+      - name: Verify bilingual resources and UI palette
+        run: python3 tests/check_ui_resources.py
       - uses: actions/setup-java@v5
         with:
           distribution: temurin

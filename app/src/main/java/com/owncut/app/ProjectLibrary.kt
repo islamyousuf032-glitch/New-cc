@@ -14,7 +14,7 @@ internal data class LibraryListing(val projects: List<LibraryProject>, val warni
 internal class ProjectLibrary(private val filesDir: File) {
     private val root = File(filesDir, "projects")
     private fun directory(id: String): File {
-        require(Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").matches(id)) { "Invalid project ID" }
+        require(Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").matches(id)) { AppLanguage.text(R.string.message_8bd7483212) }
         return File(root, id)
     }
     fun projectFile(id: String) = File(directory(id), "project.owncut")
@@ -28,21 +28,21 @@ internal class ProjectLibrary(private val filesDir: File) {
             output.toByteArray()
         }
         val json = JSONObject(String(bytes, Charsets.UTF_8))
-        require(json.getInt("version") == 1 && json.getString("id") == id) { "Unsupported project metadata" }
+        require(json.getInt("version") == 1 && json.getString("id") == id) { AppLanguage.text(R.string.message_0766a0344b) }
         val name = validName(json.getString("name"))
         val updated = json.getLong("updatedAt")
-        require(updated >= 0) { "Invalid project date" }
+        require(updated >= 0) { AppLanguage.text(R.string.message_8f454e8f99) }
         return LibraryProject(id, name, updated, recoveryFile(id).isFile)
     }
     fun list(): LibraryListing = synchronized(lock) { listUnlocked() }
     private fun listUnlocked(): LibraryListing {
         if (!root.exists()) return LibraryListing(emptyList(), emptyList())
-        val dirs = root.listFiles() ?: error("Project library পড়া যাচ্ছে না")
-        require(dirs.size <= 1000) { "Library exceeds 1000 entries; files were not changed" }
+        val dirs = root.listFiles() ?: error(AppLanguage.text(R.string.message_04e2fb0e61))
+        require(dirs.size <= 1000) { AppLanguage.text(R.string.message_5b44580b10) }
         val warnings = mutableListOf<String>()
         val items = dirs.filter { it.isDirectory }.mapNotNull { dir ->
             try { read(dir.name) } catch (_: Exception) {
-                warnings += "${dir.name}: metadata পড়া যায়নি; কোনো ফাইল মুছে দেওয়া হয়নি"; null
+                warnings += AppLanguage.text(R.string.message_ea1cce60a0, dir.name); null
             }
         }
         return LibraryListing(items.sortedWith(compareByDescending<LibraryProject> { it.updatedAt }.thenBy { it.id }), warnings)
@@ -51,12 +51,12 @@ internal class ProjectLibrary(private val filesDir: File) {
     private fun createUnlocked(name: String, source: File?): LibraryProject {
         val safeName = validName(name)
         if (root.exists()) {
-            val entries = root.listFiles() ?: error("Project library পড়া যাচ্ছে না")
-            require(entries.size < 1000) { "Library পূর্ণ; নতুন project তৈরির আগে backup/পরিচর্যা প্রয়োজন" }
+            val entries = root.listFiles() ?: error(AppLanguage.text(R.string.message_04e2fb0e61))
+            require(entries.size < 1000) { AppLanguage.text(R.string.message_ee066bee3d) }
         }
         val id = UUID.randomUUID().toString()
         val dir = directory(id)
-        check(dir.mkdirs()) { "Project folder তৈরি হয়নি" }
+        check(dir.mkdirs()) { AppLanguage.text(R.string.message_6354e4e3d6) }
         try {
             EngineSession().use { session ->
                 if (source != null) session.loadProject(source.absolutePath)
@@ -66,7 +66,7 @@ internal class ProjectLibrary(private val filesDir: File) {
             return read(id)
         } catch (error: Exception) {
             // Leave any successfully written native document available for manual recovery.
-            throw IllegalStateException("Project তৈরি হয়নি (${dir.name}); original অপরিবর্তিত আছে", error)
+            throw IllegalStateException(AppLanguage.text(R.string.message_20c86043bf, dir.name), error)
         }
     }
     fun rename(id: String, name: String): LibraryProject = synchronized(lock) { read(id); write(id, validName(name)); read(id) }
@@ -104,12 +104,12 @@ internal class ProjectLibrary(private val filesDir: File) {
                 java.nio.file.Files.move(temporary.toPath(), recoveryFile(id).toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE)
             } finally { temporary.delete() }
         }
-        write(id, "আগের workspace")
+        write(id, AppLanguage.text(R.string.message_b0ed78beaa))
     }
     companion object { private val lock = Any() }
     private fun validName(name: String): String {
         val value = name.trim()
-        require(value.isNotEmpty() && value.length <= 80 && value.none { it.isISOControl() }) { "Project name ১–৮০ অক্ষর হতে হবে" }
+        require(value.isNotEmpty() && value.length <= 80 && value.none { it.isISOControl() }) { AppLanguage.text(R.string.message_6cf81c7ca3) }
         return value
     }
 }

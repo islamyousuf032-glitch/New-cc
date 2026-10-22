@@ -44,7 +44,7 @@ class ProjectLibraryTest {
             library.migrateLegacy(); library.migrateLegacy()
             assertEquals(3, library.list().projects.size)
             assertArrayEquals(before, old.readBytes())
-            assertTrue(library.list().projects.single { it.name == "আগের workspace" }.recovery)
+            assertTrue(library.list().projects.single { it.name == AppLanguage.text(R.string.message_b0ed78beaa) }.recovery)
             val catalogRoot = File(dir, "projects")
             val bad = File(catalogRoot, "bad-entry").apply { mkdirs() }
             File(bad, "metadata.json").writeText("broken")

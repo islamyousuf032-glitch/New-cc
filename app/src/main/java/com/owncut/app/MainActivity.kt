@@ -37,12 +37,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-class MainActivity : Activity(), TextureView.SurfaceTextureListener {
+class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     private var engine: EngineSession? = null
     private var libraryId: String? = null
-    private var projectName = "Workspace"
+    private var projectName = AppLanguage.text(R.string.workspace_name)
     private var workspacePage = "Edit"
     private var projectTitle: TextView? = null
+    private val workspaceTabs = mutableMapOf<String, Button>()
     private val workspacePanels = mutableMapOf<String, MutableList<android.view.View>>()
     private lateinit var preview: AspectRatioTextureView
     private var previewSurface: Surface? = null
@@ -110,7 +111,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                             advanceOrStopTimeline(generation, current)
                         } else {
                             if (firstVideoFrameRendered) {
-                                statusText.text = "ভিডিও চলছে · ${formatTime(position.toLong())} / ${formatTime(durationMs)}"
+                                statusText.text = AppLanguage.text(R.string.message_2045e197ce, formatTime(position.toLong()), formatTime(durationMs))
                             }
                             mainHandler.postDelayed(this, 50L)
                         }
@@ -200,7 +201,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         } else if (libraryId != null) {
             loadLibraryProject()
         } else if (savedInstanceState != null) {
-            statusText.text = "আগের session-এর জন্য Recover autosave চাপুন, অথবা media আবার নির্বাচন করুন।"
+            statusText.text = AppLanguage.text(R.string.message_522d3a1484)
         }
         if (retained != null && libraryId != null) loadLibraryTitle()
         updateEngineStatus()
@@ -212,7 +213,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         metadataExecutor.execute {
             try {
                 val name = ProjectLibrary(filesDir).read(id).name
-                mainHandler.post { if (!isDestroyed) { projectName = name; projectTitle?.text = "Owncut · $name" } }
+                mainHandler.post { if (!isDestroyed) { projectName = name; projectTitle?.text = "Owncut · ${name} · ${pageLabel(workspacePage)}" } }
             } catch (_: Exception) { /* Native retained session stays usable even if catalog metadata is damaged. */ }
         }
     }
@@ -221,7 +222,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         val id = libraryId ?: return
         val session = engine ?: return
         projectIoBusy = true; projectIoOperation = ProjectIoOperation.LOAD
-        statusText.text = "Project খোলা হচ্ছে…"
+        statusText.text = AppLanguage.text(R.string.message_d36d2b9e2d)
         metadataExecutor.execute {
             try {
                 val library = ProjectLibrary(filesDir)
@@ -230,22 +231,22 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 library.touch(id)
                 mainHandler.post {
                     if (!isDestroyed) {
-                        projectName = record.name; projectTitle?.text = "Owncut · $projectName"
+                        projectName = record.name; projectTitle?.text = "Owncut · ${projectName} · ${pageLabel(workspacePage)}"
                         projectIoBusy = false; projectIoOperation = null
                         updateEngineStatus(); showFirstClip(session)
                         statusText.text = if (record.recovery)
-                            "Recovery snapshot আছে। চাইলে Recover autosave করুন; নতুন edit করলে পুরোনো snapshot বদলাবে।"
-                        else "Project খোলা হয়েছে"
+                            AppLanguage.text(R.string.message_687e9c4466)
+                        else AppLanguage.text(R.string.message_3cbf4f8e3e)
                     }
                 }
             } catch (error: Exception) {
                 mainHandler.post {
                     if (!isDestroyed) {
                         // Do not allow edits/saves of a blank replacement after a failed load.
-                        statusText.text = "Project খোলা যায়নি: ${error.message}"
-                        AlertDialog.Builder(this).setTitle("Project নিরাপদ রাখা হয়েছে")
-                            .setMessage("খোলা যায়নি: ${error.message}। Original file বদলানো হয়নি।")
-                            .setCancelable(false).setPositiveButton("Projects") { _, _ -> finish() }.show()
+                        statusText.text = AppLanguage.text(R.string.message_7496096196, error.message)
+                        AlertDialog.Builder(this).setTitle(AppLanguage.text(R.string.message_e73f93c4f2))
+                            .setMessage(AppLanguage.text(R.string.message_ca488e2680, error.message))
+                            .setCancelable(false).setPositiveButton(AppLanguage.text(R.string.message_53e890d5f0)) { _, _ -> finish() }.show()
                     }
                 }
             }
@@ -260,7 +261,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         pendingAutosave?.cancel(false)
         releasePlayer()
         projectIoBusy = true; projectIoOperation = ProjectIoOperation.SAVE
-        statusText.text = "কাজ রেখে Projects-এ ফেরা হচ্ছে…"
+        statusText.text = AppLanguage.text(R.string.message_ddc4d8e4bd)
         val changed = hasUnsavedChanges
         metadataExecutor.execute {
             try {
@@ -276,7 +277,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 mainHandler.post {
                     if (!isDestroyed) {
                         projectIoBusy = false; projectIoOperation = null
-                        statusText.text = "Save হয়নি; editor খোলা আছে: ${error.message}"
+                        statusText.text = AppLanguage.text(R.string.message_b7dd6d731a, error.message)
                     }
                 }
             }
@@ -298,14 +299,14 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         mediaThread.quitSafely()
         val details = error.stackTraceToString().lineSequence().take(10).joinToString("\n")
         val message = TextView(this).apply {
-            text = "Owncut চালু হতে পারেনি। এই পর্দার screenshot পাঠান।\n\n${error.javaClass.simpleName}: ${error.message ?: "কোনো বিবরণ নেই"}\n\n$details"
+            text = AppLanguage.text(R.string.message_b266d68863, error.javaClass.simpleName, error.message ?: AppLanguage.text(R.string.message_bcef4ffd8a), details)
             textSize = 15f
-            setTextColor(0xFFE5EEE8.toInt())
+            setTextColor(0xFFF0F4FC.toInt())
             setTextIsSelectable(true)
             setPadding(dp(20), dp(24), dp(20), dp(24))
         }
         setContentView(ScrollView(this).apply {
-            setBackgroundColor(0xFF101713.toInt())
+            setBackgroundColor(0xFF0B1019.toInt())
             addView(message)
         })
     }
@@ -316,27 +317,32 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             setPadding(dp(16), dp(12), dp(16), dp(12))
-            setBackgroundColor(0xFF101713.toInt())
+            setBackgroundColor(0xFF0B1019.toInt())
         }
         val title = TextView(this).apply {
             text = getString(R.string.app_name)
-            textSize = 24f
-            setTextColor(0xFFE5EEE8.toInt())
+            textSize = 22f
+            setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL))
+            setTextColor(0xFFF0F4FC.toInt())
             gravity = Gravity.CENTER_VERTICAL
         }
         projectTitle = title
-        title.text = "Owncut · $projectName"
-        root.addView(title, matchWrap())
-        root.addView(actionButton("‹ Projects · কাজ রেখে ফিরুন") { returnToLibrary() }, matchWrap())
+        title.text = "Owncut · ${projectName}"
+        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        header.addView(actionButton(AppLanguage.text(R.string.message_e8a5c38200), StudioIcon.HOME) { returnToLibrary() }, LinearLayout.LayoutParams(dp(52), dp(52)))
+        header.addView(title, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = dp(12) })
+        root.addView(header, matchWrap())
         val navigation = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         for (page in listOf("Edit", "Media", "Flow", "Deliver")) {
-            navigation.addView(actionButton(page) { showWorkspacePage(page) }, LinearLayout.LayoutParams(0, dp(48), 1f))
+            val tab = actionButton(pageLabel(page), when(page) { "Edit" -> StudioIcon.EDIT; "Media" -> StudioIcon.MEDIA; "Flow" -> StudioIcon.FLOW; else -> StudioIcon.EXPORT }) { showWorkspacePage(page) }
+            workspaceTabs[page] = tab
+            navigation.addView(tab, LinearLayout.LayoutParams(0, dp(52), 1f).apply { setMargins(dp(3),dp(6),dp(3),dp(6)) })
         }
         root.addView(navigation, matchWrap())
 
         preview = AspectRatioTextureView(this).apply {
             // TextureView rejects background drawables/colors; keep its empty surface as the placeholder.
-            contentDescription = "Video preview"
+            contentDescription = AppLanguage.text(R.string.message_86474f5303)
         }
         val previewParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(240)).apply {
             topMargin = dp(12)
@@ -345,26 +351,26 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         root.addView(preview, previewParams)
 
         mediaText = TextView(this).apply {
-            text = "একটি ভিডিও নির্বাচন করে preview শুরু করুন"
+            text = AppLanguage.text(R.string.message_ab6daf2ef3)
             textSize = 14f
-            setTextColor(0xFFB5C6BB.toInt())
+            setTextColor(0xFFAABAD0.toInt())
         }
         root.addView(mediaText, matchWrap())
 
         selectedClipText = TextView(this).apply {
-            text = "Timeline · কোনো clip নির্বাচিত নয়"
+            text = AppLanguage.text(R.string.message_a89bb287f6)
             textSize = 13f
-            setTextColor(0xFFE5EEE8.toInt())
+            setTextColor(0xFFF0F4FC.toInt())
             setPadding(0, dp(10), 0, dp(4))
         }
         root.addView(selectedClipText, matchWrap())
         val transportRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         timelinePositionText = TextView(this).apply {
             textSize = 12f; setTextColor(0xFFFF8991.toInt()); gravity = Gravity.CENTER_VERTICAL
-            contentDescription = "Timeline position"
+            contentDescription = AppLanguage.text(R.string.message_67854d2c0b)
         }
         transportRow.addView(timelinePositionText, LinearLayout.LayoutParams(0, dp(48), 1f))
-        followPlayheadButton = actionButton("প্লেহেড অনুসরণ") {
+        followPlayheadButton = actionButton(AppLanguage.text(R.string.message_2086b19f67), StudioIcon.FOLLOW) {
             followPlayhead = !followPlayhead; updateFollowButton()
             if (followPlayhead) revealPlayhead()
         }
@@ -375,20 +381,23 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             isFillViewport = false
             isVerticalScrollBarEnabled = true
         }
-        timelineContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        timelineContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = StudioUi.shape(this@MainActivity)
+        }
         timelineScroll.addView(timelineContainer)
         root.addView(timelineScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(164)))
 
         seekBar = SeekBar(this).apply {
             isEnabled = false
             max = 1
-            contentDescription = "Selected source clip seek bar; red timeline playhead shows project time"
+            contentDescription = AppLanguage.text(R.string.message_0e20aaa694)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
                     if (fromUser && !previewSeeking) {
                         previewPositionMs = progress.toLong().coerceIn(previewStartMs, previewEndMs.coerceAtLeast(previewStartMs))
                         updateTimelinePlayhead()
-                        statusText.text = "Source: ${formatTime(progress.toLong())} / ${formatTime(durationMs)}"
+                        statusText.text = AppLanguage.text(R.string.message_dcc08d209e, formatTime(progress.toLong()), formatTime(durationMs))
                     }
                 }
                 override fun onStartTrackingTouch(bar: SeekBar) { isSeeking = true }
@@ -401,9 +410,9 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         root.addView(seekBar, matchWrap())
 
         val editHelpText = TextView(this).apply {
-            text = "লাল রেখা timeline playhead। Ruler/clip-এ ট্যাপ করে seek; লাল মাথা ধরে scrub করুন। Clip সরাতে long-press; নিচের bar শুধু নির্বাচিত source-এর position। Gap-এ playback থামে।"
+            text = AppLanguage.text(R.string.message_85149b860c)
             textSize = 12f
-            setTextColor(0xFF91A99A.toInt())
+            setTextColor(0xFFAABAD0.toInt())
             setPadding(0, dp(2), 0, dp(6))
         }
         root.addView(editHelpText, matchWrap())
@@ -411,36 +420,37 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
         val editScroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
         val editControls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        editControls.addView(actionButton("কাটুন (Split)") { splitAtPlayhead() }, wrapButtonParams())
-        editControls.addView(actionButton("বাম ছাঁটুন") { trimAtPlayhead(leftEdge = true) }, wrapButtonParams())
-        editControls.addView(actionButton("ডান ছাঁটুন") { trimAtPlayhead(leftEdge = false) }, wrapButtonParams())
-        editControls.addView(actionButton("মুছুন") { deleteSelected(ripple = false) }, wrapButtonParams())
-        editControls.addView(actionButton("গ্যাপ বাদ") { deleteSelected(ripple = true) }, wrapButtonParams())
+        editControls.addView(actionButton(AppLanguage.text(R.string.message_ef1f98dae3), StudioIcon.SPLIT) { splitAtPlayhead() }, wrapButtonParams())
+        editControls.addView(actionButton(AppLanguage.text(R.string.message_2f1b3a4ea9), StudioIcon.TRIM_LEFT) { trimAtPlayhead(leftEdge = true) }, wrapButtonParams())
+        editControls.addView(actionButton(AppLanguage.text(R.string.message_0a1e880c02), StudioIcon.TRIM_RIGHT) { trimAtPlayhead(leftEdge = false) }, wrapButtonParams())
+        editControls.addView(actionButton(AppLanguage.text(R.string.message_1c025b7a2c), StudioIcon.DELETE) { deleteSelected(ripple = false) }, wrapButtonParams())
+        editControls.addView(actionButton(AppLanguage.text(R.string.message_895cdbe3da), StudioIcon.RIPPLE) { deleteSelected(ripple = true) }, wrapButtonParams())
         editScroll.addView(editControls)
         root.addView(editScroll, matchWrap())
         workspacePanels.getOrPut("Edit") { mutableListOf() }.add(editScroll)
 
         val projectControls = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
         val projectButtons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        projectButtons.addView(actionButton("Undo") { runHistory(undo = true) }, wrapButtonParams())
-        projectButtons.addView(actionButton("Redo") { runHistory(undo = false) }, wrapButtonParams())
-        projectButtons.addView(actionButton("Save") { saveProject() }, wrapButtonParams())
-        projectButtons.addView(actionButton("Open saved") { confirmLoadProject() }, wrapButtonParams())
-        projectButtons.addView(actionButton("Save project as…") { launchProjectSavePicker() }, wrapButtonParams())
-        if (libraryId == null) projectButtons.addView(actionButton("Open project…") { launchProjectOpenPicker() }, wrapButtonParams())
-        projectButtons.addView(actionButton("Recover autosave") { confirmRecoverAutosave() }, wrapButtonParams())
+        projectButtons.addView(actionButton(AppLanguage.text(R.string.message_39fc721248), StudioIcon.UNDO) { runHistory(undo = true) }, wrapButtonParams())
+        projectButtons.addView(actionButton(AppLanguage.text(R.string.message_471b94d402), StudioIcon.REDO) { runHistory(undo = false) }, wrapButtonParams())
+        projectButtons.addView(actionButton(AppLanguage.text(R.string.message_efc007a393), StudioIcon.SAVE) { saveProject() }, wrapButtonParams())
+        projectButtons.addView(actionButton(AppLanguage.text(R.string.message_1e9ea62c75), StudioIcon.OPEN) { confirmLoadProject() }, wrapButtonParams())
+        projectButtons.addView(actionButton(AppLanguage.text(R.string.message_15d58dd451), StudioIcon.SAVE_AS) { launchProjectSavePicker() }, wrapButtonParams())
+        if (libraryId == null) projectButtons.addView(actionButton(AppLanguage.text(R.string.message_15341f178d), StudioIcon.OPEN) { launchProjectOpenPicker() }, wrapButtonParams())
+        projectButtons.addView(actionButton(AppLanguage.text(R.string.message_a7f8686836), StudioIcon.RECOVER) { confirmRecoverAutosave() }, wrapButtonParams())
         val deliverPanel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         deliverPanel.addView(TextView(this).apply {
-            text = "Deliver · H.264/AAC · 720-high SDR\nএকটি sequential video track। Gap বাদ দিতে আপনার সম্মতি লাগে। Android 10+ এ Movies/Owncut Gallery-তে save হয়।"
-            setTextColor(0xFFE5EEE8.toInt()); textSize = 14f
+            text = AppLanguage.text(R.string.message_fd76f9371a)
+            setTextColor(0xFFF0F4FC.toInt()); textSize = 14f
         })
-        deliverPanel.addView(actionButton("Export MP4") { launchExportPicker() }, matchWrap())
-        cancelExportButton = Button(this).apply {
-            text = "Export বাতিল"
+        deliverPanel.addView(actionButton(AppLanguage.text(R.string.message_323a11800b), StudioIcon.EXPORT) { launchExportPicker() }, matchWrap())
+        cancelExportButton = StudioButton(this).apply {
+            icon = StudioIcon.CANCEL
+            text = AppLanguage.text(R.string.message_90f2b63925)
             isEnabled = false
             setOnClickListener {
                 exportCancellation?.set(true)
-                text = "বাতিল হচ্ছে…"
+                text = AppLanguage.text(R.string.message_c5cffea976)
             }
         }
         deliverPanel.addView(cancelExportButton, matchWrap())
@@ -449,34 +459,39 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         root.addView(projectControls, matchWrap())
 
         val controls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val importButton = Button(this).apply {
-            text = "ভিডিও নিন"
+        val importButton = StudioButton(this).apply {
+            icon = StudioIcon.IMPORT
+            text = AppLanguage.text(R.string.message_f04897b60d)
             setOnClickListener { launchVideoPicker() }
         }
-        relinkButton = Button(this).apply {
-            text = "মিডিয়া বদল"
+        relinkButton = StudioButton(this).apply {
+            icon = StudioIcon.LINK
+            text = AppLanguage.text(R.string.message_43d6f66acd)
             isEnabled = false
-            contentDescription = "Selected clip-এর original media পুনরায় নির্বাচন করুন"
+            contentDescription = AppLanguage.text(R.string.message_72c1407ecc)
             setOnClickListener { launchRelinkPicker() }
         }
-        playButton = Button(this).apply {
-            text = "ভিডিও চালান"
+        playButton = StudioButton(this).apply {
+            icon = StudioIcon.PLAY
+            text = AppLanguage.text(R.string.message_b5cdf40ef5)
             isEnabled = false
-            contentDescription = "ভিডিও চালান বা বিরতি দিন"
+            contentDescription = AppLanguage.text(R.string.message_bf7889b7b2)
             setOnClickListener { togglePlayback() }
         }
         controls.addView(importButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         controls.addView(relinkButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         root.addView(playButton, matchWrap())
         root.addView(controls, matchWrap())
+        deliverPanel.background = StudioUi.shape(this)
+        deliverPanel.setPadding(dp(16),dp(16),dp(16),dp(16))
         root.addView(deliverPanel, matchWrap())
         workspacePanels.getOrPut("Media") { mutableListOf() }.add(controls)
-        val editImport = actionButton("ভিডিও নিন · Import") { launchVideoPicker() }
+        val editImport = actionButton(AppLanguage.text(R.string.message_865e38304e), StudioIcon.IMPORT) { launchVideoPicker() }
         root.addView(editImport, matchWrap())
         workspacePanels.getOrPut("Edit") { mutableListOf() }.add(editImport)
         val flow = TextView(this).apply {
-            text = "Flow · বর্তমান route (Read-only)\n\nSource → Native clip range / timeline position → MediaPlayer preview\nSource + timeline snapshot → Media3 decode/render/encode → validated MP4 → Gallery\n\nএখন preview ও export আলাদা pipeline। এটি editable node graph নয়; effects যোগ বা wire বদলানো এখন চালু নেই। Typed nodes, shared evaluator, keyframes ও compositing পরের ধাপের architecture-এ নির্ধারিত।"
-            textSize = 15f; setTextColor(0xFFE5EEE8.toInt()); setPadding(0, dp(10), 0, dp(10))
+            text = AppLanguage.text(R.string.message_4f099c46c1)
+            textSize = 15f; setTextColor(0xFFF0F4FC.toInt()); setPadding(0, dp(10), 0, dp(10))
         }
         root.addView(flow, matchWrap())
         workspacePanels.getOrPut("Flow") { mutableListOf() }.add(flow)
@@ -484,13 +499,14 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
         statusText = TextView(this).apply {
             textSize = 12f
-            setTextColor(0xFF91A99A.toInt())
+            setTextColor(0xFFAABAD0.toInt())
             setPadding(0, dp(12), 0, 0)
         }
         root.addView(statusText, matchWrap())
         engineStatusText = TextView(this).apply {
+            visibility = android.view.View.GONE // native diagnostics are not a permanent customer-facing toolbar
             textSize = 12f
-            setTextColor(0xFF91A99A.toInt())
+            setTextColor(0xFFAABAD0.toInt())
             setPadding(0, dp(6), 0, 0)
         }
         root.addView(engineStatusText, matchWrap())
@@ -524,17 +540,23 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         setContentView(workspaceScroll)
     }
 
+    private fun pageLabel(page: String) = AppLanguage.text(when(page) {
+        "Edit" -> R.string.page_edit; "Media" -> R.string.page_media; "Flow" -> R.string.page_flow; else -> R.string.page_deliver
+    })
+
     private fun showWorkspacePage(page: String) {
         workspacePage = page
+        workspaceTabs.forEach { (key, button) -> button.isSelected = key == page }
         for ((key, views) in workspacePanels) for (view in views)
             view.visibility = if (key == page) android.view.View.VISIBLE else android.view.View.GONE
-        projectTitle?.text = "Owncut · $projectName · $page"
+        projectTitle?.text = "Owncut · ${projectName} · ${pageLabel(page)}"
     }
 
-    private fun actionButton(label: String, action: () -> Unit): Button = Button(this).apply {
+    private fun actionButton(label: String, icon: StudioIcon = StudioIcon.INFO, action: () -> Unit): Button = StudioButton(this).apply {
+        this.icon = icon
         text = label
         setOnClickListener {
-            if (projectIoBusy) Toast.makeText(this@MainActivity, "Project operation চলছে", Toast.LENGTH_SHORT).show()
+            if (projectIoBusy) Toast.makeText(this@MainActivity, AppLanguage.text(R.string.message_ccdca32722), Toast.LENGTH_SHORT).show()
             else action()
         }
     }
@@ -547,7 +569,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private fun refreshTimeline() {
         if (!::timelineContainer.isInitialized || !::selectedClipText.isInitialized) return
         val clips = try { engine?.clips().orEmpty().sortedBy { it.startFrame } } catch (error: Exception) {
-            statusText.text = "Timeline পড়া যায়নি: ${error.message}"; return
+            statusText.text = AppLanguage.text(R.string.message_19dafc9927, error.message); return
         }
         timelineClips = clips
         if (selectedClipId != null && clips.none { it.id == selectedClipId }) selectedClipId = null
@@ -597,8 +619,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         val selected = clips.firstOrNull { it.id == selectedClipId }
         if (::relinkButton.isInitialized) relinkButton.isEnabled = selected != null && !projectIoBusy && !selectedMediaLoading
         selectedClipText.text = selected?.let {
-            "Timeline · ${it.id} · source ${formatTime(it.sourceInMs)}–${formatTime(it.sourceOutMs)}"
-        } ?: if (clips.isEmpty()) "ভিডিও import করলে timeline এখানে দেখা যাবে" else "Timeline · ${clips.size} clips · gap / কোনো clip নির্বাচিত নয়"
+            AppLanguage.text(R.string.message_5bd8db9fcd, it.id, formatTime(it.sourceInMs), formatTime(it.sourceOutMs))
+        } ?: if (clips.isEmpty()) AppLanguage.text(R.string.message_f13c794447) else AppLanguage.text(R.string.message_083723004b, clips.size)
         updateTimelinePlayhead()
         restoreTimelineScrollX?.let { saved ->
             timelineViewport?.post { timelineViewport?.scrollTo(saved, 0) }
@@ -608,14 +630,15 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     private fun updateFollowButton() {
         if (::followPlayheadButton.isInitialized)
-            followPlayheadButton.text = if (followPlayhead) "অনুসরণ: চালু" else "অনুসরণ: বন্ধ"
+            followPlayheadButton.text = if (followPlayhead) AppLanguage.text(R.string.message_279f0e3cdf) else AppLanguage.text(R.string.message_c3dbf41a1e)
+        if (::followPlayheadButton.isInitialized) followPlayheadButton.isSelected = followPlayhead
     }
 
     private fun setPlayheadDisplay(frame: Long) {
         timelineFrame = frame.coerceIn(0L, timelineView?.endFrame ?: 0L)
         timelineView?.setPlayhead(timelineFrame)
         if (::timelinePositionText.isInitialized)
-            timelinePositionText.text = "Timeline ${TimelineGeometry.timecode(timelineFrame)}"
+            timelinePositionText.text = AppLanguage.text(R.string.message_e653e09701, TimelineGeometry.timecode(timelineFrame))
     }
 
     private fun updateTimelinePlayhead(follow: Boolean = false) {
@@ -645,7 +668,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 try { if (current.isPlaying) current.pause() } catch (_: IllegalStateException) { }
             }
         }
-        playButton.text = "ভিডিও চালান"
+        playButton.text = AppLanguage.text(R.string.message_b5cdf40ef5)
     }
 
     private fun seekTimelineAt(track: String, frame: Long) {
@@ -663,8 +686,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 releasePlayer(); preview.alpha = 0f; timelineGapPosition = true; timelineFrame = frame
                 refreshTimeline()
                 revealPlayhead()
-                mediaText.text = "Timeline-এর এই স্থানে কোনো clip নেই"
-                statusText.text = "Gap / timeline শেষ · clip-এ ট্যাপ করে preview করুন; project বদলায়নি"
+                mediaText.text = AppLanguage.text(R.string.message_5fa6a967dd)
+                statusText.text = AppLanguage.text(R.string.message_05bda35a9b)
                 return
             }
             val clip = session.clips().first { it.id == target.clipId }
@@ -701,7 +724,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                                 previewPositionMs = target
                                 seekBar.progress = target.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                                 playButton.isEnabled = true
-                                playButton.text = if (resume) "বিরতি" else "ভিডিও চালান"
+                                playButton.text = if (resume) AppLanguage.text(R.string.action_pause) else AppLanguage.text(R.string.message_b5cdf40ef5)
                                 updateTimelinePlayhead(follow = resume)
                                 if (resume) mainHandler.post(playbackTicker)
                             }
@@ -713,7 +736,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 mainHandler.post {
                     if (generation == playerGeneration) {
                         previewSeeking = false; playButton.isEnabled = playerPrepared
-                        statusText.text = "Seek হয়নি: ${error.message}"
+                        statusText.text = AppLanguage.text(R.string.message_0336fc9f6e, error.message)
                     }
                 }
             }
@@ -742,7 +765,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             val destination = slots.minByOrNull { kotlin.math.abs(it - proposedStart) }
             if (destination == clip.startFrame) return
             if (destination == null) {
-                statusText.text = "এই track-এ clip রাখার ফাঁকা জায়গা নেই।"
+                statusText.text = AppLanguage.text(R.string.message_cfa6f3d5ab)
                 return
             }
             session.moveClip(clip.id, trackId, destination)
@@ -751,7 +774,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             if (!wasSelected) session.clips().firstOrNull { it.id == clip.id }?.let { selectClip(it) }
             scheduleAutosave()
             updateEngineStatus()
-            statusText.text = if (destination == proposedStart) "Timeline clip সরানো হয়েছে" else "Clip সংঘর্ষ এড়াতে নিকটতম ফাঁকা স্থানে বসানো হয়েছে"
+            statusText.text = if (destination == proposedStart) AppLanguage.text(R.string.message_6b876b131b) else AppLanguage.text(R.string.message_a3ec0cc398)
         } catch (error: Exception) {
             showError(error)
         }
@@ -785,15 +808,15 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             }
         } else null
         if (nextClip != null) {
-            statusText.text = "পরের clip প্রস্তুত হচ্ছে…"
+            statusText.text = AppLanguage.text(R.string.message_9a98a6e051)
             selectClip(nextClip, resumePlayback = true)
         } else {
             mainHandler.removeCallbacks(playbackTicker)
             seekBar.progress = previewEndMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             previewPositionMs = previewEndMs
             updateTimelinePlayhead(follow = true)
-            playButton.text = "ভিডিও চালান"
-            statusText.text = "Timeline playback শেষ"
+            playButton.text = AppLanguage.text(R.string.message_b5cdf40ef5)
+            statusText.text = AppLanguage.text(R.string.message_d579843004)
         }
     }
 
@@ -807,7 +830,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             previewEndMs = 0L
             previewPositionMs = 0L
             releasePlayer()
-            mediaText.text = "Timeline-এ কোনো clip নেই"
+            mediaText.text = AppLanguage.text(R.string.message_d20e0c1b30)
         }
     }
 
@@ -815,11 +838,11 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         if (blockWhileMediaLoads()) return
         val session = engine ?: return
         try {
-            val clip = currentSelectedClip() ?: throw IllegalStateException("আগে timeline clip নির্বাচন করুন")
+            val clip = currentSelectedClip() ?: throw IllegalStateException(AppLanguage.text(R.string.message_f4e00f9522))
             val playheadMs = seekBar.progress.toLong()
             val sourceOffsetMs = playheadMs - clip.sourceInMs
             if (sourceOffsetMs <= 0L || playheadMs >= clip.sourceOutMs)
-                throw IllegalArgumentException("Split point নির্বাচিত clip-এর ভেতরে হতে হবে")
+                throw IllegalArgumentException(AppLanguage.text(R.string.message_81764a5673))
             val frameOffset = (sourceOffsetMs * 30L + 500L) / 1000L
             val cutFrame = clip.startFrame + frameOffset
             val rightId = "${clip.id}-r-${System.nanoTime()}"
@@ -836,7 +859,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         if (blockWhileMediaLoads()) return
         val session = engine ?: return
         try {
-            val clip = currentSelectedClip() ?: throw IllegalStateException("আগে timeline clip নির্বাচন করুন")
+            val clip = currentSelectedClip() ?: throw IllegalStateException(AppLanguage.text(R.string.message_f4e00f9522))
             session.trimClip(clip.id, leftEdge, seekBar.progress.toLong())
             refreshTimeline()
             scheduleAutosave()
@@ -849,7 +872,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         if (blockWhileMediaLoads()) return
         val session = engine ?: return
         try {
-            val clip = currentSelectedClip() ?: throw IllegalStateException("আগে timeline clip নির্বাচন করুন")
+            val clip = currentSelectedClip() ?: throw IllegalStateException(AppLanguage.text(R.string.message_f4e00f9522))
             session.deleteClip(clip.id, ripple)
             val remaining = engine?.clips().orEmpty().sortedBy { it.startFrame }
             selectedClipId = remaining.firstOrNull()?.id
@@ -862,7 +885,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 previewEndMs = 0L
                 previewPositionMs = 0L
                 releasePlayer()
-                mediaText.text = "Timeline-এ কোনো clip নেই"
+                mediaText.text = AppLanguage.text(R.string.message_d20e0c1b30)
             }
         } catch (error: Exception) { showError(error) }
     }
@@ -875,7 +898,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             val anchorTrack = timelineClips.firstOrNull { it.id == selectedClipId }?.trackId ?: "v1"
             val changed = if (undo) session.undo() else session.redo()
             if (!changed) {
-                Toast.makeText(this, if (undo) "Undo history খালি" else "Redo history খালি", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, if (undo) AppLanguage.text(R.string.message_b9cbcc0505) else AppLanguage.text(R.string.message_5e5162c1fe), Toast.LENGTH_SHORT).show()
                 return
             }
             val clips = session.clips().sortedBy { it.startFrame }
@@ -897,9 +920,9 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         pendingAutosave = metadataExecutor.schedule({
             try {
                 session.saveAutosave(projectPath)
-                mainHandler.post { if (!isDestroyed && !projectIoBusy && editGeneration == scheduledGeneration) statusText.text = "Autosave সংরক্ষিত হয়েছে" }
+                mainHandler.post { if (!isDestroyed && !projectIoBusy && editGeneration == scheduledGeneration) statusText.text = AppLanguage.text(R.string.message_80236dfc68) }
             } catch (error: Exception) {
-                mainHandler.post { if (!isDestroyed) statusText.text = "Autosave ব্যর্থ: ${error.message}" }
+                mainHandler.post { if (!isDestroyed) statusText.text = AppLanguage.text(R.string.message_eeae4b4c38, error.message) }
             }
         }, 600L, TimeUnit.MILLISECONDS)
     }
@@ -907,17 +930,17 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private fun saveProject() {
         if (blockWhileMediaLoads()) return
         AlertDialog.Builder(this)
-            .setTitle("Project save করবেন?")
-            .setMessage("আগের saved project প্রতিস্থাপিত হবে। সফল save-এর পরে autosave snapshot-ও clear হবে।")
-            .setNegativeButton("বাতিল", null)
-            .setPositiveButton("Save") { _, _ ->
+            .setTitle(AppLanguage.text(R.string.message_50b34fb08a))
+            .setMessage(AppLanguage.text(R.string.message_c2c36977a7))
+            .setNegativeButton(AppLanguage.text(R.string.message_ca21daf138), null)
+            .setPositiveButton(AppLanguage.text(R.string.message_efc007a393)) { _, _ ->
                 if (projectIoBusy || selectedMediaLoading) return@setPositiveButton
                 val session = engine ?: return@setPositiveButton
                 pendingAutosave?.cancel(false)
                 projectIoBusy = true
                 projectIoOperation = ProjectIoOperation.SAVE
                 val generationAtSave = editGeneration
-                statusText.text = "Project save হচ্ছে…"
+                statusText.text = AppLanguage.text(R.string.message_725e31767e)
                 metadataExecutor.execute {
                     try {
                         session.saveProject(projectPath)
@@ -927,7 +950,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                                 projectIoBusy = false
                                 projectIoOperation = null
                                 if (editGeneration == generationAtSave) hasUnsavedChanges = false
-                                statusText.text = "Project save সম্পন্ন"
+                                statusText.text = AppLanguage.text(R.string.message_46d696486d)
                             }
                         }
                     } catch (error: Exception) {
@@ -935,7 +958,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                             if (!isDestroyed) {
                                 projectIoBusy = false
                                 projectIoOperation = null
-                                statusText.text = "Project save ব্যর্থ: ${error.message}"
+                                statusText.text = AppLanguage.text(R.string.message_1a9f905eb4, error.message)
                             }
                         }
                     }
@@ -947,16 +970,16 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private fun confirmLoadProject() {
         if (blockWhileMediaLoads()) return
         AlertDialog.Builder(this)
-            .setTitle("Saved project খুলবেন?")
-            .setMessage("বর্তমান session বদলে যাবে। আগে বর্তমান কাজ autosave করে তারপর saved project load হবে।")
-            .setNegativeButton("বাতিল", null)
-            .setPositiveButton("Open") { _, _ ->
+            .setTitle(AppLanguage.text(R.string.message_8edbd70ad6))
+            .setMessage(AppLanguage.text(R.string.message_42f3763acb))
+            .setNegativeButton(AppLanguage.text(R.string.message_ca21daf138), null)
+            .setPositiveButton(AppLanguage.text(R.string.message_cf9b77061f)) { _, _ ->
                 if (projectIoBusy || selectedMediaLoading) return@setPositiveButton
                 val session = engine ?: return@setPositiveButton
                 pendingAutosave?.cancel(false)
                 projectIoBusy = true
                 projectIoOperation = ProjectIoOperation.LOAD
-                statusText.text = "Project খোলা হচ্ছে…"
+                statusText.text = AppLanguage.text(R.string.message_d36d2b9e2d)
                 metadataExecutor.execute {
                     try {
                         session.saveAutosave(projectPath)
@@ -968,7 +991,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                                 hasUnsavedChanges = false
                                 updateEngineStatus()
                                 showFirstClip(session)
-                                statusText.text = "Saved project খোলা হয়েছে"
+                                statusText.text = AppLanguage.text(R.string.message_63fa0fce55)
                             }
                         }
                     } catch (error: Exception) {
@@ -976,7 +999,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                             if (!isDestroyed) {
                                 projectIoBusy = false
                                 projectIoOperation = null
-                                statusText.text = "Project খোলা যায়নি: ${error.message}"
+                                statusText.text = AppLanguage.text(R.string.message_7496096196, error.message)
                             }
                         }
                     }
@@ -988,16 +1011,16 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private fun confirmRecoverAutosave() {
         if (blockWhileMediaLoads()) return
         AlertDialog.Builder(this)
-            .setTitle("Autosave recover করবেন?")
-            .setMessage("Recovery snapshot বর্তমান in-memory project-কে প্রতিস্থাপন করবে। আগে আলাদা project save করুন যদি বর্তমান কাজ রাখতে চান।")
-            .setNegativeButton("বাতিল", null)
+            .setTitle(AppLanguage.text(R.string.message_fc80eb0ad5))
+            .setMessage(AppLanguage.text(R.string.message_d795d2fb3e))
+            .setNegativeButton(AppLanguage.text(R.string.message_ca21daf138), null)
             .setPositiveButton("Recover") { _, _ ->
                 if (projectIoBusy || selectedMediaLoading) return@setPositiveButton
                 val session = engine ?: return@setPositiveButton
                 pendingAutosave?.cancel(false)
                 projectIoBusy = true
                 projectIoOperation = ProjectIoOperation.RECOVER
-                statusText.text = "Recovery snapshot পরীক্ষা হচ্ছে…"
+                statusText.text = AppLanguage.text(R.string.message_a94f180f47)
                 metadataExecutor.execute {
                     try {
                         val recovered = session.loadAutosave(projectPath)
@@ -1009,8 +1032,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                                     hasUnsavedChanges = libraryId != null
                                     updateEngineStatus()
                                     showFirstClip(session)
-                                    statusText.text = "Autosave recover হয়েছে; local project-এ রাখতে Save বা Projects চাপুন"
-                                } else statusText.text = "Recovery snapshot নেই"
+                                    statusText.text = AppLanguage.text(R.string.message_3119322927)
+                                } else statusText.text = AppLanguage.text(R.string.message_4651a020c4)
                             }
                         }
                     } catch (error: Exception) {
@@ -1018,7 +1041,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                             if (!isDestroyed) {
                                 projectIoBusy = false
                                 projectIoOperation = null
-                                statusText.text = "Autosave recover ব্যর্থ: ${error.message}"
+                                statusText.text = AppLanguage.text(R.string.message_ff3186302b, error.message)
                             }
                         }
                     }
@@ -1029,20 +1052,20 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     private fun blockWhileMediaLoads(): Boolean {
         if (previewSeeking) {
-            Toast.makeText(this, "Seek শেষ হতে অপেক্ষা করুন", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, AppLanguage.text(R.string.message_7c49e6e92c), Toast.LENGTH_SHORT).show()
             return true
         }
         if (projectIoBusy) {
-            Toast.makeText(this, "চলমান save/load/export শেষ করুন বা export বাতিল করুন", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, AppLanguage.text(R.string.message_98746c7c59), Toast.LENGTH_SHORT).show()
             return true
         }
         if (!selectedMediaLoading) return false
-        Toast.makeText(this, "Selected media প্রস্তুত হচ্ছে", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, AppLanguage.text(R.string.message_ba90d21bbd), Toast.LENGTH_SHORT).show()
         return true
     }
 
     private fun showError(error: Exception) {
-        Toast.makeText(this, error.message ?: "Edit operation ব্যর্থ", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, error.message ?: AppLanguage.text(R.string.message_36aba39eed), Toast.LENGTH_LONG).show()
     }
 
     private fun frameToMs(frames: Long): Long = Math.addExact(Math.multiplyExact(frames.coerceAtLeast(0L) / 30L, 1000L), (frames.coerceAtLeast(0L) % 30L * 1000L) / 30L)
@@ -1080,11 +1103,11 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         if (plan.omittedGapFrames > 0L) {
             val omittedGapMs = frameToMs(plan.omittedGapFrames)
             AlertDialog.Builder(this)
-                .setTitle("Timeline-এ ফাঁকা অংশ আছে")
-                .setMessage("${plan.omittedGapFrames} frame (${omittedGapMs} ms) ফাঁকা অংশ বাদ দিয়ে clips পাশাপাশি জোড়া দিয়ে export হবে। Timeline project বদলাবে না। চালিয়ে যাবেন?")
-                .setNegativeButton("বাতিল") { _, _ -> destination?.let { deleteFailedExportDocument(it) } }
+                .setTitle(AppLanguage.text(R.string.message_de5c2380cd))
+                .setMessage(AppLanguage.text(R.string.message_73a9853a46, plan.omittedGapFrames, omittedGapMs))
+                .setNegativeButton(AppLanguage.text(R.string.message_ca21daf138)) { _, _ -> destination?.let { deleteFailedExportDocument(it) } }
                 .setOnCancelListener { destination?.let { deleteFailedExportDocument(it) } }
-                .setPositiveButton("Gap বাদ দিয়ে export") { _, _ -> beginTimelineExport(destination, plan) }
+                .setPositiveButton(AppLanguage.text(R.string.message_8cee3592bb)) { _, _ -> beginTimelineExport(destination, plan) }
                 .show()
         } else {
             beginTimelineExport(destination, plan)
@@ -1098,16 +1121,16 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         projectIoBusy = true
         projectIoOperation = ProjectIoOperation.EXPORT
         timelineView?.isEnabled = false
-        cancelExportButton.text = "Export বাতিল"
+        cancelExportButton.text = AppLanguage.text(R.string.message_90f2b63925)
         cancelExportButton.isEnabled = true
-        statusText.text = "Export প্রস্তুত হচ্ছে…"
+        statusText.text = AppLanguage.text(R.string.message_d7e376c6eb)
         exportExecutor.execute {
             val temporary = File(cacheDir, "owncut-export-${System.nanoTime()}.mp4")
             var resultMessage = if (plan.omittedGapFrames > 0L) {
-                "Export সম্পন্ন · ফাঁকা timeline gap বাদ দেওয়া হয়েছে"
+                AppLanguage.text(R.string.message_21bed82a7e)
             } else {
-                if (destination == null) "Export সম্পন্ন · Gallery / Movies/Owncut-এ সংরক্ষিত"
-                else "Export সম্পন্ন · MP4 Documents-এ সংরক্ষিত"
+                if (destination == null) AppLanguage.text(R.string.message_48a2f4125e)
+                else AppLanguage.text(R.string.message_f5a66453bc)
             }
             try {
                 TimelineRenderExporter.export(this@MainActivity, plan, temporary, cancellation) { message ->
@@ -1117,19 +1140,19 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         publishExportToGallery(temporary, cancellation)
                     } else {
-                        error("Gallery export-এর জন্য Android 10 বা নতুন সংস্করণ দরকার")
+                        error(AppLanguage.text(R.string.message_ebab316ada))
                     }
                 }
                 else copyExportToDocument(temporary, destination, cancellation)
             } catch (cancel: CancellationException) {
                 val cleaned = destination == null || deleteFailedExportDocument(destination)
-                resultMessage = if (destination == null) (cancel.message ?: "Export বাতিল হয়েছে")
-                    else if (cleaned) "Export বাতিল হয়েছে; নতুন output রাখা হয়নি"
-                    else "Export বাতিল; provider খালি/অসম্পূর্ণ document সরাতে পারেনি"
+                resultMessage = if (destination == null) (cancel.message ?: AppLanguage.text(R.string.message_df54d9e4da))
+                    else if (cleaned) AppLanguage.text(R.string.message_51d6ad5eff)
+                    else AppLanguage.text(R.string.message_32ba7b117e)
             } catch (error: Exception) {
                 val cleaned = destination == null || deleteFailedExportDocument(destination)
-                resultMessage = "Export ব্যর্থ: ${error.message ?: error.javaClass.simpleName}" +
-                    if (cleaned) "" else " · অসম্পূর্ণ document সরানো যায়নি"
+                resultMessage = AppLanguage.text(R.string.message_38516603a3, error.message ?: error.javaClass.simpleName) +
+                    if (cleaned) "" else AppLanguage.text(R.string.message_360e86bda3)
             } finally {
                 temporary.delete()
                 exportCancellation = null
@@ -1139,7 +1162,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                         projectIoOperation = null
                         cancelExportButton.isEnabled = false
                         timelineView?.isEnabled = true
-                        cancelExportButton.text = "Export বাতিল"
+                        cancelExportButton.text = AppLanguage.text(R.string.message_90f2b63925)
                         statusText.text = resultMessage
                     }
                 }
@@ -1160,15 +1183,15 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     }
 
     private fun copyExportToDocument(file: File, destination: Uri, cancellation: AtomicBoolean) {
-        if (cancellation.get()) throw CancellationException("Export বাতিল করা হয়েছে")
+        if (cancellation.get()) throw CancellationException(AppLanguage.text(R.string.message_2b042e5a6c))
         val output = contentResolver.openOutputStream(destination, "wt")
-            ?: throw IllegalStateException("নির্বাচিত document-এ লেখা যাচ্ছে না")
+            ?: throw IllegalStateException(AppLanguage.text(R.string.message_9c49f1f1b6))
         output.buffered().use { target ->
             file.inputStream().buffered().use { input ->
                 val buffer = ByteArray(64 * 1024)
                 while (true) {
                     if (cancellation.get() || Thread.currentThread().isInterrupted)
-                        throw CancellationException("Export বাতিল করা হয়েছে")
+                        throw CancellationException(AppLanguage.text(R.string.message_2b042e5a6c))
                     val count = input.read(buffer)
                     if (count < 0) break
                     target.write(buffer, 0, count)
@@ -1181,7 +1204,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private fun launchRelinkPicker() {
         if (projectIoBusy || blockWhileMediaLoads()) return
         val clipId = selectedClipId ?: run {
-            Toast.makeText(this, "আগে timeline clip নির্বাচন করুন", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, AppLanguage.text(R.string.message_f4e00f9522), Toast.LENGTH_SHORT).show()
             return
         }
         if (engine?.clips()?.any { it.id == clipId } != true) return
@@ -1218,15 +1241,15 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         projectIoBusy = true
         projectIoOperation = ProjectIoOperation.SAVE
         val generationAtSave = editGeneration
-        statusText.text = "Project ফাইলে লেখা হচ্ছে…"
+        statusText.text = AppLanguage.text(R.string.message_18689bdb66)
         metadataExecutor.execute {
             val temporary = File(cacheDir, "project-export-${System.nanoTime()}.owncut")
             try {
                 session.saveProject(temporary.absolutePath)
-                if (temporary.length() > ProjectDocumentIo.MAX_PROJECT_BYTES) throw IllegalStateException("Project ফাইল 96 MiB সীমা ছাড়িয়েছে")
+                if (temporary.length() > ProjectDocumentIo.MAX_PROJECT_BYTES) throw IllegalStateException(AppLanguage.text(R.string.message_413c4a66bd))
                 contentResolver.openOutputStream(uri, "wt")?.use { output ->
                     temporary.inputStream().buffered().use { input -> ProjectDocumentIo.copy(input, output) }
-                } ?: throw IllegalStateException("নির্বাচিত document-এ লেখা যাচ্ছে না")
+                } ?: throw IllegalStateException(AppLanguage.text(R.string.message_9c49f1f1b6))
                 if (libraryId != null) session.saveProject(projectPath)
                 session.clearAutosave(projectPath)
                 temporary.delete()
@@ -1235,7 +1258,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                         projectIoBusy = false
                         projectIoOperation = null
                         if (editGeneration == generationAtSave) hasUnsavedChanges = false
-                        statusText.text = "Project Documents-এ save হয়েছে"
+                        statusText.text = AppLanguage.text(R.string.message_59b7d93902)
                     }
                 }
             } catch (error: Exception) {
@@ -1244,7 +1267,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     if (!isDestroyed) {
                         projectIoBusy = false
                         projectIoOperation = null
-                        statusText.text = "Project ফাইলে save ব্যর্থ: ${error.message}"
+                        statusText.text = AppLanguage.text(R.string.message_f07be40718, error.message)
                     }
                 }
             }
@@ -1253,23 +1276,23 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     private fun confirmOpenProjectDocument(uri: Uri) {
         AlertDialog.Builder(this)
-            .setTitle("Project খুলবেন?")
-            .setMessage("বর্তমান editor session বদলে যাবে। আগে unsaved পরিবর্তন autosave করা হবে।")
-            .setNegativeButton("বাতিল", null)
-            .setPositiveButton("Open") { _, _ ->
+            .setTitle(AppLanguage.text(R.string.message_f13c98fc70))
+            .setMessage(AppLanguage.text(R.string.message_2d4b4eb369))
+            .setNegativeButton(AppLanguage.text(R.string.message_ca21daf138), null)
+            .setPositiveButton(AppLanguage.text(R.string.message_cf9b77061f)) { _, _ ->
                 if (projectIoBusy || selectedMediaLoading) return@setPositiveButton
                 val session = engine ?: return@setPositiveButton
                 pendingAutosave?.cancel(false)
                 projectIoBusy = true
                 projectIoOperation = ProjectIoOperation.LOAD
-                statusText.text = "Project document পড়া হচ্ছে…"
+                statusText.text = AppLanguage.text(R.string.message_315688be7e)
                 metadataExecutor.execute {
                     val temporary = File(cacheDir, "project-import-${System.nanoTime()}.owncut")
                     try {
                         session.saveAutosave(projectPath)
                         contentResolver.openInputStream(uri)?.buffered()?.use { input ->
                             temporary.outputStream().buffered().use { output -> ProjectDocumentIo.copy(input, output) }
-                        } ?: throw IllegalStateException("নির্বাচিত document পড়া যাচ্ছে না")
+                        } ?: throw IllegalStateException(AppLanguage.text(R.string.message_b89067ce69))
                         session.loadProject(temporary.absolutePath)
                         session.clearAutosave(projectPath)
                         temporary.delete()
@@ -1280,7 +1303,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                                 hasUnsavedChanges = false
                                 updateEngineStatus()
                                 showFirstClip(session)
-                                statusText.text = "Project document খোলা হয়েছে"
+                                statusText.text = AppLanguage.text(R.string.message_027434fe36)
                             }
                         }
                     } catch (error: Exception) {
@@ -1289,7 +1312,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                             if (!isDestroyed) {
                                 projectIoBusy = false
                                 projectIoOperation = null
-                                statusText.text = "Project খোলা যায়নি: ${error.message}"
+                                statusText.text = AppLanguage.text(R.string.message_7496096196, error.message)
                             }
                         }
                     }
@@ -1339,7 +1362,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         val request = ++metadataRequestSequence
         selectedMediaLoading = true
         seekBar.isEnabled = false
-        statusText.text = "ভিডিওর metadata পড়া হচ্ছে…"
+        statusText.text = AppLanguage.text(R.string.message_a6dbb03662)
         metadataExecutor.execute {
             var duration = 0L
             var displayWidth = 0
@@ -1360,12 +1383,12 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 }
                 retriever.setDataSource(this, uri)
                 duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                    ?.toLongOrNull() ?: throw IllegalArgumentException("ভিডিওর duration পড়া যায়নি")
-                if (duration <= 0L) throw IllegalArgumentException("ভিডিওতে বৈধ duration নেই")
+                    ?.toLongOrNull() ?: throw IllegalArgumentException(AppLanguage.text(R.string.message_24c6921f1f))
+                if (duration <= 0L) throw IllegalArgumentException(AppLanguage.text(R.string.message_0b5dee2ad4))
 
                 val width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
                 val height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
-                if (width <= 0 || height <= 0) throw IllegalArgumentException("ভিডিও track-এর dimensions পাওয়া যায়নি")
+                if (width <= 0 || height <= 0) throw IllegalArgumentException(AppLanguage.text(R.string.message_b7592acd38))
                 val rotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
                 displayWidth = if (rotation == 90 || rotation == 270) height else width
                 displayHeight = if (rotation == 90 || rotation == 270) width else height
@@ -1380,8 +1403,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 val error = failure
                 if (error != null) {
                     selectedMediaLoading = false
-                    mediaText.text = "এই ভিডিও খোলা যায়নি: ${error.message ?: "unsupported media"}"
-                    statusText.text = "সমর্থিত SDR ভিডিও নির্বাচন করে আবার চেষ্টা করুন।"
+                    mediaText.text = AppLanguage.text(R.string.message_422600b830, error.message ?: AppLanguage.text(R.string.message_d766471f27))
+                    statusText.text = AppLanguage.text(R.string.message_b4c2e22ddc)
                     if (existingClipId != null) {
                         resumeAfterSelection = false
                         previewEndMs = 0L
@@ -1393,13 +1416,13 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
                 try {
                     selectedMediaLoading = false
-                    val session = engine ?: throw IllegalStateException("Editor engine is unavailable")
+                    val session = engine ?: throw IllegalStateException(AppLanguage.text(R.string.message_a77e61169d))
                     val existing = existingClipId?.let { id -> session.clips().firstOrNull { it.id == id } }
-                    if (existingClipId != null && existing == null) throw IllegalStateException("Preview-র নির্বাচিত clip আর নেই")
+                    if (existingClipId != null && existing == null) throw IllegalStateException(AppLanguage.text(R.string.message_72f825c0e0))
                     if (existing != null && existing.sourceOutMs > duration)
-                        throw IllegalArgumentException("Source video বদলেছে বা ছোট হয়েছে; Media বদল দিয়ে relink করুন")
+                        throw IllegalArgumentException(AppLanguage.text(R.string.message_03862c58d4))
                     val relinkTarget = relinkClipId?.let { id -> session.clips().firstOrNull { it.id == id } }
-                    if (relinkClipId != null && relinkTarget == null) throw IllegalStateException("যে clip-টি relink করতে চেয়েছেন সেটি আর নেই")
+                    if (relinkClipId != null && relinkTarget == null) throw IllegalStateException(AppLanguage.text(R.string.message_2313bf0ccc))
                     if (relinkTarget != null) session.relinkClipMedia(relinkTarget.id, uri.toString(), duration)
                     val clipId = relinkTarget?.id ?: existing?.id ?: session.addMediaClip(uri.toString(), duration)
                     val addedNewClip = existing == null && relinkTarget == null
@@ -1416,18 +1439,18 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     seekBar.max = duration.coerceAtMost(Int.MAX_VALUE.toLong()).toInt().coerceAtLeast(1)
                     seekBar.progress = previewPositionMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                     val grantInfo = if (persistedGrant) {
-                        "SAF read access সংরক্ষিত; Original media অপরিবর্তিত থাকবে।"
+                        AppLanguage.text(R.string.message_8c9b5fc4b7)
                     } else {
-                        "সতর্কতা: স্থায়ী access পাওয়া যায়নি; পরে media relink লাগতে পারে।"
+                        AppLanguage.text(R.string.message_9c5367b9dd)
                     }
-                    mediaText.text = "${uri.lastPathSegment ?: "Video"} · ${displayWidth}×${displayHeight} · ${formatTime(duration)} · $clipId\n$grantInfo"
+                    mediaText.text = "${uri.lastPathSegment ?: AppLanguage.text(R.string.generic_video)} · ${displayWidth}×${displayHeight} · ${formatTime(duration)} · ${clipId}\n${grantInfo}"
                     if (surfaceReady) preparePlayer(uri)
                     updateEngineStatus()
                     refreshTimeline()
                     if (addedNewClip || relinkTarget != null) scheduleAutosave()
                 } catch (error: Exception) {
-                    if (relinkClipId != null) statusText.text = "Media relink হয়নি: ${error.message}"
-                    else mediaText.text = "ভিডিও timeline-এ যোগ হয়নি: ${error.message}"
+                    if (relinkClipId != null) statusText.text = AppLanguage.text(R.string.message_dd7aff38a4, error.message)
+                    else mediaText.text = AppLanguage.text(R.string.message_8586291d13, error.message)
                 }
             }
         }
@@ -1435,12 +1458,12 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     private fun preparePlayer(uri: Uri) {
         val outputSurface = previewSurface ?: run {
-            statusText.text = "Preview surface প্রস্তুত নয়; ভিডিও screen খুলতে অপেক্ষা করুন।"
+            statusText.text = AppLanguage.text(R.string.message_97096c364c)
             return
         }
         releasePlayer()
         val generation = playerGeneration
-        statusText.text = "ভিডিও decode হচ্ছে…"
+        statusText.text = AppLanguage.text(R.string.message_12ef116cca)
         playButton.isEnabled = false
         mediaHandler.post {
             if (generation != playerGeneration) return@post
@@ -1480,16 +1503,16 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                                     updateTimelinePlayhead(follow = shouldResume)
                                     playButton.isEnabled = true
                                     if (shouldResume) {
-                                        playButton.text = "বিরতি"
+                                        playButton.text = AppLanguage.text(R.string.action_pause)
                                         scheduleFirstFrameDiagnostic(generation, ready)
                                         mainHandler.removeCallbacks(playbackTicker)
                                         mainHandler.post(playbackTicker)
-                                    } else statusText.text = "Preview প্রস্তুত · timeline-এ লাল playhead / ভিডিও চালান চাপুন"
+                                    } else statusText.text = AppLanguage.text(R.string.message_e3c1664426)
                                 }
                             }
                         } catch (error: IllegalStateException) {
                             playerPrepared = false; previewSeeking = false
-                            mainHandler.post { if (generation == playerGeneration) statusText.text = "Preview seek/start হয়নি: ${error.message}" }
+                            mainHandler.post { if (generation == playerGeneration) statusText.text = AppLanguage.text(R.string.message_be209c24bc, error.message) }
                         }
                     }
                     try {
@@ -1500,7 +1523,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                         } else positioned()
                     } catch (error: IllegalStateException) {
                         previewSeeking = false
-                        mainHandler.post { if (generation == playerGeneration) statusText.text = "Preview seek হয়নি: ${error.message}" }
+                        mainHandler.post { if (generation == playerGeneration) statusText.text = AppLanguage.text(R.string.message_1ac6986001, error.message) }
                     }
                 }
                 candidate.setOnCompletionListener { completed ->
@@ -1519,8 +1542,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                             clearFirstFrameDiagnostic()
                             mainHandler.removeCallbacks(playbackTicker)
                             playButton.isEnabled = false
-                            playButton.text = "ভিডিও চালান"
-                            statusText.text = "ভিডিও decode হয়নি ($what/$extra)। 1080p SDR ফাইল দিয়ে চেষ্টা করুন; 4K/HDR/codec support ফোনভেদে আলাদা।"
+                            playButton.text = AppLanguage.text(R.string.message_b5cdf40ef5)
+                            statusText.text = AppLanguage.text(R.string.message_2668d112c9, what, extra)
                         }
                     }
                     true
@@ -1536,7 +1559,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 }
                 candidate.release()
                 mainHandler.post {
-                    if (generation == playerGeneration) statusText.text = "Preview চালু হয়নি: ${error.message ?: "decoder error"}"
+                    if (generation == playerGeneration) statusText.text = AppLanguage.text(R.string.message_aef7617ee6, error.message ?: AppLanguage.text(R.string.message_fea64f9a12))
                 }
             }
         }
@@ -1546,7 +1569,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         clearFirstFrameDiagnostic()
         val check = Runnable {
             if (generation == playerGeneration && player === expectedPlayer && !firstVideoFrameRendered) {
-                statusText.text = "ভিডিও চালু, কিন্তু frame আসেনি। 1080p SDR ভিডিও দিয়ে চেষ্টা করুন; 4K/HDR/codec support ফোনভেদে আলাদা।"
+                statusText.text = AppLanguage.text(R.string.message_0eaf8169fc)
             }
         }
         firstFrameDiagnostic = check
@@ -1562,7 +1585,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private fun togglePlayback() {
         val current = player
         if (!playerPrepared || current == null || previewSeeking) {
-            statusText.text = "ভিডিও এখনো প্রস্তুত নয়—clip নির্বাচন করে একটু অপেক্ষা করুন।"
+            statusText.text = AppLanguage.text(R.string.message_7833cc82ff)
             return
         }
         val generation = playerGeneration
@@ -1574,8 +1597,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     mainHandler.post {
                         clearFirstFrameDiagnostic()
                         mainHandler.removeCallbacks(playbackTicker)
-                        playButton.text = "ভিডিও চালান"
-                        statusText.text = "বিরতি"
+                        playButton.text = AppLanguage.text(R.string.message_b5cdf40ef5)
+                        statusText.text = AppLanguage.text(R.string.action_pause)
                     }
                 } else {
                     val position = current.currentPosition.toLong()
@@ -1588,9 +1611,9 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     }
                     current.start()
                     mainHandler.post {
-                        playButton.text = "বিরতি"
+                        playButton.text = AppLanguage.text(R.string.action_pause)
                         if (!firstVideoFrameRendered) {
-                            statusText.text = "ভিডিও frame-এর অপেক্ষা করছি…"
+                            statusText.text = AppLanguage.text(R.string.message_f836b31adb)
                             scheduleFirstFrameDiagnostic(generation, current)
                         }
                         mainHandler.removeCallbacks(playbackTicker)
@@ -1598,7 +1621,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                     }
                 }
             } catch (error: IllegalStateException) {
-                mainHandler.post { statusText.text = "Playback state error: ${error.message}" }
+                mainHandler.post { statusText.text = AppLanguage.text(R.string.message_6ad7121692, error.message) }
             }
         }
     }
@@ -1615,7 +1638,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         isSeeking = false; timelineScrubbing = false
         if (::seekBar.isInitialized) seekBar.isEnabled = false
         playerGeneration += 1
-        playButtonOrNull()?.let { it.isEnabled = false; it.text = "ভিডিও চালান" }
+        playButtonOrNull()?.let { it.isEnabled = false; it.text = AppLanguage.text(R.string.message_b5cdf40ef5) }
         if (old != null) mediaHandler.post {
             try { old.setSurface(null) } catch (_: IllegalStateException) { }
             try { old.release() } catch (_: IllegalStateException) { }
@@ -1645,7 +1668,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 } catch (_: IllegalStateException) {
                     mainHandler.post {
                         if (generation == playerGeneration && player === current) {
-                            statusText.text = "Preview surface পুনরায় যুক্ত করা যায়নি; clip আবার নির্বাচন করুন।"
+                            statusText.text = AppLanguage.text(R.string.message_b3e7f770ff)
                         }
                     }
                 }
@@ -1670,7 +1693,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         if (!firstVideoFrameRendered && playerPrepared && player != null) {
             firstVideoFrameRendered = true
             clearFirstFrameDiagnostic()
-            statusText.text = "ভিডিও frame preview-তে এসেছে"
+            statusText.text = AppLanguage.text(R.string.message_e5cd36b000)
         }
     }
 
@@ -1739,8 +1762,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     }
 
     private fun updateEngineStatus() {
-        try { engineStatusText.text = engine?.status() ?: "Engine বন্ধ" } catch (error: Exception) {
-            engineStatusText.text = "Engine error: ${error.message}"
+        try { engineStatusText.text = engine?.status() ?: AppLanguage.text(R.string.message_08be239204) } catch (error: Exception) {
+            engineStatusText.text = AppLanguage.text(R.string.message_c088ab45ec, error.message)
         }
     }
 

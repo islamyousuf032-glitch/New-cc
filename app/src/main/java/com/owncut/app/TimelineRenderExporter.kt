@@ -73,14 +73,14 @@ internal object TimelineRenderExporter {
                 try {
                     if (cancelled.get()) {
                         transformer?.cancel()
-                        failure.set(CancellationException("Render বাতিল করা হয়েছে"))
+                        failure.set(CancellationException(AppLanguage.text(R.string.message_1452bfda9c)))
                         finished.countDown()
                         return
                     }
                     val holder = ProgressHolder()
                     val state = transformer?.getProgress(holder)
                     progress(if (state == Transformer.PROGRESS_STATE_AVAILABLE)
-                        "ভিডিও render হচ্ছে · ${holder.progress}%" else "ভিডিও render হচ্ছে…")
+                        AppLanguage.text(R.string.message_34d403c213, holder.progress) else AppLanguage.text(R.string.message_0f4c747ce7))
                     handler.postDelayed(this, 250L)
                 } catch (error: Throwable) {
                     failure.set(error)
@@ -90,7 +90,7 @@ internal object TimelineRenderExporter {
         }
         handler.post {
             try {
-                if (cancelled.get()) throw CancellationException("Render বাতিল করা হয়েছে")
+                if (cancelled.get()) throw CancellationException(AppLanguage.text(R.string.message_1452bfda9c))
                 val platform = DefaultEncoderFactory.Builder(context.applicationContext)
                     .setEnableFallback(true).build()
                 val alwaysEncode = object : Codec.EncoderFactory by platform {
@@ -125,10 +125,10 @@ internal object TimelineRenderExporter {
         var succeeded = false
         try {
             // Codec hangs must not leave an indefinitely busy editor. Device runs still need validation.
-            check(finished.await(30, TimeUnit.MINUTES)) { "Render সময়সীমা শেষ; আবার চেষ্টা করুন" }
+            check(finished.await(30, TimeUnit.MINUTES)) { AppLanguage.text(R.string.message_493010d9f8) }
             failure.get()?.let { throw it }
-            if (cancelled.get()) throw CancellationException("Render বাতিল করা হয়েছে")
-            progress("Render সম্পন্ন · MP4 যাচাই হচ্ছে…")
+            if (cancelled.get()) throw CancellationException(AppLanguage.text(R.string.message_1452bfda9c))
+            progress(AppLanguage.text(R.string.message_485965e2a5))
             val expectedDurationUs = plan.clips.fold(0L) { total, clip ->
                 Math.addExact(total, Math.multiplyExact(clip.sourceOutMs - clip.sourceInMs, 1000L))
             }
@@ -136,7 +136,7 @@ internal object TimelineRenderExporter {
             succeeded = true
         } catch (interrupted: InterruptedException) {
             cancelled.set(true)
-            throw CancellationException("Render বন্ধ করা হয়েছে").apply { initCause(interrupted) }
+            throw CancellationException(AppLanguage.text(R.string.message_5714916d16)).apply { initCause(interrupted) }
         } finally {
             val stopped = CountDownLatch(1)
             handler.removeCallbacks(ticker)

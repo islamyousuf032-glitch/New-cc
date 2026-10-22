@@ -78,7 +78,7 @@ class ExportPublicationTest {
         val error = assertThrows(IllegalStateException::class.java) {
             ExportPublication.publish(file, AtomicBoolean(false)) { pending }
         }
-        assertTrue(error.message!!.contains("সরানো যায়নি"))
+        assertTrue(error.message!!.contains(if (AppLanguage.locale().language == "bn") "সরানো যায়নি" else "Could not remove the incomplete Gallery item"))
     }
 
     @Test fun cancelledOrEmptySourceDoesNotEvenCreateARow() = withSource { file ->

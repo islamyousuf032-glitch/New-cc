@@ -12,3 +12,6 @@
 - Treat `docs/ADVANCED_ARCHITECTURE.md` and ADR 0009 as the editable forward baseline. Keep implemented vs planned capabilities explicit; update the baseline through ADRs for incompatible changes.
 - Projects shelf metadata belongs to the Android storage adapter, never duplicate timeline/graph edit semantics there. Never silently overwrite a failed project load or discard an unchosen recovery snapshot.
 - Workspace navigation must preserve the live viewer/timeline; current Flow is read-only, not an effects renderer. The experimental C++ graph validator is not yet a persisted/evaluated graph.
+
+- UI text must have default English and Bengali resources with matching format arguments. Run `python3 tests/check_ui_resources.py`. Keep project/user content and native identifiers unchanged by language selection.
+- Editing action buttons use original semantic icons, localized accessibility/tooltips and at least 48dp targets. Keep confirmation/language-choice copy readable; don't replace consent with ambiguous icons.

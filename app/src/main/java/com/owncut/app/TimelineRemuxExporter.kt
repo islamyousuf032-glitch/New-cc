@@ -31,14 +31,14 @@ internal object TimelineRemuxExporter {
     )
 
     fun makePlan(clips: List<ClipSnapshot>): Plan {
-        require(clips.isNotEmpty()) { "Timeline-এ export করার মতো clip নেই" }
+        require(clips.isNotEmpty()) { AppLanguage.text(R.string.message_3df8193901) }
         val ordered = clips.sortedBy { it.startFrame }
         val track = ordered.first().trackId
         require(ordered.all { it.mediaId.isNotBlank() }) {
-            "প্রতিটি clip-এর জন্য original media reference দরকার"
+            AppLanguage.text(R.string.message_5656245819)
         }
         require(ordered.all { it.trackId == track }) {
-            "এই export সংস্করণে একটি video track সমর্থিত"
+            AppLanguage.text(R.string.message_7c02a3426b)
         }
         var previousTimelineEnd = 0L
         var outputFrame = 0L
@@ -46,16 +46,16 @@ internal object TimelineRemuxExporter {
         val normalized = ArrayList<ClipSnapshot>(ordered.size)
         for (clip in ordered) {
             require(clip.startFrame >= previousTimelineEnd) {
-                "Timeline clip-গুলো overlap করছে; overlap সরিয়ে আবার export করুন"
+                AppLanguage.text(R.string.message_8f2c8b3266)
             }
             omittedGapFrames = Math.addExact(omittedGapFrames, clip.startFrame - previousTimelineEnd)
             require(clip.durationFrames > 0L && clip.sourceOutMs > clip.sourceInMs) {
-                "Timeline clip-এর source range বৈধ নয়"
+                AppLanguage.text(R.string.message_37b13021f8)
             }
             val sourceDurationUs = Math.multiplyExact(clip.sourceOutMs - clip.sourceInMs, 1_000L)
             val timelineDurationUs = Math.multiplyExact(clip.durationFrames, 1_000_000L) / FRAME_RATE
             require(abs(sourceDurationUs - timelineDurationUs) <= FRAME_ALIGNMENT_TOLERANCE_US) {
-                "Clip-এর source duration timeline-এর কাছাকাছি frame boundary-তে round হয় না; trim range যাচাই করুন"
+                AppLanguage.text(R.string.message_ac16e106a4)
             }
             normalized += clip.copy(startFrame = outputFrame)
             outputFrame = Math.addExact(outputFrame, clip.durationFrames)
@@ -79,14 +79,14 @@ internal object TimelineRemuxExporter {
         var expectedAudioTrack = false
         try {
             val primaryTracks = findTracks(probe)
-            require(primaryTracks.videoIndex >= 0) { "Original media-তে video track নেই" }
+            require(primaryTracks.videoIndex >= 0) { AppLanguage.text(R.string.message_4087ee8fbc) }
             tracksByMediaId[firstMediaId] = primaryTracks
             for (mediaId in plan.clips.asSequence().map { it.mediaId }.distinct().drop(1)) {
                 ensureNotCancelled(cancelled)
                 val sourceProbe = newExtractor(context, Uri.parse(mediaId))
                 try {
                     val tracks = findTracks(sourceProbe)
-                    require(tracks.videoIndex >= 0) { "Original media-তে video track নেই" }
+                    require(tracks.videoIndex >= 0) { AppLanguage.text(R.string.message_4087ee8fbc) }
                     requireCompatibleTracks(primaryTracks, tracks)
                     tracksByMediaId[mediaId] = tracks
                 } finally {
@@ -126,7 +126,7 @@ internal object TimelineRemuxExporter {
 
             for ((index, clip) in plan.clips.withIndex()) {
                 ensureNotCancelled(cancelled)
-                progress("Encoded samples export হচ্ছে · ${index + 1}/${plan.clips.size}")
+                progress(AppLanguage.text(R.string.message_7d95b4d830, index + 1, plan.clips.size))
                 val sourceTracks = tracksByMediaId.getValue(clip.mediaId)
                 val extractor = newExtractor(context, Uri.parse(clip.mediaId))
                 try {
@@ -148,25 +148,25 @@ internal object TimelineRemuxExporter {
                             if (sourceTrack == sourceTracks.videoIndex && !firstVideoSampleSeen) {
                                 val isSync = extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
                                 require(isSync && abs(sampleTime - sourceInUs) <= KEYFRAME_TOLERANCE_US) {
-                                    "Clip-এর শুরু sync frame-এ নেই; সঠিকভাবে export করতে keyframe-এ trim/split করুন"
+                                    AppLanguage.text(R.string.message_28ccb137ab)
                                 }
                                 firstVideoSampleSeen = true
                             }
                             sampleBuffer.clear()
                             val size = extractor.readSampleData(sampleBuffer, 0)
                             require(size > 0 && size <= sampleBuffer.capacity()) {
-                                "Original media থেকে encoded sample পড়া যায়নি বা buffer সীমা ছাড়িয়েছে"
+                                AppLanguage.text(R.string.message_411b41bacc)
                             }
                             val outputPtsUs = Math.addExact(timelineStartUs, clipRelativeUs)
                             val destinationTrack = if (sourceTrack == sourceTracks.videoIndex) {
                                 require(outputPtsUs > lastVideoPtsUs) {
-                                    "Video sample timestamp order এই file-এ stream-copy export-এর উপযোগী নয়"
+                                    AppLanguage.text(R.string.message_71dafd7a01)
                                 }
                                 lastVideoPtsUs = outputPtsUs
                                 outputVideo
                             } else {
                                 require(outputPtsUs > lastAudioPtsUs) {
-                                    "Audio sample timestamp order এই file-এ stream-copy export-এর উপযোগী নয়"
+                                    AppLanguage.text(R.string.message_1f7073c78b)
                                 }
                                 lastAudioPtsUs = outputPtsUs
                                 outputAudio
@@ -176,7 +176,7 @@ internal object TimelineRemuxExporter {
                         }
                         if (!extractor.advance()) break
                     }
-                    require(firstVideoSampleSeen) { "Clip source range-এ video sample পাওয়া যায়নি" }
+                    require(firstVideoSampleSeen) { AppLanguage.text(R.string.message_0582bad777) }
                 } finally {
                     extractor.release()
                 }
@@ -198,9 +198,9 @@ internal object TimelineRemuxExporter {
             probe.release()
         }
         try {
-            progress("MP4 যাচাই হচ্ছে…")
+            progress(AppLanguage.text(R.string.message_65a0c3462d))
             verifyMuxedOutput(output, expectedAudioTrack, cancelled)
-            progress("MP4 stream তৈরি হয়েছে")
+            progress(AppLanguage.text(R.string.message_e78d6626c8))
         } catch (error: Exception) {
             output.delete()
             throw error
@@ -224,12 +224,12 @@ internal object TimelineRemuxExporter {
             val mime = format.getString(MediaFormat.KEY_MIME) ?: continue
             when {
                 mime.startsWith("video/") -> {
-                    require(videoIndex < 0) { "একাধিক video track এই export সংস্করণে সমর্থিত নয়" }
+                    require(videoIndex < 0) { AppLanguage.text(R.string.message_545b6f2b51) }
                     videoIndex = index
                     videoFormat = format
                 }
                 mime.startsWith("audio/") -> {
-                    require(audioIndex < 0) { "একাধিক audio track এই export সংস্করণে সমর্থিত নয়" }
+                    require(audioIndex < 0) { AppLanguage.text(R.string.message_7fdc670a3b) }
                     audioIndex = index
                     audioFormat = format
                 }
@@ -245,7 +245,7 @@ internal object TimelineRemuxExporter {
 
     private fun requireCompatibleTracks(reference: Tracks, candidate: Tracks) {
         require((reference.audioIndex >= 0) == (candidate.audioIndex >= 0)) {
-            "সব source clip-এ একই audio track layout থাকতে হবে"
+            AppLanguage.text(R.string.message_4bb961786b)
         }
         requireCompatibleFormat(reference.videoFormat, candidate.videoFormat, "video")
         if (reference.audioIndex >= 0) {
@@ -279,7 +279,7 @@ internal object TimelineRemuxExporter {
             if (first != next) return false
         }
         for (index in 0..3) {
-            val key = "csd-$index"
+            val key = "csd-${index}"
             val first = reference.getByteBuffer(key)?.copyRemainingBytes()
             val next = candidate.getByteBuffer(key)?.copyRemainingBytes()
             if (!byteArraysEqual(first, next)) return false
@@ -289,7 +289,7 @@ internal object TimelineRemuxExporter {
 
     private fun requireCompatibleFormat(reference: MediaFormat, candidate: MediaFormat, kind: String) {
         require(formatsCompatible(reference, candidate, kind)) {
-            "একাধিক source export করতে সব clip-এর $kind codec, dimensions ও codec configuration একই হতে হবে"
+            AppLanguage.text(R.string.message_94375196f5, kind)
         }
     }
 
@@ -315,15 +315,15 @@ internal object TimelineRemuxExporter {
         cancelled: AtomicBoolean,
         expectedDurationUs: Long? = null,
     ) {
-        require(output.isFile && output.length() > 0L) { "Muxer কোনো বৈধ MP4 output তৈরি করেনি" }
+        require(output.isFile && output.length() > 0L) { AppLanguage.text(R.string.message_8ccdf8c183) }
         val extractor = MediaExtractor()
         var maximumVideoIntervalUs = 33_334L
         try {
             extractor.setDataSource(output.absolutePath)
             val tracks = findTracks(extractor)
-            require(tracks.videoIndex >= 0) { "তৈরি MP4-তে video track খোলা যাচ্ছে না" }
+            require(tracks.videoIndex >= 0) { AppLanguage.text(R.string.message_36eb3c2094) }
             require((tracks.audioIndex >= 0) == expectedAudioTrack) {
-                "তৈরি MP4-তে audio track অসম্পূর্ণ"
+                AppLanguage.text(R.string.message_f118417f6a)
             }
             extractor.selectTrack(tracks.videoIndex)
             if (tracks.audioIndex >= 0) extractor.selectTrack(tracks.audioIndex)
@@ -336,22 +336,22 @@ internal object TimelineRemuxExporter {
                 ensureNotCancelled(cancelled)
                 when (extractor.sampleTrackIndex) {
                     tracks.videoIndex -> {
-                        require(extractor.sampleTime > lastVideoTime) { "তৈরি MP4-তে video timestamp সঠিক নয়" }
+                        require(extractor.sampleTime > lastVideoTime) { AppLanguage.text(R.string.message_0a8e43ec87) }
                         if (lastVideoTime != Long.MIN_VALUE)
                             maximumVideoIntervalUs = maxOf(maximumVideoIntervalUs, extractor.sampleTime - lastVideoTime)
                         lastVideoTime = extractor.sampleTime
                         videoSamples++
                     }
                     tracks.audioIndex -> {
-                        require(extractor.sampleTime > lastAudioTime) { "তৈরি MP4-তে audio timestamp সঠিক নয়" }
+                        require(extractor.sampleTime > lastAudioTime) { AppLanguage.text(R.string.message_fac2a9f7ec) }
                         lastAudioTime = extractor.sampleTime
                         audioSamples++
                     }
                 }
                 if (!extractor.advance()) break
             }
-            require(videoSamples > 0) { "তৈরি MP4-তে video sample নেই" }
-            require(!expectedAudioTrack || audioSamples > 0) { "তৈরি MP4-তে audio sample নেই" }
+            require(videoSamples > 0) { AppLanguage.text(R.string.message_a82ee6e5ca) }
+            require(!expectedAudioTrack || audioSamples > 0) { AppLanguage.text(R.string.message_831513c165) }
         } finally {
             extractor.release()
         }
@@ -361,18 +361,18 @@ internal object TimelineRemuxExporter {
         try {
             retriever.setDataSource(output.absolutePath)
             val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                ?.toLongOrNull() ?: throw IllegalArgumentException("তৈরি MP4-র duration পড়া যাচ্ছে না")
-            require(durationMs > 0L) { "তৈরি MP4-র duration শূন্য" }
+                ?.toLongOrNull() ?: throw IllegalArgumentException(AppLanguage.text(R.string.message_4983402399))
+            require(durationMs > 0L) { AppLanguage.text(R.string.message_5a994fce3b) }
             expectedDurationUs?.let { expected ->
                 val tolerance = maxOf(250_000L, maximumVideoIntervalUs * 2L)
                 require(abs(durationMs * 1000L - expected) <= tolerance) {
-                    "Render duration timeline-এর সঙ্গে মিলছে না; অসম্পূর্ণ output সেভ হয়নি"
+                    AppLanguage.text(R.string.message_896bcfa0b6)
                 }
             }
             for (timeUs in listOf(0L, ((durationMs - 50L).coerceAtLeast(0L)) * 1000L).distinct()) {
                 ensureNotCancelled(cancelled)
                 val frame = retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST)
-                    ?: throw IllegalArgumentException("তৈরি MP4-র শুরু/শেষ video frame Android decoder খুলতে পারেনি")
+                    ?: throw IllegalArgumentException(AppLanguage.text(R.string.message_89fb9c0b30))
                 try { ensureNotCancelled(cancelled) } finally { frame.recycle() }
             }
         } finally {
@@ -390,13 +390,13 @@ internal object TimelineRemuxExporter {
                 if (time >= sourceInUs && extractor.sampleTrackIndex == videoTrack &&
                     extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) {
                     require(abs(time - sourceInUs) <= KEYFRAME_TOLERANCE_US) {
-                        "Clip-এর শুরু keyframe-এ নেই; সঠিক export-এর জন্য keyframe-এ split/trim করুন"
+                        AppLanguage.text(R.string.message_a038b9bbf4)
                     }
                     return
                 }
                 if (!extractor.advance()) break
             }
-            throw IllegalArgumentException("Clip-এর শুরুতে নির্ভরযোগ্য video keyframe পাওয়া যায়নি")
+            throw IllegalArgumentException(AppLanguage.text(R.string.message_cb75968fda))
         } finally {
             extractor.release()
         }
@@ -404,10 +404,10 @@ internal object TimelineRemuxExporter {
 
     private fun toMuxerFlags(sampleFlags: Int): Int {
         require(sampleFlags and MediaExtractor.SAMPLE_FLAG_ENCRYPTED == 0) {
-            "DRM/encrypted sample stream-copy-তে সমর্থিত নয়"
+            AppLanguage.text(R.string.message_bf30911ad7)
         }
         require(sampleFlags and MediaExtractor.SAMPLE_FLAG_PARTIAL_FRAME == 0) {
-            "Fragmented sample stream-copy-তে সমর্থিত নয়"
+            AppLanguage.text(R.string.message_b4ff35a2fa)
         }
         return if (sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) {
             MediaCodec.BUFFER_FLAG_KEY_FRAME
@@ -431,6 +431,6 @@ internal object TimelineRemuxExporter {
         if (containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)) getInteger(MediaFormat.KEY_MAX_INPUT_SIZE) else null
 
     private fun ensureNotCancelled(cancelled: AtomicBoolean) {
-        if (cancelled.get() || Thread.currentThread().isInterrupted) throw CancellationException("Export বাতিল করা হয়েছে")
+        if (cancelled.get() || Thread.currentThread().isInterrupted) throw CancellationException(AppLanguage.text(R.string.message_2b042e5a6c))
     }
 }

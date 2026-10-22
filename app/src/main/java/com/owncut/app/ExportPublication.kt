@@ -23,7 +23,7 @@ internal object ExportPublication {
 
     fun publish(file: File, cancelled: AtomicBoolean, create: () -> PendingOutput) {
         checkCancellation(cancelled)
-        require(file.isFile && file.length() > 0L) { "সংরক্ষণ করার মতো video data নেই" }
+        require(file.isFile && file.length() > 0L) { AppLanguage.text(R.string.message_19c5867f0e) }
         val expectedSize = file.length()
         val pending = create()
         try {
@@ -41,8 +41,8 @@ internal object ExportPublication {
                     output.flush()
                 }
             } // close/flush errors must also abort the pending row
-            check(copied == expectedSize) { "ভিডিও copy অসম্পূর্ণ" }
-            pending.size()?.let { check(it == expectedSize) { "সংরক্ষিত ভিডিওর size সঠিক নয়" } }
+            check(copied == expectedSize) { AppLanguage.text(R.string.message_2b7a3b470e) }
+            pending.size()?.let { check(it == expectedSize) { AppLanguage.text(R.string.message_0463a65e49) } }
             checkCancellation(cancelled)
             pending.commit()
         } catch (error: Exception) {
@@ -51,7 +51,7 @@ internal object ExportPublication {
                 false
             }
             if (!removed) {
-                val message = "${error.message ?: "Export ব্যর্থ"} · অসম্পূর্ণ Gallery item সরানো যায়নি"
+                val message = AppLanguage.text(R.string.message_0d4c2e3e06, error.message ?: AppLanguage.text(R.string.message_29b7d7e952))
                 if (error is CancellationException) throw CancellationException(message).apply { initCause(error) }
                 throw IllegalStateException(message, error)
             }
@@ -61,7 +61,7 @@ internal object ExportPublication {
 
     private fun checkCancellation(cancelled: AtomicBoolean) {
         if (cancelled.get() || Thread.currentThread().isInterrupted)
-            throw CancellationException("Export বাতিল হয়েছে")
+            throw CancellationException(AppLanguage.text(R.string.message_df54d9e4da))
     }
 }
 
@@ -72,7 +72,7 @@ internal class GalleryPendingOutput private constructor(
     internal val uri: Uri,
 ) : ExportPublication.PendingOutput {
     override fun open(): OutputStream = context.contentResolver.openOutputStream(uri, "wt")
-        ?: throw IllegalStateException("Gallery output-এ লেখা যাচ্ছে না")
+        ?: throw IllegalStateException(AppLanguage.text(R.string.message_3f5bcb7685))
 
     override fun size(): Long? = context.contentResolver.openFileDescriptor(uri, "r")?.use {
         it.statSize.takeIf { size -> size >= 0L }
@@ -81,7 +81,7 @@ internal class GalleryPendingOutput private constructor(
     override fun commit() {
         check(context.contentResolver.update(uri, ContentValues().apply {
             put(MediaStore.Video.Media.IS_PENDING, 0)
-        }, null, null) == 1) { "Gallery-তে output প্রকাশ করা যায়নি" }
+        }, null, null) == 1) { AppLanguage.text(R.string.message_392a697579) }
     }
 
     override fun discard(): Boolean = context.contentResolver.delete(uri, null, null) == 1
@@ -96,7 +96,7 @@ internal class GalleryPendingOutput private constructor(
                 put(MediaStore.Video.Media.IS_PENDING, 1)
             }
             val uri = app.contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)
-                ?: throw IllegalStateException("Gallery-তে output তৈরি করা যায়নি")
+                ?: throw IllegalStateException(AppLanguage.text(R.string.message_fbb1b3c9d7))
             return GalleryPendingOutput(app, uri)
         }
     }

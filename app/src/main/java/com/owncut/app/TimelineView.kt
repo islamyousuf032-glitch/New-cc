@@ -25,6 +25,7 @@ internal class TimelineView(context: Context) : View(context) {
     private val red = 0xFFFF5964.toInt()
     private val rulerHeight = 34f * density
     private val laneHeight = 72f * density
+    private var clipNames = emptyMap<String, String>()
     private var tracks = emptyList<String>()
     internal var clips = emptyList<ClipSnapshot>(); private set
     internal var endFrame = 0L; private set
@@ -48,7 +49,7 @@ internal class TimelineView(context: Context) : View(context) {
         isFocusableInTouchMode = true
         isClickable = true
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
-        contentDescription = "Timeline; ruler-এ ট্যাপ বা লাল playhead ধরে seek করুন"
+        contentDescription = AppLanguage.text(R.string.message_9909c1b640)
     }
 
     fun setTimeline(values: List<ClipSnapshot>, selected: String?) {
@@ -57,6 +58,7 @@ internal class TimelineView(context: Context) : View(context) {
             sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
         }
         clips = values
+        clipNames = values.associate { it.id to (android.net.Uri.parse(it.mediaId).lastPathSegment?.substringAfterLast('/')?.takeLast(24) ?: it.id) }
         tracks = values.map { it.trackId }.distinct().sorted()
         selectedId = selected
         selectedTrack = values.firstOrNull { it.id == selected }?.trackId
@@ -92,9 +94,21 @@ internal class TimelineView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.drawColor(0xFF18221C.toInt())
+        canvas.drawColor(StudioUi.surface)
         val visible = canvas.clipBounds
-        paint.color = 0xFF91A99A.toInt()
+        paint.color = StudioUi.background
+        canvas.drawRect(visible.left.toFloat(), 0f, visible.right.toFloat(), rulerHeight, paint)
+        for (lane in tracks.indices) {
+            paint.color = if (lane % 2 == 0) StudioUi.surface else 0xFF111A28.toInt()
+            canvas.drawRect(visible.left.toFloat(), rulerHeight + lane * laneHeight, visible.right.toFloat(), rulerHeight + (lane+1) * laneHeight, paint)
+            paint.color = StudioUi.border; paint.strokeWidth = density
+            canvas.drawLine(visible.left.toFloat(), rulerHeight + (lane+1)*laneHeight, visible.right.toFloat(), rulerHeight + (lane+1)*laneHeight, paint)
+        }
+        if (clips.isEmpty()) {
+            paint.color = StudioUi.muted; paint.textSize = 12f*density
+            canvas.drawText(AppLanguage.text(R.string.timeline_empty), visible.left + 16*density, rulerHeight + 36*density, paint)
+        }
+        paint.color = StudioUi.muted
         paint.textSize = 10f * density
         val minTickFrames = (72.0 * density / pixelsPerFrame).coerceAtLeast(30.0)
         var tickFrames = 30L
@@ -102,32 +116,44 @@ internal class TimelineView(context: Context) : View(context) {
         var tick = (frameAt(visible.left.toFloat()) / tickFrames) * tickFrames
         while (tick <= endFrame && xForFrame(tick) <= visible.right + 100f * density) {
             val x = xForFrame(tick)
-            paint.color = 0xFF91A99A.toInt()
+            paint.color = StudioUi.muted
             canvas.drawLine(x, rulerHeight - 8 * density, x, rulerHeight, paint)
-            canvas.drawText(TimelineGeometry.timecode(tick).substringBeforeLast(':'), x + 3 * density, 14 * density, paint)
+            canvas.drawText(TimelineGeometry.timecode(tick).substringBeforeLast(':'), x + 4 * density, 14 * density, paint)
+            paint.color = 0xFF263449.toInt(); paint.strokeWidth = density
+            canvas.drawLine(x, rulerHeight, x, height.toFloat(), paint)
+            for (minor in 1..3) {
+                val minorX = x + (tickFrames * pixelsPerFrame * minor / 4).toFloat()
+                canvas.drawLine(minorX, rulerHeight-4*density, minorX, rulerHeight, paint)
+            }
             if (endFrame - tick < tickFrames) break
             tick += tickFrames
         }
         for ((lane, track) in tracks.withIndex()) {
-            paint.color = 0xFF91A99A.toInt()
-            canvas.drawText("TRACK · $track", visible.left + 4f * density, rulerHeight + lane * laneHeight + 12 * density, paint)
+            paint.color = StudioUi.muted
+            canvas.drawText(AppLanguage.text(R.string.message_88e5aebc23, track), visible.left + 4f * density, rulerHeight + lane * laneHeight + 12 * density, paint)
         }
         for (clip in clips) {
             val rect = clipRect(clip)
             if (movingClip?.id == clip.id) rect.offset(moveDelta, 0f)
             if (rect.right < visible.left || rect.left > visible.right) continue
-            paint.color = if (clip.id == selectedId) 0xFF29634A.toInt() else 0xFF294638.toInt()
-            canvas.drawRoundRect(rect, 4 * density, 4 * density, paint)
+            paint.color = if (clip.id == selectedId) 0xFF214A70.toInt() else 0xFF263951.toInt()
+            canvas.drawRoundRect(rect, 7 * density, 7 * density, paint)
             if (clip.id == selectedId) {
-                paint.color = 0xFF8BC8A8.toInt(); paint.style = Paint.Style.STROKE; paint.strokeWidth = density
-                canvas.drawRoundRect(rect, 4 * density, 4 * density, paint); paint.style = Paint.Style.FILL
+                paint.color = StudioUi.accent; paint.style = Paint.Style.STROKE; paint.strokeWidth = density
+                canvas.drawRoundRect(rect, 7 * density, 7 * density, paint); paint.style = Paint.Style.FILL
             }
             canvas.save()
             canvas.clipRect(rect)
-            paint.color = 0xFFE5EEE8.toInt(); paint.textSize = 11f * density
-            canvas.drawText(clip.id.take(16), rect.left + 5 * density, rect.top + 19 * density, paint)
+            paint.color = if(clip.id == selectedId) StudioUi.accent else 0xFF607D9E.toInt()
+            canvas.drawRect(rect.left, rect.top, rect.right, rect.top+3*density, paint)
+            if (clip.id == selectedId && rect.width() > 30*density) {
+                canvas.drawRoundRect(RectF(rect.left+3*density,rect.top+17*density,rect.left+5*density,rect.bottom-10*density),density,density,paint)
+                canvas.drawRoundRect(RectF(rect.right-5*density,rect.top+17*density,rect.right-3*density,rect.bottom-10*density),density,density,paint)
+            }
+            paint.color = StudioUi.text; paint.textSize = 11f * density
+            canvas.drawText((clipNames[clip.id] ?: clip.id), rect.left + 10 * density, rect.top + 19 * density, paint)
             paint.textSize = 9f * density
-            canvas.drawText(TimelineGeometry.timecode(clip.durationFrames), rect.left + 5 * density, rect.top + 36 * density, paint)
+            canvas.drawText(TimelineGeometry.timecode(clip.durationFrames), rect.left + 10 * density, rect.top + 36 * density, paint)
             canvas.restore()
         }
         val headX = xForFrame(playheadFrame)
@@ -229,7 +255,7 @@ internal class TimelineView(context: Context) : View(context) {
             if (id == View.NO_ID) return AccessibilityNodeInfo.obtain(this@TimelineView).also { info ->
                 onInitializeAccessibilityNodeInfo(info)
                 clips.indices.forEach { info.addChild(this@TimelineView, it + 1) }
-                info.contentDescription = "Timeline playhead ${TimelineGeometry.timecode(playheadFrame)}"
+                info.contentDescription = AppLanguage.text(R.string.message_97a400a822, TimelineGeometry.timecode(playheadFrame))
             }
             val clip = clips.getOrNull(id - 1) ?: return null
             val bounds = Rect(); clipRect(clip).roundOut(bounds)

@@ -22,7 +22,7 @@ internal object ProjectDocumentIo {
             }
             if (count < 0) break
             total += count
-            require(total <= maxBytes) { "Project file exceeds the ${maxBytes / (1024 * 1024)} MiB limit" }
+            require(total <= maxBytes) { AppLanguage.text(R.string.message_f019870b11, maxBytes / (1024 * 1024)) }
             output.write(buffer, 0, count)
         }
         output.flush()

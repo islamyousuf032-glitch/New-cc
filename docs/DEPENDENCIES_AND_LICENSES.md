@@ -54,3 +54,11 @@ No dependency added. Uses existing Android platform Activity/View/AtomicFile/SAF
 Official public workflow references are linked in ADVANCED_ARCHITECTURE; they are research
 references, not redistributed source, assets or licensed product components. Media3 and
 AndroidX pinned versions/licenses are unchanged; no GPU/audio/RAW backend selected.
+
+
+## Studio UI and language batch
+No added runtime/build dependency. Original stroke-vector icon drawing uses Android
+Canvas/Path; no third-party icon assets/fonts or product UI copied. Configuration,
+SharedPreferences, platform dark Material theme and native tooltips already support
+min API 26. Python resource gate uses standard library only. Existing Media3/AndroidX
+maintenance/license pins are unchanged. ADR 0010 links official Android guidance.

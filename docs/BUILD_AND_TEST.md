@@ -170,3 +170,21 @@ APK, not this architecture batch. Later documentation-only changes do not alter 
 
 Current architecture APK: https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39748116540/app-debug.apk
 Checksum: https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39748116540/app-debug.apk.sha256
+
+
+## Studio UI / Bengali-English checkpoint (2026-10-22)
+
+User reports the project-workspace APK works well on their phone. This batch adds
+an original slate/blue studio theme, card-based library, icon-only tool/navigation
+actions with localized tooltips/accessibility, timeline lane/grid/clip polish, and
+first-run English/Bengali selection persisted independently of project data. Home
+Settings can change language. 256 default/Bengali resource pairs cover app-authored
+menus, dialogs, statuses, export/recovery/errors; user names/media paths and native
+diagnostics remain untouched. ADR 0010 records scope and platform references.
+
+No new dependency, project schema, editing semantics or render preset. Current Flow
+is still read-only. Host `make test`, resource/format/reference/contrast checks and
+`git diff --check` passed; Android build/lint/new UI/full regression execution pending.
+This new visual design has not been visually inspected on a physical phone. Large
+fonts, icon discovery, TalkBack, portrait/landscape and both-language provider flows
+need device validation; do not claim host tests prove those.
