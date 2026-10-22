@@ -1,6 +1,7 @@
 #include "editor/command_history.hpp"
 #include "editor/project.hpp"
 #include "editor/time.hpp"
+#include "editor/graph.hpp"
 #include "editor/timeline.hpp"
 
 #include <array>
@@ -79,6 +80,42 @@ std::filesystem::path make_temp_directory() {
 } // namespace
 
 int main() {
+    {
+        ProcessingGraph graph{{{1, "source", {}, {PortKind::image}},
+                               {2, "transform", {PortKind::image}, {PortKind::image}},
+                               {3, "output", {PortKind::image}, {}}}, {{1, 0, 2, 0}, {2, 0, 3, 0}}, 3};
+        const auto expected = std::vector<std::uint64_t>{1, 2, 3};
+        check(validate_graph(graph) == expected);
+        check(validate_graph(graph) == expected); // deterministic and read-only
+        auto bad = graph; bad.nodes[1].id = 1;
+        expect_failure([&] { (void)validate_graph(bad); });
+        bad = graph; bad.edges[0].source = 99;
+        expect_failure([&] { (void)validate_graph(bad); });
+        bad = graph; bad.edges[0].output = 42;
+        expect_failure([&] { (void)validate_graph(bad); });
+        bad = graph; bad.nodes[1].inputs[0] = PortKind::audio;
+        expect_failure([&] { (void)validate_graph(bad); });
+        bad = graph; bad.edges.push_back(graph.edges[0]);
+        expect_failure([&] { (void)validate_graph(bad); });
+        bad = graph; bad.edges.erase(bad.edges.begin());
+        expect_failure([&] { (void)validate_graph(bad); });
+        bad = graph; bad.edges[0].source = 2; // self-cycle while required input is connected
+        expect_failure([&] { (void)validate_graph(bad); });
+        bad = graph; bad.output_node = 0;
+        expect_failure([&] { (void)validate_graph(bad); });
+        bad = graph; bad.nodes.push_back({4, "unused", {}, {PortKind::image}});
+        expect_failure([&] { (void)validate_graph(bad); });
+        bad = graph; bad.nodes[0].outputs[0] = static_cast<PortKind>(99);
+        expect_failure([&] { (void)validate_graph(bad); });
+        bad = graph; bad.nodes.resize(4097);
+        expect_failure([&] { (void)validate_graph(bad); });
+        ProcessingGraph fanout{{{1, "source", {}, {PortKind::image}},
+                               {2, "merge", {PortKind::image, PortKind::image}, {PortKind::image}},
+                               {3, "output", {PortKind::image}, {}}},
+                              {{1, 0, 2, 1}, {1, 0, 2, 0}, {2, 0, 3, 0}}, 3};
+        check(validate_graph(fanout) == expected);
+    }
+
     const TimeBase ntsc_frame{1001, 30000};
     const TimeBase milliseconds{1, 1000};
     {
@@ -326,5 +363,5 @@ int main() {
     }
     std::filesystem::remove_all(test_dir);
 
-    std::cout << "All core, command-history, and project tests passed\n";
+    std::cout << "All core, graph-contract, command-history, and project tests passed\n";
 }

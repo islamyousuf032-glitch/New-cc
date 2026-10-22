@@ -105,3 +105,24 @@ This is emulator evidence, not a new physical-phone validation report.
 Device checks still needed: red-marker smoothness/latency, fast repeated seeks, long
 clip/zoomed timeline ergonomics, TalkBack/large fonts, source codecs and exact A/V sync.
 The prior export gap-confirmation and single-track render limitations remain.
+
+
+## Project-workspace / node architecture baseline (2026-10-22)
+
+The user reports the playhead APK works well on their phone; this is user smoke
+evidence, not an independent sync/performance benchmark. [Advanced architecture v1](ADVANCED_ARCHITECTURE.md)
+and ADR 0009 now define the canonical forward design; earlier checkpoint descriptions
+above are historical. The baseline distinguishes timeline editorial time, typed node
+processing, contextual workspace UI, managed persistence and future shared evaluation.
+
+This implementation adds a launcher project library (create/name/import/list/open),
+per-project native save/recovery, non-destructive legacy workspace discovery, managed
+checkpoint on Projects/Back, retained workspace pages and Edit/Media/Deliver panels.
+Flow is a read-only explanation of the current separate preview/export routes. Native
+`engine/graph` validates a bounded typed output DAG but has no renderer, JNI or file
+schema integration. No advanced grading/audio/RAW/compositor or output-preset claim.
+
+Host tests and Android verification for this batch are recorded in the final evidence
+entry below when executed. Physical-phone verification of this new navigation is pending.
+Test on phone: create two projects, import/edit/back/reopen isolation, external Save As,
+legacy recovery, large fonts/rotation, media relink, render/Gallery, and Back during I/O.

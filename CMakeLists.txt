@@ -4,11 +4,13 @@ project(owncut_engine VERSION 0.1.0 LANGUAGES CXX)
 option(OWNCUT_BUILD_TESTS "Build portable engine unit tests" ON)
 
 add_library(owncut_engine
+    engine/graph/src/graph.cpp
     engine/core/src/time.cpp
     engine/timeline/src/timeline.cpp
     engine/commands/src/command_history.cpp
     engine/project/src/project.cpp)
 target_include_directories(owncut_engine PUBLIC
+    engine/graph/include
     engine/core/include
     engine/timeline/include
     engine/commands/include

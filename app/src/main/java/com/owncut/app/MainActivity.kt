@@ -39,6 +39,11 @@ import kotlin.math.roundToInt
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     private var engine: EngineSession? = null
+    private var libraryId: String? = null
+    private var projectName = "Workspace"
+    private var workspacePage = "Edit"
+    private var projectTitle: TextView? = null
+    private val workspacePanels = mutableMapOf<String, MutableList<android.view.View>>()
     private lateinit var preview: AspectRatioTextureView
     private var previewSurface: Surface? = null
     private lateinit var statusText: TextView
@@ -143,6 +148,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         val timelineGapPosition: Boolean,
         val followPlayhead: Boolean,
         val timelineScrollX: Int,
+        val workspacePage: String,
     )
 
     private var projectIoOperation: ProjectIoOperation? = null
@@ -161,9 +167,11 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
 
     @Suppress("DEPRECATION")
     private fun initializeEditor(savedInstanceState: Bundle?) {
+        libraryId = intent.getStringExtra(EXTRA_LIBRARY_ID)
         val retained = lastNonConfigurationInstance as? RetainedEditorState
         if (retained != null) {
             engine = retained.engine
+            workspacePage = retained.workspacePage
             projectPath = retained.projectPath
             selectedUri = retained.selectedUri?.let { Uri.parse(it) }
             selectedClipId = retained.selectedClipId
@@ -180,7 +188,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             }
         } else {
             engine = EngineSession()
-            projectPath = File(filesDir, "active.owncut").absolutePath
+            projectPath = libraryId?.let { ProjectLibrary(filesDir).projectFile(it).absolutePath }
+                ?: File(filesDir, "active.owncut").absolutePath
         }
         buildWorkspace()
         preview.surfaceTextureListener = this
@@ -188,12 +197,94 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         if (retained != null) {
             selectedUri?.let { readMetadataAndRegister(it, existingClipId = selectedClipId) }
             if (hasUnsavedChanges) scheduleAutosave()
+        } else if (libraryId != null) {
+            loadLibraryProject()
         } else if (savedInstanceState != null) {
             statusText.text = "আগের session-এর জন্য Recover autosave চাপুন, অথবা media আবার নির্বাচন করুন।"
         }
+        if (retained != null && libraryId != null) loadLibraryTitle()
         updateEngineStatus()
         refreshTimeline()
     }
+
+    private fun loadLibraryTitle() {
+        val id = libraryId ?: return
+        metadataExecutor.execute {
+            try {
+                val name = ProjectLibrary(filesDir).read(id).name
+                mainHandler.post { if (!isDestroyed) { projectName = name; projectTitle?.text = "Owncut · $name" } }
+            } catch (_: Exception) { /* Native retained session stays usable even if catalog metadata is damaged. */ }
+        }
+    }
+
+    private fun loadLibraryProject() {
+        val id = libraryId ?: return
+        val session = engine ?: return
+        projectIoBusy = true; projectIoOperation = ProjectIoOperation.LOAD
+        statusText.text = "Project খোলা হচ্ছে…"
+        metadataExecutor.execute {
+            try {
+                val library = ProjectLibrary(filesDir)
+                val record = library.read(id)
+                session.loadProject(projectPath)
+                library.touch(id)
+                mainHandler.post {
+                    if (!isDestroyed) {
+                        projectName = record.name; projectTitle?.text = "Owncut · $projectName"
+                        projectIoBusy = false; projectIoOperation = null
+                        updateEngineStatus(); showFirstClip(session)
+                        statusText.text = if (record.recovery)
+                            "Recovery snapshot আছে। চাইলে Recover autosave করুন; নতুন edit করলে পুরোনো snapshot বদলাবে।"
+                        else "Project খোলা হয়েছে"
+                    }
+                }
+            } catch (error: Exception) {
+                mainHandler.post {
+                    if (!isDestroyed) {
+                        // Do not allow edits/saves of a blank replacement after a failed load.
+                        statusText.text = "Project খোলা যায়নি: ${error.message}"
+                        AlertDialog.Builder(this).setTitle("Project নিরাপদ রাখা হয়েছে")
+                            .setMessage("খোলা যায়নি: ${error.message}। Original file বদলানো হয়নি।")
+                            .setCancelable(false).setPositiveButton("Projects") { _, _ -> finish() }.show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun returnToLibrary() {
+        if (projectIoBusy || blockWhileMediaLoads()) return
+        val id = libraryId
+        if (id == null) { finish(); return }
+        val session = engine ?: return
+        pendingAutosave?.cancel(false)
+        releasePlayer()
+        projectIoBusy = true; projectIoOperation = ProjectIoOperation.SAVE
+        statusText.text = "কাজ রেখে Projects-এ ফেরা হচ্ছে…"
+        val changed = hasUnsavedChanges
+        metadataExecutor.execute {
+            try {
+                if (changed) { session.saveProject(projectPath); session.clearAutosave(projectPath) }
+                ProjectLibrary(filesDir).touch(id)
+                mainHandler.post {
+                    if (!isDestroyed) {
+                        hasUnsavedChanges = false; projectIoBusy = false; projectIoOperation = null
+                        finish()
+                    }
+                }
+            } catch (error: Exception) {
+                mainHandler.post {
+                    if (!isDestroyed) {
+                        projectIoBusy = false; projectIoOperation = null
+                        statusText.text = "Save হয়নি; editor খোলা আছে: ${error.message}"
+                    }
+                }
+            }
+        }
+    }
+
+    @Deprecated("Platform back adapter")
+    override fun onBackPressed() { returnToLibrary() }
 
     private fun showStartupFailure(error: Throwable) {
         android.util.Log.e("OwncutStartup", "Owncut could not create its initial workspace", error)
@@ -233,7 +324,15 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             setTextColor(0xFFE5EEE8.toInt())
             gravity = Gravity.CENTER_VERTICAL
         }
+        projectTitle = title
+        title.text = "Owncut · $projectName"
         root.addView(title, matchWrap())
+        root.addView(actionButton("‹ Projects · কাজ রেখে ফিরুন") { returnToLibrary() }, matchWrap())
+        val navigation = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        for (page in listOf("Edit", "Media", "Flow", "Deliver")) {
+            navigation.addView(actionButton(page) { showWorkspacePage(page) }, LinearLayout.LayoutParams(0, dp(48), 1f))
+        }
+        root.addView(navigation, matchWrap())
 
         preview = AspectRatioTextureView(this).apply {
             // TextureView rejects background drawables/colors; keep its empty surface as the placeholder.
@@ -308,6 +407,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             setPadding(0, dp(2), 0, dp(6))
         }
         root.addView(editHelpText, matchWrap())
+        workspacePanels.getOrPut("Edit") { mutableListOf() }.add(editHelpText)
 
         val editScroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
         val editControls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -318,6 +418,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         editControls.addView(actionButton("গ্যাপ বাদ") { deleteSelected(ripple = true) }, wrapButtonParams())
         editScroll.addView(editControls)
         root.addView(editScroll, matchWrap())
+        workspacePanels.getOrPut("Edit") { mutableListOf() }.add(editScroll)
 
         val projectControls = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
         val projectButtons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -326,9 +427,14 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         projectButtons.addView(actionButton("Save") { saveProject() }, wrapButtonParams())
         projectButtons.addView(actionButton("Open saved") { confirmLoadProject() }, wrapButtonParams())
         projectButtons.addView(actionButton("Save project as…") { launchProjectSavePicker() }, wrapButtonParams())
-        projectButtons.addView(actionButton("Open project…") { launchProjectOpenPicker() }, wrapButtonParams())
+        if (libraryId == null) projectButtons.addView(actionButton("Open project…") { launchProjectOpenPicker() }, wrapButtonParams())
         projectButtons.addView(actionButton("Recover autosave") { confirmRecoverAutosave() }, wrapButtonParams())
-        projectButtons.addView(actionButton("Export MP4") { launchExportPicker() }, wrapButtonParams())
+        val deliverPanel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        deliverPanel.addView(TextView(this).apply {
+            text = "Deliver · H.264/AAC · 720-high SDR\nএকটি sequential video track। Gap বাদ দিতে আপনার সম্মতি লাগে। Android 10+ এ Movies/Owncut Gallery-তে save হয়।"
+            setTextColor(0xFFE5EEE8.toInt()); textSize = 14f
+        })
+        deliverPanel.addView(actionButton("Export MP4") { launchExportPicker() }, matchWrap())
         cancelExportButton = Button(this).apply {
             text = "Export বাতিল"
             isEnabled = false
@@ -337,7 +443,8 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 text = "বাতিল হচ্ছে…"
             }
         }
-        projectButtons.addView(cancelExportButton, wrapButtonParams())
+        deliverPanel.addView(cancelExportButton, matchWrap())
+        workspacePanels.getOrPut("Deliver") { mutableListOf() }.add(deliverPanel)
         projectControls.addView(projectButtons)
         root.addView(projectControls, matchWrap())
 
@@ -360,8 +467,20 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
         }
         controls.addView(importButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         controls.addView(relinkButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        controls.addView(playButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(playButton, matchWrap())
         root.addView(controls, matchWrap())
+        root.addView(deliverPanel, matchWrap())
+        workspacePanels.getOrPut("Media") { mutableListOf() }.add(controls)
+        val editImport = actionButton("ভিডিও নিন · Import") { launchVideoPicker() }
+        root.addView(editImport, matchWrap())
+        workspacePanels.getOrPut("Edit") { mutableListOf() }.add(editImport)
+        val flow = TextView(this).apply {
+            text = "Flow · বর্তমান route (Read-only)\n\nSource → Native clip range / timeline position → MediaPlayer preview\nSource + timeline snapshot → Media3 decode/render/encode → validated MP4 → Gallery\n\nএখন preview ও export আলাদা pipeline। এটি editable node graph নয়; effects যোগ বা wire বদলানো এখন চালু নেই। Typed nodes, shared evaluator, keyframes ও compositing পরের ধাপের architecture-এ নির্ধারিত।"
+            textSize = 15f; setTextColor(0xFFE5EEE8.toInt()); setPadding(0, dp(10), 0, dp(10))
+        }
+        root.addView(flow, matchWrap())
+        workspacePanels.getOrPut("Flow") { mutableListOf() }.add(flow)
+        showWorkspacePage(workspacePage)
 
         statusText = TextView(this).apply {
             textSize = 12f
@@ -403,6 +522,13 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             ))
         }
         setContentView(workspaceScroll)
+    }
+
+    private fun showWorkspacePage(page: String) {
+        workspacePage = page
+        for ((key, views) in workspacePanels) for (view in views)
+            view.visibility = if (key == page) android.view.View.VISIBLE else android.view.View.GONE
+        projectTitle?.text = "Owncut · $projectName · $page"
     }
 
     private fun actionButton(label: String, action: () -> Unit): Button = Button(this).apply {
@@ -880,10 +1006,10 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                                 projectIoBusy = false
                                 projectIoOperation = null
                                 if (recovered) {
-                                    hasUnsavedChanges = false
+                                    hasUnsavedChanges = libraryId != null
                                     updateEngineStatus()
                                     showFirstClip(session)
-                                    statusText.text = "Autosave recover হয়েছে"
+                                    statusText.text = "Autosave recover হয়েছে; local project-এ রাখতে Save বা Projects চাপুন"
                                 } else statusText.text = "Recovery snapshot নেই"
                             }
                         }
@@ -1101,6 +1227,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
                 contentResolver.openOutputStream(uri, "wt")?.use { output ->
                     temporary.inputStream().buffered().use { input -> ProjectDocumentIo.copy(input, output) }
                 } ?: throw IllegalStateException("নির্বাচিত document-এ লেখা যাচ্ছে না")
+                if (libraryId != null) session.saveProject(projectPath)
                 session.clearAutosave(projectPath)
                 temporary.delete()
                 mainHandler.post {
@@ -1575,6 +1702,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
             timelineGapPosition = timelineGapPosition,
             followPlayhead = followPlayhead,
             timelineScrollX = timelineViewport?.scrollX ?: 0,
+            workspacePage = workspacePage,
         )
         handingOffEngine = true
         engine = null
@@ -1629,6 +1757,7 @@ class MainActivity : Activity(), TextureView.SurfaceTextureListener {
     )
 
     companion object {
+        internal const val EXTRA_LIBRARY_ID = "com.owncut.app.LIBRARY_PROJECT_ID"
         private const val REQUEST_VIDEO = 4101
         private const val REQUEST_PROJECT_SAVE = 4102
         private const val REQUEST_PROJECT_OPEN = 4103

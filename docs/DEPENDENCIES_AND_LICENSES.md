@@ -45,3 +45,12 @@ versus 3,350,454 bytes in `phone-test-39431256128` before Media3. These are GitH
 release-asset sizes, not an installed-memory or on-device performance measurement.
 The final render CI run executed real codec tests successfully on the pinned emulator;
 Samsung/physical-device performance remains unmeasured.
+
+
+## Project/node architecture batch
+
+No dependency added. Uses existing Android platform Activity/View/AtomicFile/SAF APIs
+(min API 26 preserved), existing native project codec, and original C++20 graph contract.
+Official public workflow references are linked in ADVANCED_ARCHITECTURE; they are research
+references, not redistributed source, assets or licensed product components. Media3 and
+AndroidX pinned versions/licenses are unchanged; no GPU/audio/RAW backend selected.

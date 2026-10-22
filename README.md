@@ -1,3 +1,7 @@
+> **Forward design:** [Owncut advanced architecture v1](docs/ADVANCED_ARCHITECTURE.md)
+> specifies Projects → workspace → typed node processing → delivery, with implemented
+> versus planned capabilities and phased acceptance gates. Current Flow is read-only.
+
 # Owncut
 
 Owncut is an original, offline-first Android video-editing project. Its product direction takes inspiration from professional post-production workflows without copying another product's source, branding, assets, algorithms, or exact UI.
