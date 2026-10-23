@@ -1,5 +1,15 @@
 # Color grading reference pipeline v1
 
+## Phase 1B update — clip/project binding (2026-10-23)
+
+Clip now owns a Grade and ProjectCodec v2 embeds the fixed preset payload for each
+clip. The standalone codec contract below is unchanged, but it is also the bounded
+project grade representation. Native grouped history/reset/paste/bypass, edit inheritance,
+v0/v1 neutral migration and recovery are implemented/host-tested (ADR 0017). Undo is
+session-local, not persisted. Exact native settings/activity flow through immutable
+snapshots. ColorEngine remains a frame adapter; no current live preview/export effect.
+Active grades are guarded from ungraded export until phase 1C parity is established.
+
 2026-10-23: implementation/host-tested, not enabled in Android preview/export.
 
 ## Contract
@@ -62,7 +72,8 @@ Standalone preset, **not** project persistence. `OWNCUTCG` (8 bytes), uint32 LE 
 1, byte enabled (0/1), then 17 IEEE-754 binary64 LE values in the field order above:
 **149 bytes total**. No struct padding, trailing bytes, NaN/Inf or unsupported versions.
 Malformed/truncated input is rejected; unsupported versions use UnsupportedGradeVersion.
-No primary/autosave project format was changed. Save/undo/per-clip binding is phase 1B.
+Phase 1B now embeds this payload in project/autosave v2; old v0/v1 migrate neutral.
+The standalone preset remains v1. See ADR 0017 for project binding and history.
 
 ## Histogram
 
@@ -83,6 +94,6 @@ compiles the **production ColorEngine.kt** and calls production JNI/C++ on a hos
 checking real pixels, 17-field order, bypass, read-only/alias/invalid-buffer rejection.
 This is stronger than fixture-only JNI tests but **not Android/ART/GPU/codec testing**.
 
-Remaining: per-clip project/history binding, managed persistence/recovery, color metadata,
+Remaining acceptance: Android managed persistence/recovery, color metadata,
 shared preview/export GPU adapter, live controls/before-after, curves/LUT/secondary tools,
 scopes UI and actual Android build/device/encoded-video parity. No grading APK delivered.

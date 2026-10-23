@@ -722,7 +722,8 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         val selected = clips.firstOrNull { it.id == selectedClipId }
         if (::relinkButton.isInitialized) relinkButton.isEnabled = selected != null && !projectIoBusy && !selectedMediaLoading
         selectedClipText.text = selected?.let {
-            AppLanguage.text(R.string.message_5bd8db9fcd, it.id, formatTime(it.sourceInMs), formatTime(it.sourceOutMs))
+            AppLanguage.text(R.string.message_5bd8db9fcd, it.id, formatTime(it.sourceInMs), formatTime(it.sourceOutMs)) +
+                if (it.gradeActive) "\n" + AppLanguage.text(R.string.color_grade_preview_pending) else ""
         } ?: if (clips.isEmpty()) AppLanguage.text(R.string.message_f13c794447) else AppLanguage.text(R.string.message_083723004b, clips.size)
         updateTimelinePlayhead()
         restoreTimelineScrollX?.let { saved ->

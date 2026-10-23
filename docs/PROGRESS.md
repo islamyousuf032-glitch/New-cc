@@ -1,5 +1,39 @@
 # Progress
 
+## Phase 1B — persisted clip grades and native history (2026-10-23)
+
+Implemented validated per-clip grade values (not source-wide looks); atomic grouped
+set/paste/reset and parameter-preserving bypass through C++ history and narrow JNI.
+Split inherits both grades; trim/reorder/relink preserve them; delete/ripple undo restores.
+Owned snapshots retain values independently of later edits. JSON pages carry all 17
+values at full double precision, enabled and native-derived effective grade activity.
+
+Project writer is now **v2** with a fixed 149-byte grade payload per clip. Readers
+migrate v0/v1 to neutral; v2 round-trips through load/save-copy/checkpoint/autosave/recovery.
+Older apps cannot open new v2 documents; no silent downgrade. Future primary versions
+refuse writes/checkpoint/autosave/clear before touching recovery. Unknown grades and
+corrupt loads leave the live model/revision unchanged. Undo history remains session-local.
+
+**Passed:** five native suites; CMake Release/CTest **5/5**; new grade/project
+**ASan+UBSan** suite; strict production JNI build and real JVM **-Xcheck:jni** tests of
+precise grade JSON, independent clips, group history/bypass, rejected invalid targets/
+NaN/parameter shape, preserved redo and saved-grade reload. Existing production pure
+Kotlin projection/ColorEngine bridge tests pass; **281** bilingual/theme, seven metadata
+and three install-over guard tests pass. Native tests cover independent v0/v1 fixtures,
+all six interruption boundaries, immutable snapshots, locked/audio/invalid batch refusal,
+edit inheritance, corrupt grade payloads and future primary/draft preservation.
+
+**Safety until phase 1C:** graded preview is not implemented. Selected-clip copy warns
+that preview is ungraded; active graded clips refuse render/remux planning/export rather
+than silently drop the look. Neutral/bypassed clips retain existing behavior.
+
+**Not run:** full Android app/instrumentation compilation, ART, phone, GPU/codec/export
+parity or update install. ClipGradePersistenceTest managed-storage/export-guard sources
+are added, not executed. Internal grade APIs are not live Color controls/Activity dirty
+integration. No new APK. Phase 1B implementation has host evidence; product acceptance
+remains open. Next: phase 1C shared color-managed preview/export, then phase 1D UI.
+Weighted verified roadmap stays **25% complete / 75% remaining**, no new color credit.
+
 ## Color-first plan and phase 1A — 2026-10-23
 
 User reprioritized the remaining work: **color grading first, C++ wherever reasonable**.

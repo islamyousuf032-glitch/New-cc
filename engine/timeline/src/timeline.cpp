@@ -36,9 +36,12 @@ void Timeline::add_track(Track track) {
 }
 
 void Timeline::add_clip(const std::string& track_id, Clip clip) {
+    color::validate(clip.grade);
     auto track = std::ranges::find_if(tracks_, [&](const Track& value) { return value.id == track_id; });
     if (track == tracks_.end()) throw std::invalid_argument("unknown track id");
     if (track->locked) throw std::logic_error("cannot edit a locked track");
+    if (track->kind != TrackKind::video && clip.grade != color::Grade{})
+        throw std::invalid_argument("color grading requires a video track");
     if (clip.id.empty() || clip.media_id.empty()) throw std::invalid_argument("clip and media ids are required");
     for (const auto& existing_track : tracks_) {
         if (std::ranges::any_of(existing_track.clips, [&](const Clip& existing) { return existing.id == clip.id; }))
@@ -95,6 +98,18 @@ void Timeline::relink_media_references(const std::vector<std::string>& clip_ids,
         if (!found) throw std::invalid_argument("unknown clip id while relinking media");
     }
     tracks_.swap(updated);
+}
+
+void Timeline::set_clip_grade(const std::string& clip_id, const color::Grade& grade) {
+    color::validate(grade);
+    for (auto& track : tracks_) for (auto& clip : track.clips) {
+        if (clip.id != clip_id) continue;
+        if (track.locked) throw std::logic_error("cannot grade a locked track");
+        if (track.kind != TrackKind::video) throw std::invalid_argument("color grading requires a video track");
+        clip.grade = grade;
+        return;
+    }
+    throw std::invalid_argument("unknown clip id");
 }
 
 void Timeline::replace_clip(const Clip& replacement) {
@@ -230,6 +245,8 @@ void Timeline::move_clip(const std::string& clip_id, const std::string& destinat
         return;
     }
     // Copy into the destination first so allocation failure leaves the source untouched.
+    if (destination->kind != TrackKind::video && clip->grade != color::Grade{})
+        throw std::invalid_argument("graded clips require a video track");
     Clip moved = *clip;
     moved.timeline_start = destination_start;
     destination->clips.push_back(std::move(moved));

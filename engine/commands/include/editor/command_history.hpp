@@ -118,6 +118,20 @@ private:
     bool applied_{false};
 };
 
+// Uniform multi-target grade/paste/reset is one atomic undo entry. Independent
+// clips using the same media retain independent values. No pixel processing here.
+class SetClipGradesCommand final : public EditCommand {
+public:
+    SetClipGradesCommand(std::vector<std::string> clip_ids, color::Grade grade);
+    void apply(Timeline& timeline) override;
+    void undo(Timeline& timeline) override;
+private:
+    std::vector<std::string> ids_;
+    color::Grade grade_;
+    std::vector<color::Grade> before_; // IDs are already owned by ids_; no URI/time copies
+    bool captured_{false}, applied_{false};
+};
+
 class CommandHistory final {
 public:
     explicit CommandHistory(std::size_t max_depth = 256);

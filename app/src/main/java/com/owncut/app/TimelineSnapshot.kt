@@ -10,6 +10,8 @@ internal data class ClipSnapshot(
     val durationFrames: Long,
     val sourceInMs: Long,
     val sourceOutMs: Long,
+    val grade: ColorGrade = ColorGrade(),
+    val gradeActive: Boolean = false, // native pipeline identity predicate; not duplicated UI color math
 )
 
 internal data class ClipSnapshotPage(val clips: List<ClipSnapshot>, val revision: String, val total: Int, val nextOffset: Int)

@@ -1,5 +1,14 @@
 # Product specification
 
+## Phase 1B implementation (2026-10-23; Android acceptance pending)
+
+Per-clip grade data, grouped set/reset/paste, bypass and native undo/redo now exist.
+Grades persist through project v2, checkpoints/recovery and copy; v0/v1 import neutral.
+Reopen preserves grades, not undo history. Split inherits; other edits preserve grades.
+No live Color controls/graded preview/export yet. Until phase 1C, active grades block
+export and selected-clip information explicitly identifies ungraded preview. Older
+apps cannot open v2 documents. These internal APIs do not complete phase-one acceptance.
+
 ## First advanced feature: color grading (2026-10-23)
 
 The user-selected first phase is color grading, followed by the explicit phases in

@@ -15,7 +15,7 @@ java_home, kotlin_home = [Path(arg).resolve() for arg in sys.argv[1:3]]
 env = dict(os.environ, JAVA_HOME=str(java_home), PATH=str(java_home/'bin')+os.pathsep+os.environ['PATH'])
 with tempfile.TemporaryDirectory(prefix='owncut-kotlin-') as directory:
     jar = Path(directory)/'projection-tests.jar'
-    sources = [root/'app/src/main/java/com/owncut/app'/name for name in ('TimelineSnapshot.kt','TimelineClipIndex.kt')]
+    sources = [root/'app/src/main/java/com/owncut/app'/name for name in ('TimelineSnapshot.kt','TimelineClipIndex.kt','ColorEngine.kt')]
     subprocess.run(['bash',str(kotlin_home/'bin/kotlinc'),*[str(p) for p in sources],
                     str(root/'tests/kotlin/TimelineProjectionTest.kt'),'-Werror','-include-runtime','-d',str(jar)],env=env,check=True)
     subprocess.run([str(java_home/'bin/java'),'-jar',str(jar)],env=env,check=True)

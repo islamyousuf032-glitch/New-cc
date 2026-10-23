@@ -12,6 +12,13 @@ Owncut is an original, offline-first Android video-editing project. Its product 
 
 ## Current checkpoint
 
+**Phase 1B:** C++ clip-owned grades, atomic grouped undo/reset/paste, schema v2 save/
+recovery with v0/v1 neutral migration, and exact immutable grade snapshots are now
+implemented/host-tested. Five native suites, sanitizer and JVM/Kotlin checks pass.
+**No live graded preview/export yet**: active grades block export rather than drop the
+look. Older apps cannot open newly saved v2 files. Android acceptance/new APK pending.
+See [ADR 0017](docs/DECISIONS/0017-per-clip-grading-and-project-v2.md).
+
 **Active plan: color grading first**, per user direction. See the
 [পূর্ণ বাংলা ধাপভিত্তিক তালিকা](docs/IMPLEMENTATION_PHASES_BN.md).
 Phase 1A now implements a real C++20 grading processor, RGB/luminance histograms,

@@ -278,4 +278,6 @@
     <string name="checkpoint_repair_accept">Archive damaged record</string>
     <string name="checkpoint_repaired">Damaged checkpoint record archived. Project and recovery were not changed; saving can be retried.</string>
     <string name="checkpoint_no_repair">No damaged checkpoint record needs repair.</string>
+    <string name="color_grade_export_pending">This project contains color grades. Graded video export is not enabled yet; export was stopped to avoid losing the look.</string>
+    <string name="color_grade_preview_pending">Clip has a color grade. Preview currently shows the ungraded source; graded preview integration is pending.</string>
 </resources>

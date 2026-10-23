@@ -21,13 +21,13 @@ struct Project final {
 };
 
 // Versioned, little-endian binary project format. v0 is read-only and migrates
-// missing track mute/lock fields to false; writes always emit the current schema.
+// missing track mute/lock fields to false; v0/v1 clips migrate to neutral grades; writes always emit the current schema.
 class UnsupportedProjectVersion final : public std::runtime_error {
 public: using std::runtime_error::runtime_error;
 };
 class ProjectCodec final {
 public:
-    static constexpr unsigned current_version = 1;
+    static constexpr unsigned current_version = 2;
     static void write(const Project& project, std::ostream& output);
     [[nodiscard]] static Project read(std::istream& input);
 };
@@ -53,7 +53,7 @@ struct CheckpointReceipt final {
     std::string project_id;
 };
 // Caller owns the writer lease. Receipt is diagnostic state, never permission to
-// delete/promote recovery automatically. Main document and autosave remain schema v1.
+// delete/promote recovery automatically. Main document and autosave use the current project schema.
 class CheckpointJournal final {
 public:
     static std::filesystem::path path_for(const std::filesystem::path& primary);

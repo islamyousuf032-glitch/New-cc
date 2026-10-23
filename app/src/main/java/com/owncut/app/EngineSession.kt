@@ -45,12 +45,37 @@ internal class EngineSession : AutoCloseable {
 
     private fun parseClips(array: JSONArray): List<ClipSnapshot> = List(array.length()) { index ->
         val clip = array.getJSONObject(index)
+        val grade = clip.getJSONObject("grade")
+        val values = grade.getJSONArray("parameters")
         ClipSnapshot(clip.getString("id"), clip.getString("trackId"), clip.getString("mediaId"),
             clip.getLong("startFrame"), clip.getLong("durationFrames"),
-            clip.getLong("sourceInMs"), clip.getLong("sourceOutMs"))
+            clip.getLong("sourceInMs"), clip.getLong("sourceOutMs"),
+            ColorGrade.fromParametersV1(DoubleArray(values.length()) { values.getDouble(it) },grade.getBoolean("enabled")),
+            clip.getBoolean("gradeActive"))
     }
     private external fun nativeGetRevision(handle: Long): String
     private external fun nativeGetClipPage(handle: Long, offset: Int, limit: Int, expectedRevision: String?): String
+
+    @Synchronized
+    fun setClipGrades(clipIds: List<String>, grade: ColorGrade) {
+        check(handle != 0L) { AppLanguage.text(R.string.message_bf5f0d21b6) }
+        nativeSetClipGrades(handle,clipIds.toTypedArray(),grade.parametersV1(),grade.enabled)
+    }
+    @Synchronized
+    fun resetClipGrades(clipIds: List<String>) = setClipGrades(clipIds,ColorGrade())
+    @Synchronized
+    fun setClipGradeEnabled(clipId: String, enabled: Boolean) {
+        val grade = clips().firstOrNull { it.id == clipId }?.grade
+            ?: error(AppLanguage.text(R.string.message_3d1d8c290a))
+        setClipGrades(listOf(clipId),grade.copy(enabled=enabled))
+    }
+    @Synchronized
+    fun copyClipGrade(sourceId: String, targetIds: List<String>) {
+        val grade = clips().firstOrNull { it.id == sourceId }?.grade
+            ?: error(AppLanguage.text(R.string.message_3d1d8c290a))
+        setClipGrades(targetIds,grade)
+    }
+    private external fun nativeSetClipGrades(handle: Long, targets: Array<String>, parameters: DoubleArray, enabled: Boolean)
 
     @Synchronized
     fun mediaAssets(): List<MediaAssetSummary> {

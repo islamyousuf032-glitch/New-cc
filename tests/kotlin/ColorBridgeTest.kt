@@ -23,6 +23,7 @@ fun main() {
         gamma=ColorChannels(0.8,1.1,1.3),gain=ColorChannels(0.8,1.2,1.4))
     check(distinct.parametersV1().contentEquals(doubleArrayOf(0.75,1.5,0.8,0.22,0.6,
         0.1,0.2,0.3,0.01,0.02,0.03,0.8,1.1,1.3,0.8,1.2,1.4)))
+    check(ColorGrade.fromParametersV1(distinct.parametersV1(),distinct.enabled)==distinct)
     ColorEngine.renderRgba8(source,out,2,1,8,8,distinct)
     check(out.get(3).toInt()==37 && out.get(7).toInt()==0 && bytes(source)==original)
     val before=bytes(out)

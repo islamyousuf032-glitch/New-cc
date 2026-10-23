@@ -9,6 +9,8 @@
 #include <iterator>
 #include <limits>
 #include <ostream>
+#include <sstream>
+#include <array>
 #include <stdexcept>
 #include <string_view>
 #include <system_error>
@@ -120,22 +122,22 @@ void require_no_trailing_data(std::istream& in) {
     if (in.bad()) throw std::runtime_error("failed reading project data");
 }
 
-void reject_future_recovery(const std::filesystem::path& path) {
+void reject_future_document(const std::filesystem::path& path) {
     if (std::filesystem::exists(path)) {
-        if(!std::filesystem::is_regular_file(path)) throw std::runtime_error("autosave is not a regular file");
+        if(!std::filesystem::is_regular_file(path)) throw std::filesystem::filesystem_error("project target is not a regular file",path,std::make_error_code(std::errc::invalid_argument));
         std::ifstream input(path,std::ios::binary);
-        if(!input) throw std::runtime_error("could not inspect existing autosave");
+        if(!input) throw std::runtime_error("could not inspect existing project document");
         char magic[8]{}; input.read(magic,8);
-        if(input.bad()) throw std::runtime_error("I/O error inspecting autosave");
+        if(input.bad()) throw std::runtime_error("I/O error inspecting project document");
         if(input && std::string_view(magic,8) == std::string_view(kMagic,8)) {
             // Do not destroy a future client's only draft. Truncated/ordinary corrupt
-            // v0/v1 recovery retains existing replacement behavior.
+            // supported-version recovery retains existing replacement behavior.
             char version_bytes[4]{}; input.read(version_bytes,4);
-            if(input.bad()) throw std::runtime_error("I/O error inspecting autosave version");
+            if(input.bad()) throw std::runtime_error("I/O error inspecting project document version");
             if(input) {
                 std::uint32_t version=0;
                 for(unsigned i=0;i<4;++i) version |= static_cast<std::uint32_t>(static_cast<unsigned char>(version_bytes[i])) << (8*i);
-                if(version > ProjectCodec::current_version) throw UnsupportedProjectVersion("existing recovery belongs to a newer editor; original was kept");
+                if(version > ProjectCodec::current_version) throw UnsupportedProjectVersion("existing document belongs to a newer editor; original was kept");
             }
         }
     }
@@ -217,6 +219,7 @@ void ProjectCodec::write(const Project& project, std::ostream& output) {
             write_timestamp(output, clip.timeline_start);
             write_timestamp(output, clip.source_in);
             write_timestamp(output, clip.source_out);
+            color::PresetCodec::write(clip.grade,output);
         }
     }
     if (!output) throw std::runtime_error("failed writing project data");
@@ -231,7 +234,7 @@ Project ProjectCodec::read(std::istream& input) {
 
     const auto version = read_u32(input);
     if (version > current_version) throw UnsupportedProjectVersion("project schema version is newer than this editor");
-    if (version != 0 && version != current_version) throw std::runtime_error("unsupported project schema version");
+    // v0/v1 are supported migration inputs; current v2 adds per-clip grading.
 
     auto id = read_string(input);
     auto name = read_string(input);
@@ -263,6 +266,13 @@ Project ProjectCodec::read(std::istream& input) {
 
         for (std::uint32_t clip_index = 0; clip_index < clip_count; ++clip_index) {
             Clip clip{read_string(input), read_string(input), read_timestamp(input), read_timestamp(input), read_timestamp(input)};
+            if (version >= 2) {
+                std::array<char,color::PresetCodec::encoded_size> data{};
+                input.read(data.data(),static_cast<std::streamsize>(data.size()));
+                if (!input) throw std::runtime_error("truncated project clip grade");
+                std::istringstream preset(std::string(data.data(),data.size()),std::ios::binary);
+                clip.grade = color::PresetCodec::read(preset);
+            }
             project.timeline.add_clip(track_id, std::move(clip));
         }
         project.timeline.set_track_state(track_id, muted != 0, locked != 0);
@@ -302,6 +312,7 @@ void AtomicFileStore::write(const std::filesystem::path& path,
 }
 
 void ProjectStore::save_atomic(const std::filesystem::path& path, const Project& project) {
+    reject_future_document(path);
     AtomicFileStore::write(path, [&](std::ostream& output) { ProjectCodec::write(project, output); });
 }
 
@@ -320,8 +331,9 @@ std::filesystem::path ProjectStore::autosave_path_for(const std::filesystem::pat
 }
 
 void ProjectStore::save_autosave(const std::filesystem::path& project_path, const Project& project) {
+    reject_future_document(project_path);
     const auto path=autosave_path_for(project_path);
-    reject_future_recovery(path);
+    reject_future_document(path);
     save_atomic(path, project);
 }
 
@@ -335,9 +347,10 @@ std::optional<Project> ProjectStore::load_autosave(const std::filesystem::path& 
 }
 
 void ProjectStore::clear_autosave(const std::filesystem::path& project_path) {
+    reject_future_document(project_path);
     (void)CheckpointJournal::inspect(project_path); // never discard an unknown future transaction's draft
     const auto autosave = autosave_path_for(project_path);
-    reject_future_recovery(autosave);
+    reject_future_document(autosave);
     std::error_code error;
     const bool removed = std::filesystem::remove(autosave, error);
     if (error) throw std::filesystem::filesystem_error("could not remove autosave", autosave, error);
@@ -400,6 +413,7 @@ std::optional<std::filesystem::path> CheckpointJournal::archive_corrupt(const st
 void CheckpointJournal::commit(const std::filesystem::path& primary, const Project& project,
                                std::uint64_t session_revision,
                                const std::function<void(CheckpointStep)>& after_step) {
+    reject_future_document(primary);
     auto notify = [&](CheckpointStep step) { if (after_step) after_step(step); };
     // Unknown future metadata must be refused before touching its recovery payload.
     std::optional<CheckpointReceipt> previous;

@@ -31,6 +31,7 @@ internal object TimelineRemuxExporter {
     )
 
     fun makePlan(clips: List<ClipSnapshot>): Plan {
+        require(clips.none { it.gradeActive }) { AppLanguage.text(R.string.color_grade_export_pending) }
         require(clips.isNotEmpty()) { AppLanguage.text(R.string.message_3df8193901) }
         val ordered = clips.sortedBy { it.startFrame }
         val track = ordered.first().trackId
@@ -71,6 +72,7 @@ internal object TimelineRemuxExporter {
         cancelled: AtomicBoolean,
         progress: (String) -> Unit,
     ) {
+        require(plan.clips.none { it.gradeActive }) { AppLanguage.text(R.string.color_grade_export_pending) }
         val firstMediaId = plan.clips.first().mediaId
         val probe = newExtractor(context, Uri.parse(firstMediaId))
         val tracksByMediaId = linkedMapOf<String, Tracks>()

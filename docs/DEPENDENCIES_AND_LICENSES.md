@@ -1,5 +1,13 @@
 # Dependencies and licensing
 
+## Phase 1B dependency impact (2026-10-23)
+
+No new dependency/tool version. Native grade history and v2 payloads reuse the original
+C++ module and standard library; Kotlin uses the existing immutable settings/JNI layer.
+No proprietary assets, presets or source imported. Existing optional host JVM/Kotlin
+compiler tooling/notices are reused, not redistributed. Full Android dependency/ABI
+resolution for this batch has not been run; pinned versions remain unchanged.
+
 ## Color phase 1A dependency review (2026-10-23)
 
 No new runtime/library dependency. The original C++20 grading module uses standard

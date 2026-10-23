@@ -146,7 +146,7 @@ void future_drafts_and_receipts_are_not_overwritten() {
     fails([&]{ session.autosave(path); });
     check(bytes(recovery) == old_bytes);
     std::filesystem::remove(CheckpointJournal::path_for(path));
-    auto future=old_bytes; future[8]=2; put(recovery,future);
+    auto future=old_bytes; future[8]=static_cast<char>(ProjectCodec::current_version+1); put(recovery,future);
     fails([&]{ ProjectStore::save_autosave(path,project); });
     fails([&]{ ProjectStore::clear_autosave(path); });
     fails([&]{ CheckpointJournal::commit(path,project,2); });

@@ -16,6 +16,7 @@ import uuid
 BINDINGS = {
     'nativeCreate': '(Ljava/lang/String;)J',
     'nativeGetStatus': '(J)Ljava/lang/String;',
+    'nativeSetClipGrades': '(J[Ljava/lang/String;[DZ)V',
     'nativeGetRevision': '(J)Ljava/lang/String;',
     'nativeGetClipPage': '(JIILjava/lang/String;)Ljava/lang/String;',
     'nativeGetTimelineSnapshot': '(J)Ljava/lang/String;',
@@ -97,6 +98,25 @@ def main():
                 check(len(assets) == 1 and assets[0]['mediaId'] == uri and len(assets[0]['clipIds']) == 2)
                 check(assets[0]['requiredSourceEndMs'] == 4000)
                 check(json.loads(engine.nativeGetTimelineSnapshot(second))['clips'] == [])
+                grade_values = [0.12345678901234567,1.4,0.8,0.18,0.7,0.1,-0.2,0.3,0.01,-0.02,0.03,0.8,1.2,1.5,1.1,0.9,1.3]
+                def set_grade(targets, values=grade_values, enabled=True):
+                    engine.nativeSetClipGrades(first,jpype.JArray(jpype.JString)(targets),jpype.JArray(jpype.JDouble)(values),enabled)
+                def snapshots(handle=first): return json.loads(engine.nativeGetTimelineSnapshot(handle))['clips']
+                set_grade([clip])
+                check(snapshots()[0]['grade']['parameters'] == grade_values and snapshots()[0]['gradeActive'])
+                check(not snapshots()[1]['gradeActive'])
+                immutable = snapshots()
+                set_grade([clip,'right-🎬'], enabled=False)
+                check(not snapshots()[0]['gradeActive'] and not snapshots()[1]['grade']['enabled'])
+                check(engine.nativeUndo(first) and snapshots() == immutable)
+                revision_before=engine.nativeGetRevision(first)
+                failure(lambda: set_grade([clip,'missing']))
+                failure(lambda: set_grade([clip,clip]))
+                failure(lambda: set_grade([clip],grade_values[:-1]))
+                failure(lambda: set_grade([clip],[float('nan')]+grade_values[1:]))
+                check(engine.nativeGetRevision(first) == revision_before and snapshots() == immutable)
+                check(engine.nativeRedo(first) and not snapshots()[0]['grade']['enabled'])
+                check(engine.nativeUndo(first))
                 primary = root/'বাংলা🎬.owncut'
                 engine.nativeCheckpointProject(first, str(primary))
                 check((root/'বাংলা🎬.owncut.checkpoint').read_bytes()[28] == 2)
@@ -104,6 +124,7 @@ def main():
                 length = struct.unpack_from('<I', primary.read_bytes(), 12)[0]
                 check(primary.read_bytes()[16:16+length].decode() == ids[0])
                 engine.nativeLoadProject(second, str(primary))
+                check(snapshots(second)[0]["grade"]["parameters"] == grade_values)
                 engine.nativeRelinkClipMedia(second, clip, 'content://new/🎬')
                 check(engine.nativeUndo(second)); check(engine.nativeRedo(second))
                 failure(lambda: engine.nativeAddMediaClip(second, 'nul\0source', 1000))

@@ -1,5 +1,18 @@
 # Build and test
 
+## Phase 1B checks (2026-10-23)
+
+Make/CTest now have **five** suites; owncut_grade_project_tests covers grade history,
+edit inheritance, v0/v1 fixtures/v2 codec, corrupt/future refusal, snapshots and six
+checkpoint boundaries. CMake Release/CTest 5/5 and grade/project ASan+UBSan passed.
+Host JNI fixtures now exercise nativeSetClipGrades, full-precision grade snapshots,
+undo/redo/bypass, invalid batches and persisted reload under -Xcheck:jni. Production
+pure Kotlin cache tests additionally compile ColorEngine.kt for immutable DTO types.
+No synthetic Android stubs/full app compilation are implied. ClipGradePersistenceTest
+adds managed-grade recovery and export refusal assertions for an Android runner; unrun.
+Existing host JNI/Kotlin build commands remain applicable. Export guard behavior in the
+Android codec adapter is source/instrumentation-test coverage only, not a passed device test.
+
 ## Color phase 1A checks (2026-10-23)
 
 `make test` now runs **four** suites; CTest includes owncut_color_tests. The color suite

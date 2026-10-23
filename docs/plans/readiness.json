@@ -85,7 +85,7 @@
       "id": "color",
       "weight": 8,
       "status": "in_progress",
-      "evidence": "User-prioritized phase 1A: native SDR grading/RGBA8/histogram/preset and narrow color JNI implemented; four native suites, sanitizers and production Kotlin→JNI→C++ host pixel tests pass. Per-clip/history persistence, live color-managed preview/export, controls/scopes/curves/LUT and Android acceptance pending. ADR 0016; no new verified credit."
+      "evidence": "Phase 1A processor and phase 1B per-clip native history/v2 persistence/v0-v1 migration/immutable grade snapshots implemented; five native suites, sanitizer and real JVM/Kotlin host tests pass. Android acceptance, live color-managed preview/export, controls/scopes/curves/LUT remain pending; active-grade export refuses to prevent silent loss. ADRs 0016/0017; no new verified color credit."
     },
     {
       "id": "audio",

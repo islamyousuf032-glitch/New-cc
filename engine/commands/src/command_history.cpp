@@ -1,6 +1,7 @@
 #include "editor/command_history.hpp"
 
 #include <stdexcept>
+#include <set>
 #include <utility>
 
 namespace editor {
@@ -151,6 +152,35 @@ void RippleDeleteClipCommand::apply(Timeline& timeline) {
 void RippleDeleteClipCommand::undo(Timeline& timeline) {
     if (!captured_ || !applied_) throw std::logic_error("ripple delete command is not applied");
     timeline.restore_ripple_delete(result_);
+    applied_ = false;
+}
+
+SetClipGradesCommand::SetClipGradesCommand(std::vector<std::string> ids, color::Grade grade)
+    : ids_(std::move(ids)), grade_(std::move(grade)) {
+    color::validate(grade_);
+    if (ids_.empty()) throw std::invalid_argument("grade command requires target clips");
+    std::set<std::string> unique;
+    for (const auto& id : ids_) if (id.empty() || !unique.insert(id).second)
+        throw std::invalid_argument("grade command requires unique nonempty clip ids");
+}
+void SetClipGradesCommand::apply(Timeline& timeline) {
+    if (applied_) throw std::logic_error("grade command is already applied");
+    auto updated = timeline;
+    std::vector<color::Grade> before;
+    if (!captured_) before.reserve(ids_.size());
+    for (const auto& id : ids_) {
+        if (!captured_) before.push_back(updated.locate_clip(id).clip.grade);
+        updated.set_clip_grade(id,grade_);
+    }
+    if (!captured_) { before_ = std::move(before); captured_ = true; }
+    timeline = std::move(updated); // publish only after every target succeeds
+    applied_ = true;
+}
+void SetClipGradesCommand::undo(Timeline& timeline) {
+    if (!applied_) throw std::logic_error("grade command is not applied");
+    auto updated = timeline;
+    for (std::size_t i=0;i<ids_.size();++i) updated.set_clip_grade(ids_[i],before_[i]);
+    timeline = std::move(updated);
     applied_ = false;
 }
 

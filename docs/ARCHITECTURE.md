@@ -1,5 +1,15 @@
 # Architecture index and execution history
 
+## Phase 1B data/history implementation (2026-10-23)
+
+Clip owns color::Grade; C++ SetClipGradesCommand publishes grouped edits atomically and
+captures old grade values for undo. Split/trim/relink/reorder/delete reuse clip values;
+no URI-keyed grading map. ProjectCodec v2 embeds bounded grade payloads, migrating v0/v1
+to neutral. Native revision pages expose exact settings and effective activity; Kotlin
+snapshots/settings are immutable transports. Existing managed checkpoint/recovery paths
+use the updated codec. See ADR 0017 for format and failure contracts. Preview/export
+processing is still absent; active grades block export and preview copy warns clearly.
+
 ## Active implementation sequence: color first (2026-10-23)
 
 Per user direction/ADR 0016, IMPLEMENTATION_PHASES_BN is the active phase order. First

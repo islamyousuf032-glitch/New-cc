@@ -1,5 +1,14 @@
 # Roadmap and acceptance gates
 
+## Phase 1B checkpoint (2026-10-23)
+
+Native clip-owned grades, grouped history, v2 persistence/v0-v1 migration and grade-aware
+immutable snapshots are implemented and host-tested. Android managed-grade tests are
+written, not compiled/executed. Next is **phase 1C shared color-managed preview/export**,
+then live controls/scopes; do not count blocked grade export as a delivered effect.
+Verified credit remains 25/75. ADR 0017 defines backward-reading compatibility and the
+explicit no-silent-drop export guard until rendering integration is verified.
+
 ## User-prioritized sequence — color first (2026-10-23)
 
 Canonical remaining-work breakdown: [বাংলা implementation phases](IMPLEMENTATION_PHASES_BN.md),

@@ -278,4 +278,6 @@
     <string name="checkpoint_repair_accept">নষ্ট রেকর্ড archive করুন</string>
     <string name="checkpoint_repaired">নষ্ট চেকপয়েন্ট রেকর্ড archive হয়েছে। Project ও recovery বদলায়নি; আবার সেভ করা যাবে।</string>
     <string name="checkpoint_no_repair">মেরামতের প্রয়োজন এমন নষ্ট চেকপয়েন্ট রেকর্ড নেই।</string>
+    <string name="color_grade_export_pending">এই প্রজেক্টে কালার গ্রেড আছে। গ্রেডসহ ভিডিও এক্সপোর্ট এখনো চালু হয়নি; লুক হারানো ঠেকাতে এক্সপোর্ট বন্ধ রাখা হয়েছে।</string>
+    <string name="color_grade_preview_pending">এই ক্লিপে কালার গ্রেড আছে। প্রিভিউ এখন মূল আনগ্রেডেড ভিডিও দেখাচ্ছে; গ্রেডেড প্রিভিউ সংযোগের কাজ বাকি।</string>
 </resources>

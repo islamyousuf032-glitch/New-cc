@@ -309,13 +309,13 @@ int main() {
     check(migrated.timeline.tracks()[0].clips[0].media_id == "content://media/item/1");
     std::ostringstream migrated_output(std::ios::out | std::ios::binary);
     ProjectCodec::write(migrated, migrated_output);
-    check(migrated_output.str().substr(8, 4) == std::string("\x01\0\0\0", 4));
+    check(migrated_output.str().substr(8, 4) == std::string("\x02\0\0\0", 4));
 
     auto truncated = bytes;
     truncated.pop_back();
     expect_failure([&] { std::istringstream input(truncated, std::ios::in | std::ios::binary); (void)ProjectCodec::read(input); });
     auto future = bytes;
-    future[8] = 2;
+    future[8] = static_cast<char>(ProjectCodec::current_version + 1);
     expect_failure([&] { std::istringstream input(future, std::ios::in | std::ios::binary); (void)ProjectCodec::read(input); });
     auto trailing = bytes + "x";
     expect_failure([&] { std::istringstream input(trailing, std::ios::in | std::ios::binary); (void)ProjectCodec::read(input); });

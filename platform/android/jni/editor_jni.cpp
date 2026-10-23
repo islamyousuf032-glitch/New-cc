@@ -114,7 +114,20 @@ void append_clip(std::string& output, const ClipLocation& location) {
     output += ",\"startFrame\":" + std::to_string(start);
     output += ",\"durationFrames\":" + std::to_string(duration);
     output += ",\"sourceInMs\":" + std::to_string(source_in_ms);
-    output += ",\"sourceOutMs\":" + std::to_string(source_out_ms) + "}";
+    output += ",\"sourceOutMs\":" + std::to_string(source_out_ms);
+    output += ",\"gradeActive\":" + std::string(color::Pipeline(clip.grade).identity() ? "false" : "true");
+    output += ",\"grade\":{\"enabled\":" + std::string(clip.grade.enabled ? "true" : "false") + ",\"parameters\":[";
+    bool first = true;
+    for (const auto value : color::parameters(clip.grade)) {
+        if (!first) output.push_back(',');
+        first = false;
+        char number[64];
+        const auto result = std::to_chars(number,number+sizeof(number),value,std::chars_format::general,
+                                          std::numeric_limits<double>::max_digits10);
+        if (result.ec != std::errc{}) throw std::runtime_error("could not serialize clip grade");
+        output.append(number,result.ptr);
+    }
+    output += "]}}";
 }
 
 std::string make_timeline_snapshot(const EngineSession& session) {
@@ -431,4 +444,29 @@ Java_com_owncut_app_EngineSession_nativeGetClipPage(JNIEnv* env, jobject, jlong 
         json += "]}";
         return to_java(env,json);
     } catch (const std::exception& error) { throw_java_argument(env,error.what()); return nullptr; }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_owncut_app_EngineSession_nativeSetClipGrades(JNIEnv* env, jobject, jlong handle,
+                                                     jobjectArray targets, jdoubleArray values, jboolean enabled) {
+    try {
+        auto session = require_session(handle);
+        if (!targets || !values || env->GetArrayLength(values) != static_cast<jsize>(color::parameter_count))
+            throw std::invalid_argument("grade command requires targets and 17 parameters");
+        const auto count = env->GetArrayLength(targets);
+        if (count <= 0 || count > 8192) throw std::invalid_argument("invalid grade target count");
+        color::ParameterBlock parameters;
+        env->GetDoubleArrayRegion(values,0,static_cast<jsize>(parameters.size()),parameters.data());
+        if (env->ExceptionCheck()) return;
+        std::vector<std::string> ids;
+        ids.reserve(static_cast<std::size_t>(count));
+        for (jsize i=0;i<count;++i) {
+            auto value = static_cast<jstring>(env->GetObjectArrayElement(targets,i));
+            if (env->ExceptionCheck()) return;
+            try { ids.push_back(from_java(env,value)); }
+            catch (...) { if (value) env->DeleteLocalRef(value); throw; }
+            if (value) env->DeleteLocalRef(value);
+        }
+        session->execute(std::make_unique<SetClipGradesCommand>(std::move(ids),color::from_parameters(parameters,enabled != JNI_FALSE)));
+    } catch (const std::exception& error) { throw_java_argument(env,error.what()); }
 }

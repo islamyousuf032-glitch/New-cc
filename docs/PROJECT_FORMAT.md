@@ -1,8 +1,25 @@
 # Project format and persistence checkpoint
 
+## Current schema v2 — per-clip grading (2026-10-23)
+
+Writer always emits **v2**. Reader supports **v0/v1/v2**; v0/v1 clips receive default
+neutral grades without timing/identity/media changes. v2 keeps the v1 layout and appends
+**149 bytes** of OWNCUTCG v1 immediately after each clip's source_out timestamp:
+8-byte magic, uint32 LE version 1, enabled byte 0/1, 17 binary64 LE parameters in
+COLOR_PIPELINE order. No length field, sidecar or extra grade IDs. All clips carry a
+payload, including neutral audio clips; nondefault audio grades are rejected. Inner
+format changes require an outer schema bump. Limits remain 4096 tracks/8192 clips;
+new per-clip overhead is 149 bytes (~1.17 MiB at the clip limit).
+
+Old v1-only apps cannot read v2; no downgrade/grade stripping is performed. Current
+save/autosave/checkpoint/clear refuse recognized future primary versions, and future
+recovery/receipt protections remain. Checkpoint receipt and Android catalog stay v1.
+Grade values persist, not the session undo stack. See ADR 0017. Earlier sections below
+record prior checkpoints, not an assertion the writer still emits v1.
+
 ## Diagnostic checkpoint sidecar (2026-10-23)
 
-Project and autosave payloads stay schema v1. `<primary>.checkpoint` is a separate,
+At that earlier checkpoint project/autosave payloads stayed schema v1; current writes use v2. `<primary>.checkpoint` is a separate,
 bounded (4160 bytes) `OWNCUTCK` v1 diagnostic receipt with generation, session revision,
 prepared/committed/clean phase and project ID. It is not a project schema bump, undo
 journal, integrity checksum or automatic recovery authority. The primary and recovery
@@ -17,12 +34,13 @@ The portable C++ project codec is wired to app-private filesystem paths for back
 
 ## Current binary schema
 
-All integers are fixed-width little-endian. Signed timestamps use their two's-complement 64-bit bit pattern. Text fields are length-prefixed with an unsigned 32-bit byte length; strings must be valid UTF-8 without NUL bytes and are capped at 4096 bytes. Maximum accepted project data is bounded by 4096 tracks, 8192 clips total, and these per-field caps (worst-case under roughly 85 MB). Parsing also validates enum values, booleans, rational timebases, IDs, source ranges, timestamp limits, schema version, truncation, and trailing bytes.
+All integers are fixed-width little-endian. Signed timestamps use their two's-complement 64-bit bit pattern. Text fields are length-prefixed with an unsigned 32-bit byte length; strings must be valid UTF-8 without NUL bytes and are capped at 4096 bytes. Maximum accepted project data is bounded by 4096 tracks, 8192 clips total, and these per-field caps (worst-case under roughly 86 MB (~82 MiB) in v2). Parsing also validates enum values, booleans, rational timebases, IDs, source ranges, timestamp limits, schema version, truncation, and trailing bytes.
 
 Header: eight bytes `OWNCUTPJ`, then a 32-bit schema version.
 
 - **v0 legacy read-only**: project ID, project name, frame timebase numerator/denominator; track count; for each track: ID, kind, clip count; each clip has ID, media reference, timeline start, source in, and source out timestamps. v0 has no mute/lock fields; migration defaults both to `false`.
-- **v1 current**: same layout, but each track additionally stores one-byte muted and locked flags after kind. Writer always emits v1. Reader rejects unknown future versions without modifying the source file.
+- **v1 legacy read-only**: same layout, with one-byte muted and locked flags after track kind. Clips migrate to neutral grades.
+- **v2 current**: v1 layout plus the fixed 149-byte grade payload after each clip source_out. Writer emits v2; unknown future versions are refused without changing the source.
 
 Each timestamp stores signed 64-bit ticks and its own positive rational timebase. Timeline start is normalized to the project's frame timebase through the existing timestamp conversion rules; source in/out timebases remain explicit.
 

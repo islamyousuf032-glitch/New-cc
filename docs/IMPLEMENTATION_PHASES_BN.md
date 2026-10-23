@@ -30,16 +30,20 @@ controller-first কাজের ক্রম বদলায়; reliability ও c
 - [x] Production Kotlin → JNI → C++ pixel test, native unit tests ও sanitizer।
 
 **সীমা:** এটি CPU reference/frame processor। এখনো live preview, video export,
-project document বা undo stack-এ grade সংযুক্ত নয়। RGB balance calibrated Kelvin/tint
+project document বা undo stack-এ তখন grade সংযুক্ত ছিল না; ১B-তে native সংযোগ হয়েছে। RGB balance calibrated Kelvin/tint
 নয়। Histogram পূর্ণ waveform/vectorscope নয়। HDR/YUV/premultiplied bitmap input নয়।
 
-### ১B — Project, clip এবং history সংযোগ: পরের কাজ
+### ১B — Project, clip এবং history সংযোগ: বাস্তবায়িত, host-tested; Android acceptance বাকি
 
-- [ ] Stable clip ID-তে grade সংযুক্ত করা; future graph Color node-ও একই engine ব্যবহার করবে।
-- [ ] Grade edit/reset/bypass/copy/paste-এর native command ও undo/redo।
-- [ ] Versioned project persistence ও migration; পুরোনো project-এর neutral grade default।
-- [ ] Checkpoint/recovery, relink/reorder/split/delete ও independent projects-এর সঙ্গে পরীক্ষা।
-- [ ] Preview/export worker-কে immutable grade snapshot দেওয়া; মাঝপথে বদলে যাওয়া নয়।
+- [x] Stable clip ID-তে grade সংযুক্ত করা; future graph Color node-ও একই engine ব্যবহার করবে।
+- [x] Grade edit/reset/bypass/copy/paste-এর native command ও undo/redo।
+- [x] Versioned project persistence ও migration; পুরোনো project-এর neutral grade default।
+- [x] Checkpoint/recovery, relink/reorder/split/delete ও independent projects-এর সঙ্গে পরীক্ষা।
+- [x] Preview/export-এর জন্য immutable grade snapshot DTO/API প্রস্তুত; actual grading consumption ১C-তে।
+
+**সীমা:** নতুন save schema v2; পুরোনো app v2 খুলতে পারবে না। Undo stack session-local;
+grade values ফাইলে থাকে। Internal API আছে, live controls নয়। Active grade export এখন
+refuse করে, preview স্পষ্টভাবে ungraded বলে; Android পরীক্ষা ও ১C integration বাকি।
 
 ### ১C — Color-managed preview ও export
 

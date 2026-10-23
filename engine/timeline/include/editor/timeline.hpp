@@ -1,6 +1,7 @@
 #pragma once
 
 #include "editor/time.hpp"
+#include "editor/color.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -18,6 +19,7 @@ struct Clip final {
     Timestamp timeline_start;
     Timestamp source_in;
     Timestamp source_out; // exclusive
+    color::Grade grade{}; // value-owned by stable clip identity, never by media URI
 };
 
 struct Track final {
@@ -53,6 +55,7 @@ public:
     void add_clip(const std::string& track_id, Clip clip);
     [[nodiscard]] ClipLocation remove_clip(const std::string& clip_id);
     void replace_clip(const Clip& replacement);
+    void set_clip_grade(const std::string& clip_id, const color::Grade& grade);
     [[nodiscard]] std::vector<std::string> clips_referencing_media(const std::string& media_id) const;
     void relink_media_references(const std::vector<std::string>& clip_ids,
                                  const std::string& expected_media_id,

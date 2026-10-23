@@ -31,6 +31,7 @@ internal object TimelineRenderExporter {
     const val OUTPUT_HEIGHT = 720
 
     internal fun composition(plan: TimelineRemuxExporter.Plan): Composition {
+        require(plan.clips.none { it.gradeActive }) { AppLanguage.text(R.string.color_grade_export_pending) }
         val items = plan.clips.map { clip ->
             val media = MediaItem.Builder()
                 .setUri(clip.mediaId)

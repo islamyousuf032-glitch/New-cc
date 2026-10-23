@@ -1,5 +1,14 @@
 # Device test matrix
 
+## Phase 1B handoff (2026-10-23; no new device result)
+
+ClipGradePersistenceTest adds internal API/storage contract cases: managed save/reopen,
+recovery, independent/shared-source clip grades, copy/reset/bypass, split/history and
+active-grade export refusal. Full Android compilation/execution remain pending. There
+are no live Color controls to phone-test yet. Older apps cannot read new v2 project
+files; never uninstall/clear data as a migration workaround. Phase 1C must validate
+actual graded preview/export before the guard is removed. Phone tests remain user-owned.
+
 ## Color phase 1A — host-only evidence (2026-10-23)
 
 No Android/phone/GPU/encoded-video grade result. ColorEngineContractTest adds ART/ABI
