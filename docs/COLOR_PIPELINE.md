@@ -1,5 +1,22 @@
 # Color grading reference pipeline v1
 
+## Source admission and shared plan (2026-10-23; candidate)
+
+C++ now admits only explicit Rec709/SDR-video/full-or-limited with no HDR-static metadata;
+unknown/sRGB/PQ/HLG/other tags refuse. Platform code maps constants into canonical JNI
+codes, never guesses transfer from resolution or Media3 defaults. Worker VideoSourceProbe
+reads raw local-file/content formats, requires one video track and releases in finally.
+Blocking provider calls are not interruptible; cancellation is checked around them.
+
+ColorRenderPlan snapshots native grade values and recipes with detached source metadata;
+per-request URI dedup only, immutable publication/no partial plan. Candidate composition
+places grade per clip before global720p Presentation and binds an explicit processor
+factory. No per-frame JNI. Current preview/export do not call it; guards remain. Future
+live decoder must revalidate format and handle source changes; metadata is not byte
+identity/calibration/codec proof. ColorInfo-only overload is synthetic adapter helper,
+not proof raw tags were present. Native/JNI/pure-Kotlin tests pass; Android unrun (ADR0019).
+
+
 ## Phase 1C shared GPU foundation (2026-10-23; unconnected candidate)
 
 The original sRGB CPU RGBA8 contract below is unchanged. New color_gpu.hpp adds explicit

@@ -32,3 +32,12 @@ if len(sys.argv) == 4:
             str(root/'tests/kotlin/ColorBridgeTest.kt'),'-Werror','-include-runtime','-d',str(jar)],env=env,check=True)
         subprocess.run([str(java_home/'bin/java'),'-Xcheck:jni','--enable-native-access=ALL-UNNAMED',
             '-Djava.library.path='+directory,'-jar',str(jar)],env=env,check=True)
+    with tempfile.TemporaryDirectory(prefix='owncut-color-plan-') as directory:
+        jar = Path(directory)/'color-plan.jar'
+        shutil.copyfile(library,Path(directory)/'libowncut_android.so')
+        subprocess.run(['bash',str(kotlin_home/'bin/kotlinc'),
+            *[str(root/'app/src/main/java/com/owncut/app'/name) for name in
+                ('ColorEngine.kt','TimelineSnapshot.kt','ColorRenderPlan.kt')],
+            str(root/'tests/kotlin/ColorRenderPlanTest.kt'),'-Werror','-include-runtime','-d',str(jar)],env=env,check=True)
+        subprocess.run([str(java_home/'bin/java'),'-Xcheck:jni','--enable-native-access=ALL-UNNAMED',
+            '-Djava.library.path='+directory,'-jar',str(jar)],env=env,check=True)

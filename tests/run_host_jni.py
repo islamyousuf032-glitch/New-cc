@@ -76,7 +76,8 @@ def main():
         color_fixture = root/'com/owncut/app/ColorEngine.class'
         color_fixture.write_bytes(fixture_class('com/owncut/app/ColorEngine', {
             'nativeRenderV1':'(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;IIII[DZ)V',
-            'nativeShaderV1':'([DZIZ)Ljava/lang/String;'}))
+            'nativeShaderV1':'([DZIZ)Ljava/lang/String;',
+            'nativeValidateVideoSourceV1':'(IIIZ)V'}))
         jpype.startJVM(str(java_home/'lib/server/libjvm.so'), '-Xcheck:jni',
                       '--enable-native-access=ALL-UNNAMED', classpath=[str(root)], convertStrings=True)
         try:
@@ -194,6 +195,13 @@ def main():
                 source.position(1); failure(render); source.position(0)
                 dest.limit(4); failure(render); dest.limit(8)
                 check([source.get(i)&255 for i in range(8)] == [128,128,128,37,255,0,0,0])
+                for p in range(-1,4):
+                    for t in range(-1,7):
+                        for r in range(-1,4):
+                            if p==1 and t==1 and r in (1,2): color.nativeValidateVideoSourceV1(p,t,r,False)
+                            else: failure(lambda: color.nativeValidateVideoSourceV1(p,t,r,False))
+                failure(lambda: color.nativeValidateVideoSourceV1(1,1,1,True))
+                print('Production JNI source admission: 200 combinations, only explicit Rec709/SDR/known range admitted')
                 def shader(values=parameters, enabled=True, encoding=0, vertex=False):
                     return color.nativeShaderV1(jpype.JArray(jpype.JDouble)(values),enabled,encoding,vertex)
                 for encoding in range(3):

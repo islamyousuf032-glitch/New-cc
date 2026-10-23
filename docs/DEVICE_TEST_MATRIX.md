@@ -1,5 +1,18 @@
 # Device test matrix
 
+## Phase 1C source/plan continuation (2026-10-23)
+
+- Host source admission/immutable-plan tests passed (6native suites, JNI200 combinations,
+  HDR-static conflict, pure Kotlin/native cancellation/dedup/immutable recipes).
+- ColorSourcePlanTest added: raw MediaFormat/ColorInfo mapping, candidate per-clip effects/
+  clipping and shipping guards. **Android compilation/execution pending**.
+- MediaExtractor provider errors/no-video/multi-video, permission/relink/source replacement,
+  cancellation during provider I/O, decoded-format revalidation, actual candidate encoder,
+  shared preview/seek/release/surface lifecycle and phone/patch acceptance all pending.
+- Previous Android CI39950781623 never started (billing/spending); not a compiler result.
+  No APK; user owns phone tests. Source-only composition is not rendered-video acceptance.
+
+
 ## Phase 1C candidate (2026-10-23) — no Android results yet
 
 - Host native/reference: 6/6, native GPU ASan+UBSan, actual JNI/Kotlin recipes passed.

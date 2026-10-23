@@ -2,7 +2,6 @@ package com.owncut.app
 
 import android.content.Context
 import android.opengl.GLES20
-import androidx.media3.common.C
 import androidx.media3.common.ColorInfo
 import androidx.media3.common.VideoFrameProcessingException
 import androidx.media3.common.util.GlProgram
@@ -23,21 +22,29 @@ import androidx.media3.effect.GlShaderProgram
 internal object GradedFramePipeline {
     data class Prepared(val effect: GlEffect, val factory: DefaultVideoFrameProcessor.Factory)
 
+    /** Synthetic adapter helper; ColorInfo alone does not prove original source tag provenance. */
     fun prepare(clip: ClipSnapshot, sourceColorInfo: ColorInfo?): Prepared {
-        require(sourceColorInfo != null && sourceColorInfo.colorSpace == C.COLOR_SPACE_BT709 &&
-            sourceColorInfo.colorTransfer == C.COLOR_TRANSFER_SDR &&
-            sourceColorInfo.colorRange in listOf(C.COLOR_RANGE_FULL,C.COLOR_RANGE_LIMITED)) {
-            "Native grade requires explicit BT709 SDR source color metadata"
+        ColorEngine.validateVideoSource(VideoSourceProbe.color(sourceColorInfo))
+        return prepareSources(ColorEngine.shaderSources(clip.grade,ColorEngine.TextureEncoding.MEDIA3_SDR_709))
+    }
+
+    fun prepare(clip: ColorRenderPlan.PreparedClip): Prepared = prepareSources(clip.shaders)
+
+    data class PreparedPlan(val effects: List<GlEffect>, val factory: DefaultVideoFrameProcessor.Factory)
+    fun prepare(plan: ColorRenderPlan, checkCancelled: () -> Unit): PreparedPlan {
+        val effects=plan.clips.map { checkCancelled(); effect(it.shaders) }
+        checkCancelled()
+        return PreparedPlan(java.util.Collections.unmodifiableList(effects),processorFactory())
+    }
+
+    private fun processorFactory()=DefaultVideoFrameProcessor.Factory.Builder()
+        .setSdrWorkingColorSpace(DefaultVideoFrameProcessor.WORKING_COLOR_SPACE_DEFAULT).build()
+    private fun prepareSources(sources: ColorEngine.ShaderSources)=Prepared(effect(sources),processorFactory())
+    private fun effect(sources: ColorEngine.ShaderSources): GlEffect = object : GlEffect {
+        override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram {
+            if (useHdr) throw VideoFrameProcessingException("HDR grading is not supported by this SDR adapter")
+            return Program(sources)
         }
-        val sources=ColorEngine.shaderSources(clip.grade,ColorEngine.TextureEncoding.MEDIA3_SDR_709)
-        val factory=DefaultVideoFrameProcessor.Factory.Builder()
-            .setSdrWorkingColorSpace(DefaultVideoFrameProcessor.WORKING_COLOR_SPACE_DEFAULT).build()
-        return Prepared(object : GlEffect {
-            override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram {
-                if (useHdr) throw VideoFrameProcessingException("HDR grading is not supported by this SDR adapter")
-                return Program(sources)
-            }
-        },factory)
     }
 
     private class Program(sources: ColorEngine.ShaderSources) : BaseGlShaderProgram(false,1) {

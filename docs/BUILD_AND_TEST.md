@@ -1,5 +1,21 @@
 # Build and test
 
+## Phase 1C source/plan checks (2026-10-23)
+
+Six Make/Release CTest suites and source/GPU ASan+UBSan pass. Existing full host JNI
+compile command still applies. run_host_jni now tests native source admission across200
+canonical metadata combinations plus HDR-static conflict refusal. Optional third-library
+mode in run_host_kotlin additionally compiles production ColorRenderPlan/ColorEngine/
+TimelineSnapshot with Kotlin2.3.21 -Werror and runs real JNI: immutable grades, dedup,
+metadata/geometry mismatch, cancellation and failure publication tests pass.
+
+ColorSourcePlanTest adds Android raw-tag mapping/candidate effect-clipping/guard checks;
+**uncompiled/unrun**. Platform probe, Media3 candidate/codec and preview integration are
+not covered by pure Kotlin tests. CI39950781623 did not start (billing/spending annotation).
+Prior96-case software GLES result is unchanged prior evidence, not rerun this checkpoint.
+No APK, phone/performance/encoded parity/install-over proof. See ADR0019.
+
+
 ## Phase 1C foundation checks (2026-10-23)
 
 Make six suites and Release CMake/CTest **6/6** passed. New owncut_color_gpu_tests passed

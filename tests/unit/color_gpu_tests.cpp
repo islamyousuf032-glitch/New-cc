@@ -10,6 +10,13 @@ void check(bool b,std::source_location at=std::source_location::current()) {if(!
 template<class F> void fails(F f){bool b=false;try{f();}catch(const std::exception&){b=true;}check(b);}
 struct Comma : std::numpunct<char> { char do_decimal_point() const override{return ',';} };
 void tests() {
+    for (int p=-1;p<=3;++p) for (int t=-1;t<=6;++t) for (int r=-1;r<=3;++r) {
+        const VideoColorMetadata metadata{static_cast<VideoPrimaries>(p),static_cast<VideoTransfer>(t),static_cast<VideoRange>(r)};
+        if(p==1 && t==1 && (r==1 || r==2)) validate_sdr_video_source(metadata);
+        else fails([&]{validate_sdr_video_source(metadata);});
+    }
+
+    fails([]{validate_sdr_video_source({VideoPrimaries::rec709,VideoTransfer::sdr_video,VideoRange::full,true});});
     check(grade_vertex_shader().find("#version 100") == 0);
     const Rgb input{0.5,0.25,0.75};
     for(auto e : {TextureEncoding::srgb,TextureEncoding::linear709,TextureEncoding::media3_sdr709}) {

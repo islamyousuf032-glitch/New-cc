@@ -50,6 +50,13 @@ internal object ColorEngine {
     fun shaderSources(grade: ColorGrade, encoding: TextureEncoding): ShaderSources =
         ShaderSources(nativeShaderV1(grade.parametersV1(),grade.enabled,encoding.nativeCode,true),
             nativeShaderV1(grade.parametersV1(),grade.enabled,encoding.nativeCode,false))
+    enum class VideoPrimaries(val nativeCode: Int) { UNKNOWN(0), REC709(1), OTHER(2) }
+    enum class VideoTransfer(val nativeCode: Int) { UNKNOWN(0), SDR_VIDEO(1), SRGB(2), PQ(3), HLG(4), OTHER(5) }
+    enum class VideoRange(val nativeCode: Int) { UNKNOWN(0), FULL(1), LIMITED(2) }
+    data class VideoColorMetadata(val primaries: VideoPrimaries, val transfer: VideoTransfer, val range: VideoRange, val hasHdrStaticMetadata: Boolean=false)
+    fun validateVideoSource(source: VideoColorMetadata) = nativeValidateVideoSourceV1(
+        source.primaries.nativeCode,source.transfer.nativeCode,source.range.nativeCode,source.hasHdrStaticMetadata)
+    private external fun nativeValidateVideoSourceV1(primaries: Int, transfer: Int, range: Int, hdrStatic: Boolean)
     private external fun nativeShaderV1(parameters: DoubleArray, enabled: Boolean, encoding: Int, vertex: Boolean): String
     private external fun nativeRenderV1(source: ByteBuffer, output: ByteBuffer, width: Int,
         height: Int, sourceStride: Int, outputStride: Int, parameters: DoubleArray, enabled: Boolean)

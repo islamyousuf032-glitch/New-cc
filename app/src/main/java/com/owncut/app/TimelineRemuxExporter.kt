@@ -32,6 +32,13 @@ internal object TimelineRemuxExporter {
 
     fun makePlan(clips: List<ClipSnapshot>): Plan {
         require(clips.none { it.gradeActive }) { AppLanguage.text(R.string.color_grade_export_pending) }
+        return timingPlan(clips)
+    }
+
+    /** Candidate graded composition only; shipping render/remux entry points keep guards. */
+    internal fun candidateGradedTimingPlan(clips: List<ClipSnapshot>): Plan = timingPlan(clips)
+
+    private fun timingPlan(clips: List<ClipSnapshot>): Plan {
         require(clips.isNotEmpty()) { AppLanguage.text(R.string.message_3df8193901) }
         val ordered = clips.sortedBy { it.startFrame }
         val track = ordered.first().trackId

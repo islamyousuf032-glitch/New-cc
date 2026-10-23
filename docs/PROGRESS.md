@@ -1,5 +1,35 @@
 # Progress
 
+## Phase 1C continuation — source boundary and candidate composition (2026-10-23)
+
+Added native source-color admission (explicit Rec709/SDR/known range, no HDR-static
+metadata), canonical JNI codes, raw local-URI MediaExtractor probe with finally-release,
+and immutable request-scoped ColorRenderPlan. Unknown tags never default to sRGB/SDR;
+multi-video-track input refuses. Shared-source clips retain independent grade recipes.
+Cancellation/failure cannot publish a partial plan; no cross-request URI cache.
+
+Candidate source connects probe -> color plan -> per-clip Media3 effects -> composition,
+grade before global720p scaling; one explicit processor factory per plan, builder-binding
+helper, immutable captured clips and existing timing/gap count. It does not start codec/
+write output, is not called by UI/export, and does not replace MediaPlayer preview.
+Current export/remux guard and neutral export behavior stay. ADR0019 records provenance,
+blocking-I/O cancellation limits, no URI byte pinning and required decoder revalidation.
+
+**Passed locally:** Make6, Release CMake/CTest6/6, source/GPU ASan+UBSan, full strict JNI
+build; actual JVM200 metadata combinations and conflicting HDR-static refusal; production
+Kotlin2.3.21 -Werror plan/projection/recipe/pixel tests. Plan tests cover per-clip looks,
+request-local source dedup, immutable output, invalid tags/geometry/identity, cancellation,
+failure without poisoned cache. 281strings/3themes,7metadata/3install-over tests pass.
+Shader math unchanged; previous software GLES96-case result is prior evidence only.
+
+**Not run:** full Android compilation/lint/ART, new ColorSourcePlanTest, real raw-source
+probe/provider lifecycle, candidate Media3 composition/encoder, decoded parity, preview,
+phone or install-over. Prior CI39950781623 annotation confirms job did not start due to
+billing/spending limit; not an app build failure/pass. No new APK. Next: Android build,
+actual decoder-format verification and shared preview/render lifecycle integration.
+Phase1C is still incomplete; verified readiness **25% complete /75% remaining**.
+
+
 ## Phase 1C start — native shared GPU foundation (2026-10-23, incomplete)
 
 Implemented C++ original GLES recipe generation and CPU texture reference with explicit

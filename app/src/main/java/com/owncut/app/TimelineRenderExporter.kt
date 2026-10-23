@@ -6,6 +6,8 @@ import android.os.HandlerThread
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.effect.DefaultVideoFrameProcessor
+import androidx.media3.effect.GlEffect
 import androidx.media3.effect.Presentation
 import androidx.media3.transformer.Codec
 import androidx.media3.transformer.Composition
@@ -32,7 +34,40 @@ internal object TimelineRenderExporter {
 
     internal fun composition(plan: TimelineRemuxExporter.Plan): Composition {
         require(plan.clips.none { it.gradeActive }) { AppLanguage.text(R.string.color_grade_export_pending) }
-        val items = plan.clips.map { clip ->
+        return buildComposition(plan,null)
+    }
+
+    /** Test/candidate route only. No production export/start or UI route calls this.
+     * Same immutable color plan can prepare preview effects via GradedFramePipeline.
+     * No output file/codec starts here; does not authorize automatic gap compaction.
+     */
+    data class Candidate(val colors: ColorRenderPlan, val composition: Composition,
+                         val factory: DefaultVideoFrameProcessor.Factory) {
+        fun configure(builder: Transformer.Builder): Transformer.Builder = builder.setVideoFrameProcessorFactory(factory)
+    }
+    internal fun probeCandidate(context: Context, plan: TimelineRemuxExporter.Plan,
+        revision: String, cancelled: AtomicBoolean): Candidate {
+        check(android.os.Looper.myLooper() != android.os.Looper.getMainLooper())
+        val checkCancelled={ if (cancelled.get()) throw CancellationException("Color preparation cancelled") }
+        return candidateComposition(plan,revision,checkCancelled) { uri ->
+            VideoSourceProbe.read(context,uri,checkCancelled)
+        }
+    }
+    internal fun candidateComposition(plan: TimelineRemuxExporter.Plan, revision: String,
+        checkCancelled: () -> Unit, readSource: (String) -> VideoSourceMetadata): Candidate {
+        val captured=plan.copy(clips=plan.clips.toList())
+        val colors=ColorRenderPlan.prepare(revision,captured.clips,checkCancelled,readSource)
+        val prepared=GradedFramePipeline.prepare(colors,checkCancelled)
+        checkCancelled()
+        val composition=buildComposition(captured,prepared.effects,checkCancelled)
+        checkCancelled()
+        return Candidate(colors,composition,prepared.factory)
+    }
+
+    private fun buildComposition(plan: TimelineRemuxExporter.Plan, grades: List<GlEffect>?,
+        checkCancelled: () -> Unit = {}): Composition {
+        val items = plan.clips.mapIndexed { index,clip ->
+            checkCancelled()
             val media = MediaItem.Builder()
                 .setUri(clip.mediaId)
                 .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder()
@@ -40,7 +75,9 @@ internal object TimelineRenderExporter {
                     .setEndPositionMs(clip.sourceOutMs)
                     .build())
                 .build()
-            EditedMediaItem.Builder(media).build()
+            EditedMediaItem.Builder(media).apply {
+                if (grades != null) setEffects(Effects(emptyList(),listOf(grades[index])))
+            }.build()
         }
         val sequence = EditedMediaItemSequence.Builder(items)
             .experimentalSetForceAudioTrack(true)
@@ -48,7 +85,8 @@ internal object TimelineRenderExporter {
         return Composition.Builder(sequence)
             .setTransmuxAudio(false)
             .setTransmuxVideo(false)
-            .setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)
+            .setHdrMode(if (grades == null) Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL
+                else Composition.HDR_MODE_KEEP_HDR)
             .setEffects(Effects(emptyList(), listOf(Presentation.createForHeight(OUTPUT_HEIGHT))))
             .build()
     }

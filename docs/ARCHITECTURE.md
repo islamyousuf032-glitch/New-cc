@@ -1,5 +1,17 @@
 # Architecture index and execution history
 
+## Phase 1C source/plan boundary (2026-10-23; candidate)
+
+C++ owns VideoColorMetadata admission; JNI canonical codes are independent of platform
+constants. VideoSourceProbe transports raw local-source MediaExtractor tags, preserves
+missing tags as unknown, refuses ambiguous video tracks and releases extraction ownership.
+ColorRenderPlan owns detached clip/metadata/recipe snapshots, request-local dedup and
+cancellation/failure publication. Candidate composition consumes exactly that plan,
+per-clip grade then global Presentation, one explicit processor factory per plan. Shipping
+paths still guard active grades and use MediaPlayer/legacy Transformer. No decoder proof
+or source-byte pinning: revalidate live format before enabling. See ADR0019.
+
+
 ## Phase 1C GPU foundation (2026-10-23; candidate, unconnected)
 
 color_gpu.hpp/.cpp owns explicit texture encodings, the double reference and immutable

@@ -1,5 +1,15 @@
 # Product specification
 
+## Phase 1C source admission/candidate (2026-10-23)
+
+Initial supported candidate subset requires raw explicit Rec709 + SDR-video + full/limited
+range and no HDR-static metadata; unknown/HDR/ambiguous tracks refuse without fallback.
+Local source probing and immutable per-clip grade-plan source are implemented; Android
+probe/codec behavior is unverified. Candidate composition is not shipping graded export
+or preview. Keep explicit gap-compaction consent, existing guards and unchanged neutral
+behavior. No source-byte freshness, realtime, phone or new APK claim (ADR0019).
+
+
 ## Phase 1C foundation (2026-10-23; not a released grading feature)
 
 Shared native texture/shader contracts and software GPU/reference checks are implemented;

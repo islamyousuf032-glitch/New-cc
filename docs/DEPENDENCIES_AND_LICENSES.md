@@ -160,3 +160,11 @@ Local tools only, excluded cache, not bundled/vendor code:
 Host GPU script uses ctypes/standard Python/C++/developer-provided EGL/GLES; downloads
 nothing, leaves probes temporary. No binary/media assets, private source or shader files
 from another editor are copied, and no tool artifacts/driver libraries enter Git/APK.
+
+## Phase 1C source/plan continuation (2026-10-23)
+No new app/build dependency or pin change. Uses existing Android MediaExtractor/MediaFormat
+(minAPI26), pinned Media3 1.8.1 APIs, native standard library and immutable Kotlin transport.
+Official C.java1.8.1 inspected through GitHub to verify SRGB constant; no third-party source
+copied. Same excluded-cache OpenJDK17u headers, jdk4py25.0.2.1, JPype1.7.1 and SHA512-verified
+kotlin-compiler2.3.21/CMake tools as ADR0018 checks; no tooling enters Git/APK. New source
+metadata schema is ephemeral, not a persisted file-format/runtime dependency change.

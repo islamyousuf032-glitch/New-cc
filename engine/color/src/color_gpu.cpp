@@ -6,6 +6,15 @@
 #include <sstream>
 
 namespace editor::color {
+void validate_sdr_video_source(const VideoColorMetadata& source) {
+    if (source.has_hdr_static_metadata) throw std::invalid_argument("HDR static metadata is unsupported for SDR grading");
+    if (source.primaries != VideoPrimaries::rec709)
+        throw std::invalid_argument("grade source requires explicit Rec709 primaries");
+    if (source.transfer != VideoTransfer::sdr_video)
+        throw std::invalid_argument("grade source requires explicit SDR video transfer; unknown/HDR unsupported");
+    if (source.range != VideoRange::full && source.range != VideoRange::limited)
+        throw std::invalid_argument("grade source requires explicit full or limited video range");
+}
 void validate(TextureEncoding e) {
     if (e != TextureEncoding::srgb && e != TextureEncoding::linear709 && e != TextureEncoding::media3_sdr709)
         throw std::invalid_argument("unsupported grading texture encoding");

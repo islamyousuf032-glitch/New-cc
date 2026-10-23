@@ -1,5 +1,14 @@
 # Roadmap and acceptance gates
 
+## Phase 1C next checkpoint (2026-10-23)
+
+Raw source probing/native color admission, immutable shared color plan and candidate
+per-clip Media3 composition are implemented in source; native/JNI/pure-Kotlin tests pass.
+Android compilation/probe/codec tests and live preview/export connection are still open.
+Do not count composition construction as encoded export. Preserve guards, gap consent
+and user-owned phone testing. ADR0019; readiness stays25%/75%.
+
+
 ## Phase 1C started (2026-10-23; shared foundation only)
 
 Native explicit texture profiles, original shared GLSL and matched CPU oracle now pass

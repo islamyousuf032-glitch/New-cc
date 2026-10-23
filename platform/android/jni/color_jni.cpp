@@ -76,3 +76,15 @@ Java_com_owncut_app_ColorEngine_nativeShaderV1(JNIEnv* env, jobject, jdoubleArra
       catch (const std::exception& error) { fail(env,"java/lang/IllegalArgumentException",error.what()); }
     return nullptr;
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_owncut_app_ColorEngine_nativeValidateVideoSourceV1(JNIEnv* env, jobject,
+    jint primaries, jint transfer, jint range, jboolean hdr_static) {
+    try {
+        editor::color::validate_sdr_video_source({
+            static_cast<editor::color::VideoPrimaries>(primaries),
+            static_cast<editor::color::VideoTransfer>(transfer),
+            static_cast<editor::color::VideoRange>(range),hdr_static != JNI_FALSE});
+    } catch (const std::bad_alloc&) { fail(env,"java/lang/OutOfMemoryError","color metadata validation allocation failed"); }
+      catch (const std::exception& error) { fail(env,"java/lang/IllegalArgumentException",error.what()); }
+}

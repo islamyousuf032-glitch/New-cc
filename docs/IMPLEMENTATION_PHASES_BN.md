@@ -52,7 +52,9 @@ refuse করে, preview স্পষ্টভাবে ungraded বলে; And
   alpha/neutral/bypass/zero-strength হুবহু। এটি ফোন/Media3/codec proof নয়।
 - [x] Candidate effect+explicit factory ও metadata/HDR rejection source যোগ হয়েছে;
   Android compilation/চলমান preview/export connection **এখনো হয়নি**।
-- [ ] Source metadata extraction এবং adapter-এর Android/Media3 validation।
+- [x] Raw local-source metadata probe, native admission ও immutable per-clip color plan source।
+- [x] Candidate composition-এ clip grade → global720p Presentation এবং explicit factory binding source।
+- [ ] Probe/candidate-এর Android compilation ও actual decoder/codec validation; live route এখনো যুক্ত নয়।
 
 
 - [ ] Android input color metadata অনুযায়ী explicit transfer/primaries conversion।
