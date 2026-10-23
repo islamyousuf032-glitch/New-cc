@@ -18,6 +18,13 @@ jobs:
           python3 scripts/progress.py
       - name: Install CMake and Ninja
         run: sudo apt-get update && sudo apt-get install --yes cmake ninja-build
+      - name: Install host software GLES (not Android/device validation)
+        run: sudo apt-get install --yes libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri
+      - name: Production shader vs native reference on host software GLES
+        env:
+          EGL_PLATFORM: surfaceless
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: python3 tests/run_host_gpu.py /usr/lib/x86_64-linux-gnu/libEGL.so.1 /usr/lib/x86_64-linux-gnu/libGLESv2.so.2
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
       - name: Build

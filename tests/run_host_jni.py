@@ -75,7 +75,8 @@ def main():
         fixture.parent.mkdir(parents=True); fixture.write_bytes(fixture_class())
         color_fixture = root/'com/owncut/app/ColorEngine.class'
         color_fixture.write_bytes(fixture_class('com/owncut/app/ColorEngine', {
-            'nativeRenderV1':'(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;IIII[DZ)V'}))
+            'nativeRenderV1':'(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;IIII[DZ)V',
+            'nativeShaderV1':'([DZIZ)Ljava/lang/String;'}))
         jpype.startJVM(str(java_home/'lib/server/libjvm.so'), '-Xcheck:jni',
                       '--enable-native-access=ALL-UNNAMED', classpath=[str(root)], convertStrings=True)
         try:
@@ -193,6 +194,20 @@ def main():
                 source.position(1); failure(render); source.position(0)
                 dest.limit(4); failure(render); dest.limit(8)
                 check([source.get(i)&255 for i in range(8)] == [128,128,128,37,255,0,0,0])
+                def shader(values=parameters, enabled=True, encoding=0, vertex=False):
+                    return color.nativeShaderV1(jpype.JArray(jpype.JDouble)(values),enabled,encoding,vertex)
+                for encoding in range(3):
+                    check(shader(encoding=encoding).startswith('#version 100'))
+                    check('aPosition' in shader(encoding=encoding,vertex=True))
+                check('0.0812' in shader(encoding=2) and '0.04045' in shader(encoding=0))
+                check('toLight' not in shader(enabled=False))
+                for values in (parameters[:-1],[float('nan')]+parameters[1:]):
+                    failure(lambda: shader(values))
+                failure(lambda: shader(encoding=99))
+                excessive=[8,1,1,0.18,1,2,2,2,-1,-1,-1,0.1,0.1,0.1,4,4,4]
+                failure(lambda: shader(excessive))
+                check('toLight' not in shader(excessive,enabled=False))
+                print('Production JNI GPU recipes: 3 encodings, shapes/NaN/unknown/unsafe-grade rejection and bypass passed')
                 print('Native C++ color JNI: actual graded pixels, alpha, buffers, alias/readonly/range validation passed')
                 print('Host JVM JNI: Unicode, revision pages, stale/invalid handles, concurrent destroy, catalog and recovery passed')
             finally:

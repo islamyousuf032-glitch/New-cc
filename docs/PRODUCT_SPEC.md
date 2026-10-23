@@ -1,5 +1,16 @@
 # Product specification
 
+## Phase 1C foundation (2026-10-23; not a released grading feature)
+
+Shared native texture/shader contracts and software GPU/reference checks are implemented;
+candidate Media3 adapter is unconnected and Android-unverified. Initially accept only
+explicit BT709 SDR source metadata with known range; refuse unknown/PQ/HLG/other-primary
+rather than guess. Source metadata extraction, live preview/export connection and parity
+are still required. Keep current ungraded preview warning and active-grade export refusal.
+GPU float limits must reject unsupported grades, never silently remove the saved look.
+No new controls/APK or device/performance claim; phase 1C is incomplete (ADR 0018).
+
+
 ## Phase 1B implementation (2026-10-23; Android acceptance pending)
 
 Per-clip grade data, grouped set/reset/paste, bypass and native undo/redo now exist.

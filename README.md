@@ -12,6 +12,18 @@ Owncut is an original, offline-first Android video-editing project. Its product 
 
 ## Current checkpoint
 
+**Phase 1C started — shared GPU foundation (not live preview/export):** C++ now
+owns explicit sRGB/linear709/Media3-SDR709 texture recipes and a matched CPU oracle.
+Six native suites, sanitizer, real JNI/Kotlin and software EGL/GLES shader comparisons
+pass: **96 cases ×512 pixels, max RGB difference 1/255**, exact alpha/identity/bypass.
+Candidate Media3 adapter bundles an explicit working-space factory and rejects unknown/
+HDR metadata; **Android adapter compilation/device integration remain unverified**.
+The MediaPlayer preview and Transformer exporter are unchanged; active-grade guards stay.
+No new APK, no hardware/codec claim; verified roadmap remains **25% / 75%**.
+[ADR 0018](docs/DECISIONS/0018-explicit-sdr-texture-contract-and-native-gpu-recipes.md)
+records the pinned Media3 transfer mismatch and remaining connection gates.
+
+
 **Phase 1B:** C++ clip-owned grades, atomic grouped undo/reset/paste, schema v2 save/
 recovery with v0/v1 neutral migration, and exact immutable grade snapshots are now
 implemented/host-tested. Five native suites, sanitizer and JVM/Kotlin checks pass.

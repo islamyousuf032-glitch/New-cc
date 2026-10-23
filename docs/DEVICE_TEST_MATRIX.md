@@ -1,5 +1,19 @@
 # Device test matrix
 
+## Phase 1C candidate (2026-10-23) — no Android results yet
+
+- Host native/reference: 6/6, native GPU ASan+UBSan, actual JNI/Kotlin recipes passed.
+- Software ANGLE/SwiftShader: 96 cases ×512 pixels, max RGB error 1/255; exact alpha,
+  identity/bypass/zero strength. This is NOT phone/GPU hardware/Media3/codec evidence.
+- Added GradeGpuContractTest: explicit metadata/HDR refusal and EGL synthetic neutral/
+  exposure/bypass RGBA, expected video-SDR gray128→184/alpha37. **Uncompiled/unrun**.
+- Full Android adapter build/lint/ART, software-Mesa CI, real decoded input and encoded
+  output parity, SDR range/rotation/geometry, seek/first-frame/pause/loop/split boundaries,
+  background/surface recreation, release/error/cancel ownership all **pending**.
+- Preview/export adapter not installed. Existing grade export guards remain; no new APK
+  or compatible-update/device pass. User owns phone testing (ADR 0014/0018).
+
+
 ## Phase 1B handoff (2026-10-23; no new device result)
 
 ClipGradePersistenceTest adds internal API/storage contract cases: managed save/reopen,

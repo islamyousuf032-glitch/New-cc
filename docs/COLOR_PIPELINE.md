@@ -1,5 +1,36 @@
 # Color grading reference pipeline v1
 
+## Phase 1C shared GPU foundation (2026-10-23; unconnected candidate)
+
+The original sRGB CPU RGBA8 contract below is unchanged. New color_gpu.hpp adds explicit
+normalized straight-alpha Rec709 texture profiles: sRGB, linear709, and **Media3 1.8.1
+DEFAULT SDR709** (SMPTE170M-encoded working texture). texture_reference decodes the
+chosen profile, calls the same native linear pipeline, then encodes; input RGB must be
+finite [0,1]. Shader output can exceed [0,1]; normalized SDR output attachments clamp,
+matching CPU reference packing. No raw YUV/OES/HDR/Rec2020/premultiplied support implied.
+
+Native shader recipes bake validated immutable Grade values, require full float32 fragment
+highp and conservatively reject unsafe intermediate bounds above 1e25 (except native
+identity/bypass/zero-strength shortcuts). Project-valid settings are unchanged. Same
+linear operation order/alpha, no UI/Kotlin math, no frame timestamps modified. sRGB uses
+the existing standard constants. Media3 SDR decode threshold is **0.0812**, encode 0.018,
+slope4.5, 1.099/0.099, exponent0.45; constants intentionally match pinned effect processor,
+not gamma2.2 or sRGB. Transfers use sign-preserving negative intermediate extension.
+
+Candidate GradedFramePipeline pairs an explicit DEFAULT factory with its effect; its
+source gate requires known BT709 SDR full/limited ColorInfo and rejects HDR. **Do not
+insert the effect with an unrelated/LINEAR/ORIGINAL factory.** Media3 owns source decode/
+range normalization; this adapter receives an already normalized 2D RGB texture. Input
+metadata extraction/provenance and actual caller integration remain pending. Resources
+are per GL program/Media3 pool, created/drawn/released on the owning GL thread.
+
+Actual software GLES shader/reference run: **96 recipes/profiles ×512 pixels**, RGB max
+**1/255**, exact alpha/identity/bypass/zero strength. Includes 23 seeded recipe variants
+and nine hand-picked cases per profile. No Android adapter compilation, Media3 processor
+conversion, decoded video/export, phone or performance proof. Keep active-grade export
+guards; current preview is ungraded. ADR 0018 and PROGRESS record evidence/limitations.
+
+
 ## Phase 1B update — clip/project binding (2026-10-23)
 
 Clip now owns a Grade and ProjectCodec v2 embeds the fixed preset payload for each

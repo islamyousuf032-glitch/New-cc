@@ -38,5 +38,16 @@ fun main() {
     source.position(1); rejected { ColorEngine.renderRgba8(source,out,2,1,8,8) }; source.position(0)
     out.limit(4); rejected { ColorEngine.renderRgba8(source,out,2,1,8,8) }; out.limit(8)
     check(bytes(out)==before && bytes(source)==original)
+    for (encoding in ColorEngine.TextureEncoding.entries) {
+        val recipe=ColorEngine.shaderSources(distinct,encoding)
+        check(recipe.vertex.startsWith("#version 100") && recipe.fragment.contains("sampleColor.a"))
+    }
+    check(ColorEngine.shaderSources(ColorGrade(),ColorEngine.TextureEncoding.MEDIA3_SDR_709).fragment.contains("texture2D"))
+    check(ColorEngine.shaderSources(distinct,ColorEngine.TextureEncoding.MEDIA3_SDR_709).fragment.contains("0.0812"))
+    val excessive=ColorGrade(exposureStops=8.0,balanceStops=ColorChannels(2.0,2.0,2.0),
+        lift=ColorChannels(-1.0,-1.0,-1.0),gamma=ColorChannels(0.1,0.1,0.1),gain=ColorChannels(4.0,4.0,4.0))
+    rejected { ColorEngine.shaderSources(excessive,ColorEngine.TextureEncoding.SRGB) }
+    check(!ColorEngine.shaderSources(excessive.copy(enabled=false),ColorEngine.TextureEncoding.SRGB).fragment.contains("toLight"))
+    println("Production Kotlin native GPU recipes: immutable parameters, 3 encodings and safety rejection passed")
     println("Production Kotlin -> JNI -> C++: real grading pixels, bypass, RGB parameters, alpha/source preservation and invalid-buffer safety passed")
 }

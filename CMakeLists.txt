@@ -4,6 +4,7 @@ project(owncut_engine VERSION 0.1.0 LANGUAGES CXX)
 option(OWNCUT_BUILD_TESTS "Build portable engine unit tests" ON)
 
 add_library(owncut_engine
+    engine/color/src/color_gpu.cpp
     engine/color/src/color.cpp
     engine/session/src/session_registry.cpp
     engine/session/src/session_coordinator.cpp
@@ -36,6 +37,9 @@ endif()
 
 if(OWNCUT_BUILD_TESTS)
     enable_testing()
+    add_executable(owncut_color_gpu_tests tests/unit/color_gpu_tests.cpp)
+    target_link_libraries(owncut_color_gpu_tests PRIVATE owncut_engine)
+    add_test(NAME owncut_color_gpu_tests COMMAND owncut_color_gpu_tests)
     add_executable(owncut_grade_project_tests tests/unit/grade_project_tests.cpp)
     target_link_libraries(owncut_grade_project_tests PRIVATE owncut_engine)
     add_test(NAME owncut_grade_project_tests COMMAND owncut_grade_project_tests)

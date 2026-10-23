@@ -1,5 +1,15 @@
 # Roadmap and acceptance gates
 
+## Phase 1C started (2026-10-23; shared foundation only)
+
+Native explicit texture profiles, original shared GLSL and matched CPU oracle now pass
+six suites and software GLES/reference checks (96 cases, <=1/255 observed). A candidate
+Media3 SDR adapter is added but unconnected/uncompiled on Android. Still pending: source
+metadata extraction, shared live preview/render path, decoded encoded-output comparisons,
+seek/cancel/lifecycle and phone acceptance. Guards remain; do not credit full 1C or phase 1.
+See ADR 0018. Verified roadmap remains **25% complete / 75% remaining**.
+
+
 ## Phase 1B checkpoint (2026-10-23)
 
 Native clip-owned grades, grouped history, v2 persistence/v0-v1 migration and grade-aware

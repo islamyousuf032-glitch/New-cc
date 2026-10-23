@@ -45,7 +45,15 @@ project document বা undo stack-এ তখন grade সংযুক্ত ছ
 grade values ফাইলে থাকে। Internal API আছে, live controls নয়। Active grade export এখন
 refuse করে, preview স্পষ্টভাবে ungraded বলে; Android পরীক্ষা ও ১C integration বাকি।
 
-### ১C — Color-managed preview ও export
+### ১C — Color-managed preview ও export (চলমান, 2026-10-23)
+
+- [x] Native explicit sRGB/linear709/Media3-SDR709 texture profile, original GLSL ও CPU oracle।
+- [x] Software GLES-এ ৯৬ case ×৫১২ pixel comparison; সর্বোচ্চ RGB পার্থক্য ১/২৫৫,
+  alpha/neutral/bypass/zero-strength হুবহু। এটি ফোন/Media3/codec proof নয়।
+- [x] Candidate effect+explicit factory ও metadata/HDR rejection source যোগ হয়েছে;
+  Android compilation/চলমান preview/export connection **এখনো হয়নি**।
+- [ ] Source metadata extraction এবং adapter-এর Android/Media3 validation।
+
 
 - [ ] Android input color metadata অনুযায়ী explicit transfer/primaries conversion।
 - [ ] C++-কেন্দ্রিক GPU processing; CPU reference-এর সঙ্গে pixel tolerance পরীক্ষা।

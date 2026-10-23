@@ -1,5 +1,35 @@
 # Progress
 
+## Phase 1C start — native shared GPU foundation (2026-10-23, incomplete)
+
+Implemented C++ original GLES recipe generation and CPU texture reference with explicit
+sRGB, linear709 and pinned Media3 DEFAULT SDR709 transfer. Identity/bypass/zero strength,
+alpha and operation order share native grade validation. Conservative float-overflow
+budget rejects unsupported GPU grades without changing project valid ranges. Narrow JNI
+returns immutable shader sources; Kotlin does not reimplement grading math.
+
+Added **candidate only** GradedFramePipeline: explicit DEFAULT processor factory,
+BT709 SDR source metadata gate, HDR refusal, float32 fragment capability check,
+per-program GL creation/draw/release. **Not installed in MainActivity/exporter.** Neutral
+legacy paths unchanged; active-grade export guards remain. See ADR 0018/COLOR_PIPELINE.
+
+**Actually passed locally:** Make six suites, Release CMake/CTest **6/6**, new native
+GPU-contract ASan+UBSan; strict full production JNI shared build with conversion warnings;
+actual JVM -Xcheck:jni GPU recipe shape/NaN/encoding/budget/bypass checks; production
+Kotlin 2.3.21 -Werror projections and native recipe/pixel bridge. Software **ANGLE / Vulkan
+SwiftShader** executed production GLSL for **96 cases ×512 pixels**; maximum RGB error
+**1/255** (gate <=2), exact alpha, neutral/disabled/zero-strength. This is an actual
+software GL run, not a textual shader check, but **not phone/hardware or Media3 parity**.
+281 bilingual strings/three themes, seven metadata and three install-over guards pass.
+
+**Added, NOT run/verified:** GradeGpuContractTest Android synthetic texture/metadata/HDR
+checks, Android source compilation/lint/ART, default CI Mesa host GPU step. No codec,
+decoded-frame/encoded export, HDR conversion, realtime/performance, seek/lifecycle/
+cancel parity or install-over proof. No new APK. Phase 1C remains in progress; next
+work is metadata extraction, owned shared preview/export wiring and integration evidence.
+Verified readiness unchanged **25% complete / 75% remaining**.
+
+
 ## Phase 1B — persisted clip grades and native history (2026-10-23)
 
 Implemented validated per-clip grade values (not source-wide looks); atomic grouped

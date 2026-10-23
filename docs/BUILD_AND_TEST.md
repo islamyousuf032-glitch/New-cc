@@ -1,5 +1,35 @@
 # Build and test
 
+## Phase 1C foundation checks (2026-10-23)
+
+Make six suites and Release CMake/CTest **6/6** passed. New owncut_color_gpu_tests passed
+ASan+UBSan. Full strict production JNI build, actual JVM recipe validation and production
+pure Kotlin 2.3.21 -Werror recipe/CPU bridge passed. Host JNI builds **must additionally
+include engine/color/src/color_gpu.cpp**; no new runtime dependency.
+
+Run original production GLSL against its C++ reference using developer-provided EGL/GLES:
+
+```sh
+# Linux Mesa software renderer (installed by portable CI; new CI step not verified yet)
+EGL_PLATFORM=surfaceless LIBGL_ALWAYS_SOFTWARE=1 python3 tests/run_host_gpu.py \
+  /usr/lib/x86_64-linux-gnu/libEGL.so.1 /usr/lib/x86_64-linux-gnu/libGLESv2.so.2
+# Alternatively cached ANGLE/SwiftShader libraries (actual local validation):
+OWNCUT_SWIFTSHADER=1 VK_ICD_FILENAMES="$DRIVER/vk_swiftshader_icd.json" \
+LD_LIBRARY_PATH="$DRIVER" python3 tests/run_host_gpu.py "$DRIVER/libEGL.so" "$DRIVER/libGLESv2.so"
+```
+
+The script downloads nothing and uses temporary original probes; `g++`, EGL/GLES libraries
+and an offscreen-capable driver are prerequisites. Local renderer was ANGLE 2.1.24077 /
+SwiftShader driver 5.0.0, OpenGL ES 3.1.0 (compiles GLES2 GLSL). **96 cases ×512 pixels**,
+max RGB error **1/255**, exact alpha and identity/disabled/zero strength passed. RGB gate
+is <=2/255, a sampled SDR byte comparison, not all-parameters or HDR/hardware proof.
+
+**Unrun:** full Android/adapter/test compilation, GradeGpuContractTest synthetic GLES
+smoke (SDR gray 128→184, not sRGB 128→176), unknown/HDR metadata gates, Media3 processor
+conversion, codec/rendered-output parity, phone, install-over. Run opt-in connected tests
+only in the appropriate device environment; user owns phone testing. No new APK.
+
+
 ## Phase 1B checks (2026-10-23)
 
 Make/CTest now have **five** suites; owncut_grade_project_tests covers grade history,
@@ -82,7 +112,7 @@ c++ -std=c++20 -O2 -shared -fPIC -pthread -Wall -Wextra -Wpedantic \
   -Iengine/color/include -Iengine/session/include -Iengine/core/include -Iengine/timeline/include \
   -Iengine/commands/include -Iengine/project/include \
   platform/android/jni/editor_jni.cpp platform/android/jni/color_jni.cpp \
-  engine/color/src/color.cpp engine/session/src/session_registry.cpp \
+  engine/color/src/color_gpu.cpp engine/color/src/color.cpp engine/session/src/session_registry.cpp \
   engine/session/src/session_coordinator.cpp \
   engine/core/src/time.cpp engine/timeline/src/timeline.cpp \
   engine/commands/src/command_history.cpp engine/project/src/project.cpp \

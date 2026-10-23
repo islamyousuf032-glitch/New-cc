@@ -1,5 +1,19 @@
 # Architecture index and execution history
 
+## Phase 1C GPU foundation (2026-10-23; candidate, unconnected)
+
+color_gpu.hpp/.cpp owns explicit texture encodings, the double reference and immutable
+GLES2 shader recipes. JNI transports ASCII sources; Kotlin holds no grade math. Media3
+1.8.1 DEFAULT SDR is encoded SMPTE170M, not the GlEffect interface's stated linear space.
+GradedFramePipeline therefore bundles an explicit DEFAULT factory with its effect and
+rejects unsupported source ColorInfo/HDR. GL resource ownership stays on caller's GL
+thread; source grade is captured immutably. Full float32 fragment capability and a native
+safe intermediate budget are required. ADR 0018 defines profiles/rejection policy.
+Software GLES/native reference tests pass, but no app playback/export route installs the
+adapter. Source-media metadata extraction and shared connection remain next work; guards
+stay. No live GPU/video acceptance or new APK is implied.
+
+
 ## Phase 1B data/history implementation (2026-10-23)
 
 Clip owns color::Grade; C++ SetClipGradesCommand publishes grouped edits atomically and

@@ -1,5 +1,6 @@
 #include <jni.h>
 #include "editor/color.hpp"
+#include "editor/color_gpu.hpp"
 #include <new>
 #include <limits>
 
@@ -54,4 +55,24 @@ Java_com_owncut_app_ColorEngine_nativeRenderV1(JNIEnv* env, jobject,
                                       {{out.data,out.size},w,h,static_cast<std::size_t>(output_stride)},grade);
     } catch (const std::bad_alloc&) { fail(env,"java/lang/OutOfMemoryError","color processing allocation failed"); }
       catch (const std::exception& error) { fail(env,"java/lang/IllegalArgumentException",error.what()); }
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_owncut_app_ColorEngine_nativeShaderV1(JNIEnv* env, jobject, jdoubleArray values,
+                                              jboolean enabled, jint encoding, jboolean vertex) {
+    try {
+        if (!values || env->GetArrayLength(values) != static_cast<jsize>(editor::color::parameter_count))
+            throw std::invalid_argument("grade v1 requires 17 parameters");
+        editor::color::ParameterBlock parameters;
+        env->GetDoubleArrayRegion(values,0,static_cast<jsize>(parameters.size()),parameters.data());
+        if (env->ExceptionCheck()) return nullptr;
+        const auto grade=editor::color::from_parameters(parameters,enabled != JNI_FALSE);
+        const auto format=static_cast<editor::color::TextureEncoding>(encoding);
+        editor::color::validate(format);
+        const auto fragment=editor::color::grade_fragment_shader(grade,format); // validates GPU budget for either request
+        const auto source=vertex ? editor::color::grade_vertex_shader() : fragment;
+        return env->NewStringUTF(source.c_str()); // generated ASCII only
+    } catch (const std::bad_alloc&) { fail(env,"java/lang/OutOfMemoryError","color shader allocation failed"); }
+      catch (const std::exception& error) { fail(env,"java/lang/IllegalArgumentException",error.what()); }
+    return nullptr;
 }

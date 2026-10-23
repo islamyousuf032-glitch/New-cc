@@ -1,0 +1,86 @@
+package com.owncut.app
+
+import android.content.Context
+import android.opengl.GLES20
+import androidx.media3.common.C
+import androidx.media3.common.ColorInfo
+import androidx.media3.common.VideoFrameProcessingException
+import androidx.media3.common.util.GlProgram
+import androidx.media3.common.util.GlUtil
+import androidx.media3.common.util.Size
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.effect.BaseGlShaderProgram
+import androidx.media3.effect.DefaultVideoFrameProcessor
+import androidx.media3.effect.GlEffect
+import androidx.media3.effect.GlShaderProgram
+
+/** Candidate shared preview/export adapter. NOT installed in either shipping route yet.
+ * Always use the returned effect WITH its explicit processor factory. Media3 1.8.1
+ * DEFAULT intermediate SDR is encoded SMPTE 170M, not the interface doc's linear RGB.
+ * Input metadata must be explicit BT709 SDR; no unknown/HDR/other-primary fallback.
+ */
+@UnstableApi
+internal object GradedFramePipeline {
+    data class Prepared(val effect: GlEffect, val factory: DefaultVideoFrameProcessor.Factory)
+
+    fun prepare(clip: ClipSnapshot, sourceColorInfo: ColorInfo?): Prepared {
+        require(sourceColorInfo != null && sourceColorInfo.colorSpace == C.COLOR_SPACE_BT709 &&
+            sourceColorInfo.colorTransfer == C.COLOR_TRANSFER_SDR &&
+            sourceColorInfo.colorRange in listOf(C.COLOR_RANGE_FULL,C.COLOR_RANGE_LIMITED)) {
+            "Native grade requires explicit BT709 SDR source color metadata"
+        }
+        val sources=ColorEngine.shaderSources(clip.grade,ColorEngine.TextureEncoding.MEDIA3_SDR_709)
+        val factory=DefaultVideoFrameProcessor.Factory.Builder()
+            .setSdrWorkingColorSpace(DefaultVideoFrameProcessor.WORKING_COLOR_SPACE_DEFAULT).build()
+        return Prepared(object : GlEffect {
+            override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram {
+                if (useHdr) throw VideoFrameProcessingException("HDR grading is not supported by this SDR adapter")
+                return Program(sources)
+            }
+        },factory)
+    }
+
+    private class Program(sources: ColorEngine.ShaderSources) : BaseGlShaderProgram(false,1) {
+        private val program: GlProgram
+        init {
+            val range=IntArray(2); val precision=IntArray(1)
+            GLES20.glGetShaderPrecisionFormat(GLES20.GL_FRAGMENT_SHADER,GLES20.GL_HIGH_FLOAT,range,0,precision,0)
+            if (precision[0] < 23 || range[0] < 126 || range[1] < 127)
+                throw VideoFrameProcessingException("Full float32 fragment highp is required for native grading")
+            try {
+                GlUtil.checkGlError()
+                val created=GlProgram(sources.vertex,sources.fragment)
+                try {
+                    created.setBufferAttribute("aPosition",floatArrayOf(-1f,-1f,0f,1f, 1f,-1f,0f,1f,
+                        -1f,1f,0f,1f, 1f,1f,0f,1f),4)
+                    created.setBufferAttribute("aTexCoord",floatArrayOf(0f,0f,1f,0f,0f,1f,1f,1f),2)
+                    program=created
+                } catch (error: Exception) {
+                    runCatching { created.delete() }.exceptionOrNull()?.let { error.addSuppressed(it) }
+                    throw error
+                }
+            } catch (error: Exception) { throw VideoFrameProcessingException(error) }
+        }
+        override fun configure(inputWidth: Int, inputHeight: Int): Size {
+            if (inputWidth <= 0 || inputHeight <= 0) throw VideoFrameProcessingException("Invalid grading frame dimensions")
+            return Size(inputWidth,inputHeight)
+        }
+        override fun drawFrame(inputTexId: Int, presentationTimeUs: Long) {
+            try {
+                program.use()
+                program.setSamplerTexIdUniform("uSource",inputTexId,0)
+                program.bindAttributesAndUniforms()
+                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP,0,4)
+                GlUtil.checkGlError()
+            } catch (error: Exception) { throw VideoFrameProcessingException(error,presentationTimeUs) }
+        }
+        override fun release() {
+            var failure: Exception?=null
+            try { program.delete() } catch (error: Exception) { failure=error }
+            try { super.release() } catch (error: Exception) {
+                if (failure == null) failure=error else failure.addSuppressed(error)
+            }
+            failure?.let { throw VideoFrameProcessingException(it) }
+        }
+    }
+}

@@ -132,3 +132,31 @@ syntax checks used official OpenJDK `jdk-17+35` headers from openjdk/jdk (GPLv2 
 Classpath exception); these temporary check headers are not copied into the project
 or app. Local CMake tooling was installed in excluded sandbox cache, not vendored.
 Existing app/tool dependency pins are unchanged.
+
+## Phase 1C GPU foundation (2026-10-23)
+
+No new app/runtime dependency or changed Media3 **1.8.1** pin. Android GLES/platform APIs
+are existing min-26 facilities. Official Media3 Apache-2.0 public API/working-space/shader
+contracts inspected; our GLSL/CPU oracle/harness are original, not copied engine source.
+This is not a claim that pinned 1.8.1 is today's latest release; upgrading it requires
+rechecking transfer/default contracts and Android integration. See ADR 0018 references.
+
+Local tools only, excluded cache, not bundled/vendor code:
+- CMake/Python packages as before; jdk4py **25.0.2.1**, JPype1 **1.7.1**;
+  JetBrains kotlin-compiler **2.3.21** npm distribution (SHA512 integrity verified).
+- Official OpenJDK17u **jdk-17.0.18+8** jni.h/jni_md.h compile headers (GPLv2 + Classpath
+  exception), existing ABI; Android build JDK17/NDK pins unchanged.
+- `@sparticuz/chromium` **131.0.1** npm archive SHA512 verified, only temporary software
+  renderer extracted: ANGLE **2.1.24077 / 367e9e74a865**, SwiftShader driver **5.0.0**.
+  Package wrapper MIT; ANGLE BSD-3-Clause and SwiftShader Apache-2.0 official licenses
+  inspected, retained in cache. Package license is NOT assumed to cover all binary parts.
+  This older isolated test snapshot is not a maintained product dependency/security or
+  Android ABI/page-size endorsement. No Chromium executable runs or ships in the app.
+  Latest inspected 153.0.0 GLES libraries expose no public EGL entrypoints and were not
+  usable by this harness; don't upgrade/assume driver compatibility without checking.
+- CI adds distro-managed Mesa EGL/GLES software-test libraries on Ubuntu24.04 (Mesa MIT
+  components + distribution notices; not app dependencies). New CI step has not run here.
+
+Host GPU script uses ctypes/standard Python/C++/developer-provided EGL/GLES; downloads
+nothing, leaves probes temporary. No binary/media assets, private source or shader files
+from another editor are copied, and no tool artifacts/driver libraries enter Git/APK.

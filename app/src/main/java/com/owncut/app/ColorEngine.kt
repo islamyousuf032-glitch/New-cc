@@ -44,6 +44,13 @@ internal object ColorEngine {
                     sourceStride: Int, outputStride: Int, grade: ColorGrade = ColorGrade()) {
         nativeRenderV1(source,output,width,height,sourceStride,outputStride,grade.parametersV1(),grade.enabled)
     }
+    // Explicit intermediate texture contract, not source-media metadata inference.
+    enum class TextureEncoding(val nativeCode: Int) { SRGB(0), LINEAR_709(1), MEDIA3_SDR_709(2) }
+    data class ShaderSources(val vertex: String, val fragment: String)
+    fun shaderSources(grade: ColorGrade, encoding: TextureEncoding): ShaderSources =
+        ShaderSources(nativeShaderV1(grade.parametersV1(),grade.enabled,encoding.nativeCode,true),
+            nativeShaderV1(grade.parametersV1(),grade.enabled,encoding.nativeCode,false))
+    private external fun nativeShaderV1(parameters: DoubleArray, enabled: Boolean, encoding: Int, vertex: Boolean): String
     private external fun nativeRenderV1(source: ByteBuffer, output: ByteBuffer, width: Int,
         height: Int, sourceStride: Int, outputStride: Int, parameters: DoubleArray, enabled: Boolean)
 }
