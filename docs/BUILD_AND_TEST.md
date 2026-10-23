@@ -1,5 +1,18 @@
 # Build and test
 
+## Color editing batch checks (2026-10-23)
+
+Release CTest6/6 passed. Production pure Kotlin2.3.21 -Werror with actual JNI additionally
+compiles ColorFrameBuffers/ColorGradeDraft: real ARGB native pixels128->176, alpha/hidden
+RGB/source/bypass/shape and Bengali numeric parsing passed.294 bilingual strings/all3themes
+and17labels per language,7metadata/3install-over tests pass. No Android stubs used for host
+passes. ColorStillPreviewTest and candidate pre-cancel tests added, UNCOMPILED/UNRUN.
+
+Android app/dialog/Bitmap retrieval/lint, real exportGradedCandidate codec run/output parity,
+rotation/provider cancellation/memory, phone/live graded playback and install-over remain
+open. Test candidate is not enabled by the delivery UI. APK unavailable; see ADR0021.
+
+
 ## Decoded color gate checks (2026-10-23)
 
 Make6/Release CTest6/6 and decoded/source/GPU ASan+UBSan passed. Existing strict JNI

@@ -1,5 +1,18 @@
 # Device test matrix
 
+## Color controls / still proxy / candidate runner (2026-10-23)
+
+- Host native6/6, actual Kotlin/JNI pixel packing/grade/bypass/alpha/source and bilingual
+  draft parser passed;294resources/3themes and17labels per language pass.
+- ColorStillPreviewTest Bitmap/native and draft-vs-history tests added; candidate pre-cancel/
+  guard/worker cleanup test added. Android compilation/execution UNRUN.
+- Must verify dialog text/keyboard/scroll on3themes, Before/After, stale drafts/Cancel/Apply,
+  undo/redo/checkpoint, rotation/dismiss/provider errors and real retrieval color metadata.
+- Measure full-resolution frame retrieval memory (proxy scales only after extraction),
+  background worker cancellation, native render responsiveness, actual candidate encoded
+  output, live graded preview and compatible update. No APK/device/codec proof (ADR0021).
+
+
 ## Candidate decoder boundary (2026-10-23)
 
 - Native decoded verifier/JNI/pure-Kotlin gate tests passed, CTest6/6 and ASan+UBSan.

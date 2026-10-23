@@ -45,6 +45,20 @@ class TimelineRenderExporterTest {
         } finally { output.delete() }
     }
 
+    @Test fun preCancelledGradedCandidateNeverStartsEncoderOrPublishesOutput() = withFixtures { a, _ ->
+        val output=File(context.cacheDir,"graded-cancel-${System.nanoTime()}.mp4")
+        val source=clip("grade",a,0,0,3000).copy(grade=ColorGrade(exposureStops=1.0),gradeActive=true)
+        val plan=TimelineRemuxExporter.candidateGradedTimingPlan(listOf(source))
+        try {
+            assertThrows(CancellationException::class.java) {
+                TimelineRenderExporter.exportGradedCandidate(context,plan,"test-snapshot",output,AtomicBoolean(true)) { }
+            }
+            assertFalse(output.exists())
+            assertFalse(Thread.getAllStackTraces().keys.any { it.isAlive && it.name=="OwncutRender" })
+            assertThrows(IllegalArgumentException::class.java) { TimelineRenderExporter.composition(plan) }
+        } finally { output.delete() }
+    }
+
     @Test(timeout = 120_000L)
     fun cancelsAnActiveRenderThenRendersAgainWithoutLeakingWorker() = withFixtures { a, _ ->
         val output = File(context.cacheDir, "active-cancel-${System.nanoTime()}.mp4")

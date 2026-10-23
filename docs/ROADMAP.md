@@ -1,5 +1,13 @@
 # Roadmap and acceptance gates
 
+## User-visible Color batch (2026-10-23)
+
+Source implementation now includes17controls, actual native CPU still preview, Before/After,
+Apply/history/autosave and bilingual draft input. Real candidate encoder runner entry added;
+normal export remains guarded. Android compilation/still UI/codec output/live preview and
+APK are not verified. No complete1C/1D claim, credit remains25%/75% (ADR0021).
+
+
 ## Phase1C decoded boundary checkpoint (2026-10-23)
 
 Native decoded-format verifier and terminal per-render gate pass host/JNI/Kotlin tests;

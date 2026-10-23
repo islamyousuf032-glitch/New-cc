@@ -176,3 +176,10 @@ never constructed on old Android. Official Apache2.0 Codec/DefaultCodec/MediaFor
 asset-loader API source inspected, not copied (ADR0020 links). Same excluded host tools/
 licenses as prior checkpoint. Android min26/ABI/build/security support remains unverified
 for this adapter; no new runtime binary, SDK mirror or private-source dependency added.
+
+## Color controls/still-preview batch (2026-10-23)
+No new runtime/build dependency or license pin. Original three-circle color icon and
+platform Android dialog/widgets/MediaMetadataRetriever/Bitmap/Executor (min26) plus existing
+native/Media3 adapters. No external images/fonts/LUTs or proprietary UI/source copied.
+Host tools unchanged. Actual Android/lint/codec/memory/ABI/install-over checks are pending;
+no new APK/security/performance or full grading claim (ADR0021).

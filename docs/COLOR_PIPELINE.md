@@ -1,5 +1,16 @@
 # Color grading reference pipeline v1
 
+## Actual still preview / candidate encoder entry (2026-10-23)
+
+ClipColorEditor probes admitted source, retrieves source-time sRGB ARGB8888 bitmap, scales
+a <=1280x720 proxy and calls native RGBA8 grading through ColorFrameBuffers. Before/After
+switches actual bitmaps; successfully rendered current draft authorizes one Apply command.
+No grading math in Kotlin. Preview scale-before-grade differs from candidate video's grade-
+before-Presentation; do not claim encoded parity or live playback. Unknown/HDR source or
+non-sRGB bitmap refuses. exportGradedCandidate can invoke real codec worker for developer
+validation, but is unrun and not a production route; guards remain (ADR0021).
+
+
 ## Decoded output gate (2026-10-23; candidate only)
 
 Native DecodedVideoFormat compares admitted expected vs current decoder output, with

@@ -1,5 +1,29 @@
 # Progress
 
+## Color controls + actual CPU still preview + candidate encoder runner (2026-10-23)
+
+Implemented original Color workspace/icon and17 parameter fields, enable/bypass, Reset,
+Render draft, Before/After, Apply/Cancel. Real source-time frame extraction and native
+CPU grading feed the dialog image; source metadata and sRGB ARGB8888 bitmap checks refuse
+unsupported inputs. Scaled proxy <=1280x720 is explicit, NOT live playback/export parity.
+Bengali/English numeric entry works. Draft editing/rendering never mutates project; only
+successfully rendered unchanged draft can Apply via one native command, dirty/autosave;
+clip/session mismatch refuses. Dialog dismissal invalidates stale results/worker updates.
+
+Added real developer/test exportGradedCandidate entry that invokes existing Transformer
+worker/cancellation/mux verification/cleanup with guarded decoder + shared GPU factory.
+No production caller enables it; normal render/remux guards and neutral path remain.
+
+**Passed:** Release CTest6/6, production Kotlin2.3.21 -Werror / actual JNI ARGB pixel
+transport (128->176), alpha/source/bypass/shape and Bengali parser; prior plan/gate/cache
+checks;294 bilingual strings/all3themes,17control labels per locale,7metadata/3patch tests.
+**Unrun:** Android compilation/lint, ColorStillPreviewTest and candidate cancel sources,
+actual retrieval/dialog/rotation/provider/Bitmap lifecycle, codec runner/GPU/output parity,
+live graded playback or install-over. No APK; grading is not complete. Source full-frame
+retrieval memory, worker/provider cancellation and responsiveness are unmeasured. No new
+runtime dependency or shader math. See ADR0021; verified credit stays25%/75%.
+
+
 ## Phase1C continuation — candidate decoder output gate (2026-10-23)
 
 Added native strict expected/decoded format validation (coded geometry and SDR color/

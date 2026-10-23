@@ -8,6 +8,21 @@ private fun rejected(block: () -> Unit) {
 }
 private fun bytes(buffer: ByteBuffer): List<Int> = (0 until buffer.capacity()).map { buffer.get(it).toInt() and 255 }
 fun main() {
+    val values=ColorGrade().parametersV1().map { it.toString() }.toMutableList()
+    values[0]="১.৫";values[5]="−০.২৫"
+    val parsed=ColorGradeDraft.parse(values,true)
+    check(parsed.exposureStops==1.5 && parsed.balanceStops.red== -0.25)
+    check(ColorGradeDraft.parse(values,false)==parsed.copy(enabled=false))
+    rejected { ColorGradeDraft.parse(values.drop(1),true) }
+    rejected { ColorGradeDraft.parse(values.toMutableList().apply { set(0,"not a number") },true) }
+    val argb=intArrayOf(0x25808080,0x00ff0000)
+    val unchanged=argb.copyOf()
+    check(ColorFrameBuffers.render(argb,2,1,ColorGrade(exposureStops=1.0)).contentEquals(intArrayOf(0x25b0b0b0,0x00ff0000)))
+    check(ColorFrameBuffers.render(argb,2,1,ColorGrade(enabled=false)).contentEquals(argb))
+    check(argb.contentEquals(unchanged))
+    rejected { ColorFrameBuffers.render(argb,3,1,ColorGrade()) }
+    rejected { ColorFrameBuffers.render(argb,0,1,ColorGrade()) }
+    println("Actual ARGB sRGB still-frame transport/native pixels: channels, alpha, bypass, source and shape passed")
     val source=ByteBuffer.allocateDirect(8)
     listOf(128,128,128,37,255,0,0,0).forEachIndexed { i,value -> source.put(i,value.toByte()) }
     val out=ByteBuffer.allocateDirect(8)

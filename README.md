@@ -12,6 +12,14 @@ Owncut is an original, offline-first Android video-editing project. Its product 
 
 ## Current checkpoint
 
+**Color editor now has a real processing route in source:** a contextual workspace with
+17 editable parameters, native-processed scaled still preview, Before/After, reset/bypass
+and atomic Apply/history/autosave. English/Bengali labels and numeric entry are supported.
+**Still preview is not live graded playback.** Candidate encoding now has a real test-entry
+runner, but Android build/UI/codec output are unverified; normal grade export guards stay.
+Host native/Kotlin/JNI tests pass, no APK or completion claim. [ADR0021](docs/DECISIONS/0021-clip-color-controls-and-native-still-preview.md).
+
+
 **Phase 1C decoder boundary:** native expected/output format validation and a terminal
 per-render color gate now pass native/JNI/pure-Kotlin tests. Candidate configuration
 installs a guarded Media3 decoder factory; both surface-render release overloads check

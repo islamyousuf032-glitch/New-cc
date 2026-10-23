@@ -107,7 +107,23 @@ internal object TimelineRenderExporter {
         progress: (String) -> Unit,
     ) {
         check(android.os.Looper.myLooper() != android.os.Looper.getMainLooper())
-        val composition = composition(plan)
+        exportComposition(context,plan,output,cancelled,progress,composition(plan),null)
+    }
+
+    /** Explicit developer/test entry: REAL encoder path, not user delivery or parity proof.
+     * Does not change shipping export guards. Caller owns scratch output and gap consent.
+     */
+    @androidx.annotation.VisibleForTesting
+    internal fun exportGradedCandidate(context: Context, plan: TimelineRemuxExporter.Plan, revision: String,
+        output: File, cancelled: AtomicBoolean, progress: (String) -> Unit) {
+        check(android.os.Looper.myLooper() != android.os.Looper.getMainLooper())
+        val captured=plan.copy(clips=plan.clips.toList())
+        val candidate=probeCandidate(context,captured,revision,cancelled)
+        exportComposition(context,captured,output,cancelled,progress,candidate.composition,candidate)
+    }
+
+    private fun exportComposition(context: Context, plan: TimelineRemuxExporter.Plan, output: File,
+        cancelled: AtomicBoolean, progress: (String) -> Unit, composition: Composition, candidate: Candidate?) {
         val thread = HandlerThread("OwncutRender").apply { start() }
         val handler = Handler(thread.looper)
         val finished = CountDownLatch(1)
@@ -145,6 +161,7 @@ internal object TimelineRenderExporter {
                 }
                 transformer = Transformer.Builder(context.applicationContext)
                     .setLooper(thread.looper)
+                    .apply { candidate?.configure(context,this) }
                     .setEncoderFactory(alwaysEncode)
                     .setVideoMimeType(MimeTypes.VIDEO_H264)
                     .setAudioMimeType(MimeTypes.AUDIO_AAC)

@@ -1,5 +1,14 @@
 # Product specification
 
+## Color editor source implementation (2026-10-23)
+
+Color workspace:17parameter draft, native still Render, Before/After, enable/reset, explicit
+Apply/Cancel with history/recovery. Require known SDR source + sRGB bitmap; reject unknown
+rather than fake processing. Clearly label still-only/ungraded playback/guarded export.
+This is not live preview/full grading completion. Candidate encoder entry is test-only;
+Android app/UI/codec acceptance and compatible APK are still pending (ADR0021).
+
+
 ## Candidate decoder gate (2026-10-23; not released)
 
 Require known admitted SDR output tags and unchanged coded geometry/range before every

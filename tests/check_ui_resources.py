@@ -36,3 +36,9 @@ for name, palette in palettes.items():
             a, b = sorted((luminance(palette[foreground]),luminance(palette[background])))
             assert (b+.05)/(a+.05) >= 4.5, (name,foreground,background)
 print(f'{len(en)} bilingual strings; resource parity and all three theme contrasts passed')
+
+for folder in ('values','values-bn'):
+    tree=ET.parse(ROOT / 'app/src/main/res' / folder / 'strings.xml')
+    labels=tree.find(".//string-array[@name='color_parameter_names']")
+    assert labels is not None and len(labels.findall('item'))==17, 'native v1 color controls need 17 labels'
+print('17 color parameter labels in both languages passed')

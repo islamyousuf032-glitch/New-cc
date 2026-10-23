@@ -1,5 +1,15 @@
 # Architecture index and execution history
 
+## Color editing surface and still-processing route (2026-10-23)
+
+ClipColorEditor owns a worker/draft, metadata/frame extraction and explicit native-processed
+sRGB still image. ColorFrameBuffers transports straight ARGB/RGBA only; ColorGradeDraft
+parses bilingual text, not grading math. Apply is one SessionCoordinator grade command via
+existing EngineSession plus Activity dirty/autosave; Cancel has no edit. Preview proxy scales
+before grading and is not a video parity oracle. Candidate encoder now has an explicit test
+entry into the existing worker; shipping guards remain. Android execution unverified (ADR0021).
+
+
 ## Candidate decoder boundary (2026-10-23)
 
 C++ validates decoded coded geometry/color against the admitted input descriptor; JNI

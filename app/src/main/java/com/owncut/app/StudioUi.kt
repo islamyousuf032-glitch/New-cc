@@ -57,7 +57,7 @@ internal object StudioUi {
     }
 }
 
-internal enum class StudioIcon { HOME, EDIT, MEDIA, FLOW, EXPORT, SPLIT, TRIM_LEFT, TRIM_RIGHT, DELETE, RIPPLE,
+internal enum class StudioIcon { HOME, EDIT, MEDIA, COLOR, FLOW, EXPORT, SPLIT, TRIM_LEFT, TRIM_RIGHT, DELETE, RIPPLE,
     UNDO, REDO, SAVE, SAVE_AS, OPEN, RECOVER, IMPORT, LINK, PLAY, FOLLOW, CANCEL, PLUS, SETTINGS, RENAME, REFRESH, INFO }
 
 /** Original stroke-vector icons: no icon font, emoji, external assets or proprietary artwork.
@@ -102,6 +102,7 @@ internal class StudioButton @JvmOverloads constructor(context: Context, attrs: A
         fun arrow(up: Boolean) { val y = if(up) 3f else 21f; val end = if(up) 8f else 16f
             line(12f,y,12f,17f); path(7f,end,12f,y,17f,end) }
         when(icon) {
+            StudioIcon.COLOR -> { canvas.drawCircle(9f,9f,5f,ink);canvas.drawCircle(15f,9f,5f,ink);canvas.drawCircle(12f,15f,5f,ink) }
             StudioIcon.PLAY -> if (text.toString() == AppLanguage.text(R.string.action_pause)) {
                 line(8f,5f,8f,19f); line(16f,5f,16f,19f)
             } else path(8f,4f,20f,12f,8f,20f,8f,4f)

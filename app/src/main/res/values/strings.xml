@@ -280,4 +280,36 @@
     <string name="checkpoint_no_repair">No damaged checkpoint record needs repair.</string>
     <string name="color_grade_export_pending">This project contains color grades. Graded video export is not enabled yet; export was stopped to avoid losing the look.</string>
     <string name="color_grade_preview_pending">Clip has a color grade. Preview currently shows the ungraded source; graded preview integration is pending.</string>
+    <string name="color_editor_title">Clip color grade</string>
+    <string name="color_still_notice">Still-frame preview only. Playback is ungraded; graded export is not enabled. Render the draft before Apply. Cancel leaves the saved grade unchanged.</string>
+    <string name="color_enabled">Enable saved grade</string>
+    <string name="color_render_still">Render draft</string>
+    <string name="color_before">Before</string>
+    <string name="color_after">After</string>
+    <string name="color_reset_draft">Reset draft</string>
+    <string name="color_apply">Apply to clip</string>
+    <string name="color_cancel">Cancel</string>
+    <string name="color_processing">Processing with native color engine…</string>
+    <string name="color_error">Color processing failed: %1$s</string>
+    <string name="page_color">Color</string>
+    <string-array name="color_parameter_names">
+        <item>Exposure (−8…8 stops)</item>
+        <item>Contrast (0…4)</item>
+        <item>Saturation (0…4)</item>
+        <item>Pivot (0.001…1)</item>
+        <item>Strength (0…1)</item>
+        <item>Red balance (−2…2 stops)</item>
+        <item>Green balance (−2…2 stops)</item>
+        <item>Blue balance (−2…2 stops)</item>
+        <item>Red lift (−1…1)</item>
+        <item>Green lift (−1…1)</item>
+        <item>Blue lift (−1…1)</item>
+        <item>Red gamma (0.1…4)</item>
+        <item>Green gamma (0.1…4)</item>
+        <item>Blue gamma (0.1…4)</item>
+        <item>Red gain (0…4)</item>
+        <item>Green gain (0…4)</item>
+        <item>Blue gain (0…4)</item>
+    </string-array>
+    <string name="color_source_changed">Clip changed while editing. Close and reopen Color.</string>
 </resources>

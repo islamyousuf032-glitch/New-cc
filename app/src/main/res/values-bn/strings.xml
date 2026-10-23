@@ -280,4 +280,36 @@
     <string name="checkpoint_no_repair">মেরামতের প্রয়োজন এমন নষ্ট চেকপয়েন্ট রেকর্ড নেই।</string>
     <string name="color_grade_export_pending">এই প্রজেক্টে কালার গ্রেড আছে। গ্রেডসহ ভিডিও এক্সপোর্ট এখনো চালু হয়নি; লুক হারানো ঠেকাতে এক্সপোর্ট বন্ধ রাখা হয়েছে।</string>
     <string name="color_grade_preview_pending">এই ক্লিপে কালার গ্রেড আছে। প্রিভিউ এখন মূল আনগ্রেডেড ভিডিও দেখাচ্ছে; গ্রেডেড প্রিভিউ সংযোগের কাজ বাকি।</string>
+    <string name="color_editor_title">ক্লিপের কালার গ্রেড</string>
+    <string name="color_still_notice">শুধু স্থির ফ্রেমের প্রিভিউ। Playback ungraded; graded export এখনো চালু নয়। Apply করার আগে draft render করুন। Cancel করলে সংরক্ষিত grade বদলাবে না।</string>
+    <string name="color_enabled">সংরক্ষিত গ্রেড সক্রিয়</string>
+    <string name="color_render_still">ড্রাফট রেন্ডার</string>
+    <string name="color_before">আগে</string>
+    <string name="color_after">পরে</string>
+    <string name="color_reset_draft">ড্রাফট রিসেট</string>
+    <string name="color_apply">ক্লিপে প্রয়োগ</string>
+    <string name="color_cancel">বাতিল</string>
+    <string name="color_processing">নেটিভ কালার ইঞ্জিনে প্রসেস হচ্ছে…</string>
+    <string name="color_error">কালার প্রসেস ব্যর্থ: %1$s</string>
+    <string name="page_color">কালার</string>
+    <string-array name="color_parameter_names">
+        <item>এক্সপোজার (−৮…৮ স্টপ)</item>
+        <item>কনট্রাস্ট (০…৪)</item>
+        <item>স্যাচুরেশন (০…৪)</item>
+        <item>পিভট (০.০০১…১)</item>
+        <item>প্রয়োগের মাত্রা (০…১)</item>
+        <item>লাল ব্যালান্স (−২…২ স্টপ)</item>
+        <item>সবুজ ব্যালান্স (−২…২ স্টপ)</item>
+        <item>নীল ব্যালান্স (−২…২ স্টপ)</item>
+        <item>লাল লিফট (−১…১)</item>
+        <item>সবুজ লিফট (−১…১)</item>
+        <item>নীল লিফট (−১…১)</item>
+        <item>লাল গামা (০.১…৪)</item>
+        <item>সবুজ গামা (০.১…৪)</item>
+        <item>নীল গামা (০.১…৪)</item>
+        <item>লাল গেইন (০…৪)</item>
+        <item>সবুজ গেইন (০…৪)</item>
+        <item>নীল গেইন (০…৪)</item>
+    </string-array>
+    <string name="color_source_changed">সম্পাদনার সময়ে ক্লিপ বদলেছে। Color বন্ধ করে আবার খুলুন।</string>
 </resources>

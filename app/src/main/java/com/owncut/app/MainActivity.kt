@@ -46,6 +46,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     private var projectTitle: TextView? = null
     private var projectToolsScroll: HorizontalScrollView? = null
     private var detailsPanel: ScrollView? = null
+    private var colorDialog: AlertDialog? = null
     private var mediaSourcesDialog: AlertDialog? = null
     private var checkpointRepairDialog: AlertDialog? = null
     private val workspaceTabs = mutableMapOf<String, Button>()
@@ -343,8 +344,8 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         header.addView(title, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = dp(12) })
         root.addView(header, matchWrap())
         val navigation = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        for (page in listOf("Edit", "Media", "Flow", "Deliver")) {
-            val tab = actionButton(pageLabel(page), when(page) { "Edit" -> StudioIcon.EDIT; "Media" -> StudioIcon.MEDIA; "Flow" -> StudioIcon.FLOW; else -> StudioIcon.EXPORT }) { showWorkspacePage(page) }
+        for (page in listOf("Edit", "Media", "Color", "Flow", "Deliver")) {
+            val tab = actionButton(pageLabel(page), when(page) { "Color" -> StudioIcon.COLOR; "Edit" -> StudioIcon.EDIT; "Media" -> StudioIcon.MEDIA; "Flow" -> StudioIcon.FLOW; else -> StudioIcon.EXPORT }) { showWorkspacePage(page) }
             workspaceTabs[page] = tab
             navigation.addView(tab, LinearLayout.LayoutParams(0, dp(52), 1f).apply { setMargins(dp(3),dp(6),dp(3),dp(6)) })
         }
@@ -501,6 +502,11 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         deliverPanel.setPadding(dp(16),dp(16),dp(16),dp(16))
         root.addView(deliverPanel, matchWrap())
         workspacePanels.getOrPut("Media") { mutableListOf() }.add(controls)
+        val colorPanel=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
+        colorPanel.addView(TextView(this).apply { text=AppLanguage.text(R.string.color_still_notice);setTextColor(StudioUi.muted) })
+        colorPanel.addView(actionButton(AppLanguage.text(R.string.color_editor_title),StudioIcon.COLOR) { showClipColorEditor() },matchWrap())
+        root.addView(colorPanel,matchWrap())
+        workspacePanels.getOrPut("Color") { mutableListOf() }.add(colorPanel)
         val flow = TextView(this).apply {
             text = AppLanguage.text(R.string.message_4f099c46c1)
             textSize = 15f; setTextColor(StudioUi.text); setPadding(0, dp(10), 0, dp(10))
@@ -642,7 +648,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     }
 
     private fun pageLabel(page: String) = AppLanguage.text(when(page) {
-        "Tools" -> R.string.tools; "Edit" -> R.string.page_edit; "Media" -> R.string.page_media; "Flow" -> R.string.page_flow; else -> R.string.page_deliver
+        "Color" -> R.string.page_color; "Tools" -> R.string.tools; "Edit" -> R.string.page_edit; "Media" -> R.string.page_media; "Flow" -> R.string.page_flow; else -> R.string.page_deliver
     })
 
     private fun showWorkspacePage(page: String) {
@@ -668,6 +674,25 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         ViewGroup.LayoutParams.WRAP_CONTENT,
         ViewGroup.LayoutParams.WRAP_CONTENT,
     ).apply { rightMargin = dp(4) }
+
+    private fun showClipColorEditor() {
+        if(blockWhileMediaLoads() || colorDialog?.isShowing == true) return
+        val session=engine ?: return
+        try {
+            val clip=currentSelectedClip() ?: error(AppLanguage.text(R.string.message_f4e00f9522))
+            pauseForTimelineScrub()
+            colorDialog=ClipColorEditor.show(this,clip,previewPositionMs.coerceIn(clip.sourceInMs,
+                (clip.sourceOutMs-1).coerceAtLeast(clip.sourceInMs))) { grade ->
+                check(engine === session && !projectIoBusy && !isDestroyed) { AppLanguage.text(R.string.message_ccdca32722) }
+                val current=requireNotNull(session.clips().firstOrNull { it.id==clip.id }) { AppLanguage.text(R.string.color_source_changed) }
+                check(current==clip) { AppLanguage.text(R.string.color_source_changed) }
+                if(grade != current.grade) {
+                    session.setClipGrades(listOf(clip.id),grade)
+                    refreshTimeline();scheduleAutosave();engineStatusText.text=session.status()
+                }
+            }
+        } catch(error: Exception) { showError(error) }
+    }
 
     private fun refreshTimeline() {
         if (!::timelineContainer.isInitialized || !::selectedClipText.isInitialized) return
@@ -1882,6 +1907,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     }
 
     override fun onDestroy() {
+        colorDialog?.dismiss();colorDialog=null
         mediaSourcesDialog?.dismiss(); mediaSourcesDialog=null
         checkpointRepairDialog?.dismiss(); checkpointRepairDialog=null
         metadataRequestSequence += 1

@@ -67,6 +67,11 @@ refuse করে, preview স্পষ্টভাবে ungraded বলে; And
 
 ### ১D — ব্যবহারযোগ্য grading interface
 
+- [x] ১৭ parameter draft, native still preview, Before/After, enable/reset এবং atomic Apply source।
+- [x] বাংলা/English input, history/autosave wiring; host pixel/draft test পাস।
+- [ ] Android UI/build/device validation; এই preview স্থির proxy, live graded playback নয়।
+
+
 - [ ] পরিষ্কার Color workspace; exposure/contrast/saturation ও channel controls।
 - [ ] Lift/gamma/gain controls, reset, bypass ও before/after comparison।
 - [ ] Curves, HSL/secondary selection ও LUT support: native implementation ছাড়া fake control নয়।
