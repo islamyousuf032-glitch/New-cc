@@ -35,7 +35,7 @@ BINDINGS = {
     'nativeRepairCheckpoint': '(JLjava/lang/String;)Z',
 }
 
-def fixture_class():
+def fixture_class(name="com/owncut/app/EngineSession", bindings=None):
     pool = [b'']
     def add(value): pool.append(value); return len(pool)-1
     def u16(value): return struct.pack('>H', value)
@@ -46,7 +46,7 @@ def fixture_class():
     def method(owner, name, signature):
         pair = add(b'\x0c'+u16(utf(name))+u16(utf(signature)))
         return add(b'\x0a'+u16(owner)+u16(pair))
-    own = cls('com/owncut/app/EngineSession'); parent = cls('java/lang/Object')
+    own = cls(name); parent = cls('java/lang/Object')
     constructor = method(parent, '<init>', '()V')
     load = method(cls('java/lang/System'), 'load', '(Ljava/lang/String;)V')
     code_name = utf('Code')
@@ -57,7 +57,7 @@ def fixture_class():
     methods = [code_method('<init>', '()V', 1, b'\x2a\xb7'+u16(constructor)+b'\xb1'),
                code_method('load', '(Ljava/lang/String;)V', 9, b'\x2a\xb8'+u16(load)+b'\xb1')]
     methods += [struct.pack('>HHHH', 0x101, utf(name), utf(signature), 0)
-                for name, signature in BINDINGS.items()]
+                for name, signature in (BINDINGS if bindings is None else bindings).items()]
     return (struct.pack('>IHHH', 0xcafebabe, 0, 52, len(pool))+b''.join(pool[1:])
             +struct.pack('>HHHHHH', 0x31, own, parent, 0, 0, len(methods))
             +b''.join(methods)+u16(0))
@@ -72,6 +72,9 @@ def main():
         root = Path(temporary)
         fixture = root/'com/owncut/app/EngineSession.class'
         fixture.parent.mkdir(parents=True); fixture.write_bytes(fixture_class())
+        color_fixture = root/'com/owncut/app/ColorEngine.class'
+        color_fixture.write_bytes(fixture_class('com/owncut/app/ColorEngine', {
+            'nativeRenderV1':'(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;IIII[DZ)V'}))
         jpype.startJVM(str(java_home/'lib/server/libjvm.so'), '-Xcheck:jni',
                       '--enable-native-access=ALL-UNNAMED', classpath=[str(root)], convertStrings=True)
         try:
@@ -152,6 +155,24 @@ def main():
                 replacement = engine.nativeCreate(str(uuid.uuid4()))
                 check(replacement > temporary)
                 engine.nativeDestroy(replacement)
+                color = jpype.JClass('com.owncut.app.ColorEngine')()
+                ByteBuffer = jpype.JClass('java.nio.ByteBuffer')
+                source, dest = ByteBuffer.allocateDirect(8), ByteBuffer.allocateDirect(8)
+                for i,v in enumerate([128,128,128,37,255,0,0,0]): source.put(i,v if v<128 else v-256)
+                parameters = [1,1,1,0.18,1,0,0,0,0,0,0,1,1,1,1,1,1]
+                def render(src=source, dst=dest, params=parameters):
+                    color.nativeRenderV1(src,dst,2,1,8,8,jpype.JArray(jpype.JDouble)(params),True)
+                render()
+                check([dest.get(i)&255 for i in range(8)] == [176,176,176,37,255,0,0,0])
+                failure(lambda: render(dst=source))
+                failure(lambda: render(dst=dest.asReadOnlyBuffer()))
+                failure(lambda: render(src=ByteBuffer.allocate(8)))
+                failure(lambda: render(params=parameters[:-1]))
+                failure(lambda: render(params=[float('nan')]+parameters[1:]))
+                source.position(1); failure(render); source.position(0)
+                dest.limit(4); failure(render); dest.limit(8)
+                check([source.get(i)&255 for i in range(8)] == [128,128,128,37,255,0,0,0])
+                print('Native C++ color JNI: actual graded pixels, alpha, buffers, alias/readonly/range validation passed')
                 print('Host JVM JNI: Unicode, revision pages, stale/invalid handles, concurrent destroy, catalog and recovery passed')
             finally:
                 for handle in handles: engine.nativeDestroy(handle)

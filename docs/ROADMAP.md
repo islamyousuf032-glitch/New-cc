@@ -1,5 +1,18 @@
 # Roadmap and acceptance gates
 
+## User-prioritized sequence — color first (2026-10-23)
+
+Canonical remaining-work breakdown: [বাংলা implementation phases](IMPLEMENTATION_PHASES_BN.md),
+ADR 0016. Order: **1 color grading**, 2 editor/project/media reliability, 3 real nodes,
+4 compositing, 5 animation/motion, 6 audio, 7 advanced color/HDR/performance, 8 camera/
+.ccraw specification and implementation, 9 compatible update/release completion.
+Safety fixes necessary for a current feature are not postponed merely by this order.
+
+Phase 1A native SDR grading/reference/frame bridge/histogram/preset is implemented and
+host-tested. Phase 1B persisted clip grades/history is next, then shared GPU preview/
+export, controls/scopes and color parity acceptance. No live grading or full phase-one
+completion is claimed. Color ledger is in_progress with **25% total credit / 75% remaining**.
+
 ## Next implementation checkpoint — safe lifetime/projections (2026-10-23)
 
 Native opaque handles with in-flight lifetime pinning, exact revision-page JNI, immutable

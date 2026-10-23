@@ -1,0 +1,57 @@
+#include <jni.h>
+#include "editor/color.hpp"
+#include <new>
+#include <limits>
+
+namespace {
+void fail(JNIEnv* env, const char* type_name, const char* message) {
+    if (env->ExceptionCheck()) return;
+    const auto type=env->FindClass(type_name);
+    if (type) { env->ThrowNew(type,message); env->DeleteLocalRef(type); } // engine messages are ASCII
+}
+struct Buffer { std::uint8_t* data; std::size_t size; };
+Buffer buffer(JNIEnv* env, jobject value, bool writable) {
+    if (!value) throw std::invalid_argument("RGBA buffer is null");
+    const auto capacity=env->GetDirectBufferCapacity(value);
+    auto* data=static_cast<std::uint8_t*>(env->GetDirectBufferAddress(value));
+    if (capacity < 0 || !data || static_cast<std::uint64_t>(capacity) > std::numeric_limits<std::size_t>::max())
+        throw std::invalid_argument("RGBA requires a direct byte buffer");
+    const auto type=env->FindClass("java/nio/ByteBuffer");
+    if (!type) throw std::runtime_error("ByteBuffer class unavailable");
+    const auto readonly=env->GetMethodID(type,"isReadOnly","()Z");
+    const auto position=env->GetMethodID(type,"position","()I");
+    const auto limit=env->GetMethodID(type,"limit","()I");
+    env->DeleteLocalRef(type);
+    if (env->ExceptionCheck() || !readonly || !position || !limit)
+        throw std::runtime_error("ByteBuffer contract unavailable");
+    const auto read_only=env->CallBooleanMethod(value,readonly);
+    if (env->ExceptionCheck()) throw std::runtime_error("could not inspect RGBA buffer");
+    const auto pos=env->CallIntMethod(value,position);
+    if (env->ExceptionCheck()) throw std::runtime_error("could not inspect RGBA buffer");
+    const auto end=env->CallIntMethod(value,limit);
+    if (env->ExceptionCheck()) throw std::runtime_error("could not inspect RGBA buffer");
+    if ((writable && read_only) || pos != 0 || end != capacity)
+        throw std::invalid_argument("RGBA buffers must expose full capacity at position zero; output must be writable");
+    return {data,static_cast<std::size_t>(capacity)};
+}
+} // namespace
+extern "C" JNIEXPORT void JNICALL
+Java_com_owncut_app_ColorEngine_nativeRenderV1(JNIEnv* env, jobject,
+    jobject source, jobject output, jint width, jint height, jint source_stride,
+    jint output_stride, jdoubleArray values, jboolean enabled) {
+    try {
+        if (width <= 0 || height <= 0 || source_stride <= 0 || output_stride <= 0)
+            throw std::invalid_argument("invalid RGBA dimensions/stride");
+        if (!values || env->GetArrayLength(values) != static_cast<jsize>(editor::color::parameter_count))
+            throw std::invalid_argument("grade v1 requires 17 parameters");
+        editor::color::ParameterBlock parameters;
+        env->GetDoubleArrayRegion(values,0,static_cast<jsize>(parameters.size()),parameters.data());
+        if (env->ExceptionCheck()) return;
+        const auto grade=editor::color::from_parameters(parameters,enabled != JNI_FALSE);
+        const auto in=buffer(env,source,false), out=buffer(env,output,true);
+        const auto w=static_cast<std::size_t>(width), h=static_cast<std::size_t>(height);
+        (void)editor::color::apply_rgba8({{in.data,in.size},w,h,static_cast<std::size_t>(source_stride)},
+                                      {{out.data,out.size},w,h,static_cast<std::size_t>(output_stride)},grade);
+    } catch (const std::bad_alloc&) { fail(env,"java/lang/OutOfMemoryError","color processing allocation failed"); }
+      catch (const std::exception& error) { fail(env,"java/lang/IllegalArgumentException",error.what()); }
+}

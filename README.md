@@ -12,6 +12,14 @@ Owncut is an original, offline-first Android video-editing project. Its product 
 
 ## Current checkpoint
 
+**Active plan: color grading first**, per user direction. See the
+[পূর্ণ বাংলা ধাপভিত্তিক তালিকা](docs/IMPLEMENTATION_PHASES_BN.md).
+Phase 1A now implements a real C++20 grading processor, RGB/luminance histograms,
+versioned presets and a narrow Kotlin/JNI direct-buffer adapter. Production
+Kotlin→JNI→C++ pixel checks, four native suites and sanitizers pass. **Not yet live
+preview/export or saved clip grading; no new APK.** [Color contract](docs/COLOR_PIPELINE.md)
+and [latest evidence](docs/PROGRESS.md) distinguish implemented and pending work.
+
 **Next implementation batch, 2026-10-23:** safe native lifetime handles, exact-revision
 JNI pages, immutable Kotlin snapshot cache and indexed viewport drawing. Native,
 sanitizer and real JVM checks pass; production pure Kotlin cache/index also compiles

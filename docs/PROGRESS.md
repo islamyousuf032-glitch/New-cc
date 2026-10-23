@@ -1,5 +1,39 @@
 # Progress
 
+## Color-first plan and phase 1A — 2026-10-23
+
+User reprioritized the remaining work: **color grading first, C++ wherever reasonable**.
+The active nine-phase sequence/exit gates are in IMPLEMENTATION_PHASES_BN; ADR 0016
+supersedes the previous controller-first order, not reliability/compatibility requirements.
+
+Implemented original C++20 `engine/color`: exposure, channel-stop balance, pivoted
+contrast, saturation, per-channel lift/gamma/gain, strength/bypass, sRGB/linear transfer,
+real RGBA8 processing, alpha/source/padding preservation, validated strides/budgets,
+nonoverlap and cooperative cancellation, RGB/luminance histograms and a bounded 149-byte
+versioned preset codec. Added an immutable Kotlin settings adapter and stateless native
+direct-buffer frame bridge; no grading math duplicated in Kotlin. See COLOR_PIPELINE.
+
+**Passed:** Make four suites; CMake Release/CTest **4/4**; color **ASan+UBSan**; strict
+production JNI build; real JVM **-Xcheck:jni** including actual graded pixel output and
+buffer safety; app-pinned Kotlin **2.3.21 -Werror** compiles the production ColorEngine.kt
+and executes **Kotlin → production JNI → C++** with real direct buffers. Existing pure
+Kotlin timeline tests also pass. Tests cover transfer vectors, all 17 parameter ranges,
+NaN/Inf, exact neutral bytes, +1-stop gray **128→176**, RGB balance, mix/bypass, alpha,
+source/padding, layout/overflow/alias/read-only guards, cancellation, row-tile equivalence,
+histograms, preset truncation/future versions and randomized extremes. Existing 279
+resource/theme, seven metadata and three install-over guard tests pass.
+
+**Not complete:** phase 1B clip/project persistence and undo, color-managed shared
+preview/export GPU integration, live Color UI, curves/LUT/secondary tools, scopes UI and
+encoded-output parity. Current MediaPlayer and Media3 routes DO NOT apply this grade.
+The module expects explicit straight-alpha sRGB RGBA8, not YUV/HDR/premultiplied bitmaps;
+channel balance is not calibrated Kelvin/tint. Presets are not saved project grades.
+
+No full Android/ART/GPU/codec/phone/update test or new APK. ColorEngineContractTest
+Android sources are added, not compiled/executed. Phase **1A implementation is host-tested**;
+the complete color feature remains in progress. Verified roadmap **25% / 75% remaining**,
+unchanged weights/no new feature credit. Signing/remote CI obstacles are not fixed here.
+
 ## Safe lifetime and timeline projections — 2026-10-23, next batch
 
 Implemented **SessionRegistry** opaque/nonreused handles with per-call shared lifetime;

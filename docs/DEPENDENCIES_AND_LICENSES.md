@@ -1,5 +1,16 @@
 # Dependencies and licensing
 
+## Color phase 1A dependency review (2026-10-23)
+
+No new runtime/library dependency. The original C++20 grading module uses standard
+library math, spans, atomics and streams; no proprietary assets/LUTs/algorithms copied.
+Kotlin uses existing platform ByteBuffer only. Existing optional host JPype/JVM/Kotlin
+compiler tools and retained notices are reused; npm compiler 2.3.21 registry SHA512 was
+verified. No new tool binaries/presets are vendored or included as generated artifacts.
+This batch does not change the app's existing Media3/toolchain pins or certify all
+upstream dependencies as currently audited. Review licenses/maintenance/capabilities
+again before choosing future GPU/color-management/RAW libraries.
+
 ## Additional optional host compiler check (2026-10-23)
 
 Official JetBrains npm `kotlin-compiler@2.3.21` (repository metadata points to

@@ -1,5 +1,14 @@
 # Owncut advanced architecture — design baseline v1
 
+## Priority update — 2026-10-23
+
+User direction/ADR 0016 now makes **color grading the first advanced implementation
+phase**, with C++20 domain/processing logic. The explicit current phase sequence and
+exit gates are in IMPLEMENTATION_PHASES_BN. The original architecture/research below
+remains the forward design, not a requirement to finish controller extraction before
+starting color. Native grading reference/frame bridge is implemented and host-tested;
+project/history, live preview/export, GPU and editable node integration remain pending.
+
 Status: **accepted direction, incrementally executable**, 2026-10-22. This is an
 editable baseline, not a claim that the full engine already exists. Change it with
 an ADR, compatibility impact and tests, not by silently changing saved output.

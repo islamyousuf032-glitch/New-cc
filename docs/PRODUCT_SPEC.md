@@ -1,5 +1,17 @@
 # Product specification
 
+## First advanced feature: color grading (2026-10-23)
+
+The user-selected first phase is color grading, followed by the explicit phases in
+IMPLEMENTATION_PHASES_BN. Core math/validation/scopes/preset logic is C++20; Kotlin is a
+platform/UI adapter. Phase 1A native frame processing and its narrow JNI adapter now
+work in host tests. This is **not** a live Android grading UI or graded video export.
+
+Phase-one acceptance: grade binds to stable clips, survives save/recovery, supports
+undo/reset/bypass, and produces consistent color-managed preview and actual encoded
+output with usable bilingual/theme-aware controls and scopes. Current preset support
+is standalone, not project persistence. No unsupported HDR/transfer/white-balance claims.
+
 ## Timeline/lifetime batch (2026-10-23; host evidence only)
 
 Unchanged timeline revisions reuse immutable snapshots; changed revisions arrive through

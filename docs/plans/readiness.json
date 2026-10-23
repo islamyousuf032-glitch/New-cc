@@ -84,8 +84,8 @@
     {
       "id": "color",
       "weight": 8,
-      "status": "planned",
-      "evidence": "Working/output transforms, grading/scopes and HDR validation"
+      "status": "in_progress",
+      "evidence": "User-prioritized phase 1A: native SDR grading/RGBA8/histogram/preset and narrow color JNI implemented; four native suites, sanitizers and production Kotlin→JNI→C++ host pixel tests pass. Per-clip/history persistence, live color-managed preview/export, controls/scopes/curves/LUT and Android acceptance pending. ADR 0016; no new verified credit."
     },
     {
       "id": "audio",

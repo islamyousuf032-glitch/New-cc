@@ -1,5 +1,16 @@
 # Architecture index and execution history
 
+## Active implementation sequence: color first (2026-10-23)
+
+Per user direction/ADR 0016, IMPLEMENTATION_PHASES_BN is the active phase order. First
+implement genuine native grading, then per-clip/history persistence and shared preview/
+export integration; controller work remains required but is no longer the first feature.
+`engine/color` is a C++20 standard-library-only CPU reference/frame processor with
+validated settings, RGBA8 safety, histograms and standalone preset serialization.
+`color_jni.cpp` + ColorEngine.kt transport direct buffers/17 immutable settings only.
+Production Kotlin/JNI/C++ pixel processing is host-tested; it is not yet connected to
+MediaPlayer, Transformer, project files or Flow. COLOR_PIPELINE defines color semantics.
+
 ## Safe handles and timeline projections (2026-10-23)
 
 ADR 0015 replaces JNI pointer handles with process-local SessionRegistry tokens. Each

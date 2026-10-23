@@ -1,5 +1,15 @@
 # Device test matrix
 
+## Color phase 1A — host-only evidence (2026-10-23)
+
+No Android/phone/GPU/encoded-video grade result. ColorEngineContractTest adds ART/ABI
+CPU frame tests for actual pixels, alpha/source and bad-buffer refusal, but is not yet
+compiled/run. Host production Kotlin/JNI tests are not Android acceptance. Live grading
+is NOT wired into the editor, so do not ask the user to test nonexistent Color controls.
+Later phase-one phone handoff requires save/reopen/undo/reset, before-after, seeking,
+preview/export color-chart parity, alpha, lifecycle and output playback on a compatible
+signed update. Phone testing remains user-owned; no uninstall/data-clear workaround.
+
 ## Lifetime/projection batch (2026-10-23; no new device results)
 
 Once a signer-compatible update exists, user checks should include: long multi-clip

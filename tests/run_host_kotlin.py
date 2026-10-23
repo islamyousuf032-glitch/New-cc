@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Compile/run production pure Kotlin timeline projections, not Android code.
-Usage: python3 tests/run_host_kotlin.py JAVA_HOME KOTLIN_HOME
+Usage: python3 tests/run_host_kotlin.py JAVA_HOME KOTLIN_HOME [HOST_JNI_LIBRARY]
 Requires a compiler distribution matching the app Kotlin pin (currently 2.3.21).
 Generated jars live only in a temporary directory. No Android stubs are used.
 """
@@ -11,7 +11,7 @@ import sys
 import tempfile
 
 root = Path(__file__).resolve().parents[1]
-java_home, kotlin_home = [Path(arg).resolve() for arg in sys.argv[1:]]
+java_home, kotlin_home = [Path(arg).resolve() for arg in sys.argv[1:3]]
 env = dict(os.environ, JAVA_HOME=str(java_home), PATH=str(java_home/'bin')+os.pathsep+os.environ['PATH'])
 with tempfile.TemporaryDirectory(prefix='owncut-kotlin-') as directory:
     jar = Path(directory)/'projection-tests.jar'
@@ -19,3 +19,16 @@ with tempfile.TemporaryDirectory(prefix='owncut-kotlin-') as directory:
     subprocess.run(['bash',str(kotlin_home/'bin/kotlinc'),*[str(p) for p in sources],
                     str(root/'tests/kotlin/TimelineProjectionTest.kt'),'-Werror','-include-runtime','-d',str(jar)],env=env,check=True)
     subprocess.run([str(java_home/'bin/java'),'-jar',str(jar)],env=env,check=True)
+
+# Optional actual production ColorEngine bridge, not generated Android stubs.
+if len(sys.argv) == 4:
+    import shutil
+    library = Path(sys.argv[3]).resolve()
+    with tempfile.TemporaryDirectory(prefix='owncut-color-kotlin-') as directory:
+        jar = Path(directory)/'color-bridge.jar'
+        shutil.copyfile(library,Path(directory)/'libowncut_android.so')
+        subprocess.run(['bash',str(kotlin_home/'bin/kotlinc'),
+            str(root/'app/src/main/java/com/owncut/app/ColorEngine.kt'),
+            str(root/'tests/kotlin/ColorBridgeTest.kt'),'-Werror','-include-runtime','-d',str(jar)],env=env,check=True)
+        subprocess.run([str(java_home/'bin/java'),'-Xcheck:jni','--enable-native-access=ALL-UNNAMED',
+            '-Djava.library.path='+directory,'-jar',str(jar)],env=env,check=True)

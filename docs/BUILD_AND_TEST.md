@@ -1,5 +1,27 @@
 # Build and test
 
+## Color phase 1A checks (2026-10-23)
+
+`make test` now runs **four** suites; CTest includes owncut_color_tests. The color suite
+covers all 17 parameter bounds/nonfinite inputs, real pixels/alpha, identity, stride/
+overlap/overflow/cancellation, histograms, preset bounds/versions and tile equivalence.
+CMake Release/CTest 4/4 and color ASan+UBSan passed locally.
+
+Host JNI builds must now include **platform/android/jni/color_jni.cpp**,
+**engine/color/src/color.cpp**, and **-Iengine/color/include**. The documented compile
+command below includes these; run_host_jni exercises both native session and color APIs.
+
+```sh
+python3 tests/run_host_kotlin.py "$JAVA_HOME" "$KOTLIN_HOME" /tmp/libowncut_host.so
+```
+
+The optional third argument additionally compiles production ColorEngine.kt + the
+original ColorBridgeTest, loads the actual library in a temporary location and runs
+Kotlin→JNI→C++ under -Xcheck:jni. It passed using Kotlin 2.3.21 and cache-only Java 25;
+Android CI's JDK 17 pin is unchanged. No synthetic Android stubs are used. This does
+not compile/test the full Android app, GPU/video pipeline or ART. New Android contract
+sources exist but are unrun. No new APK; no device/codec/performance claim.
+
 ## New lifetime/projection checks (2026-10-23)
 
 `make test` and CTest now compile SessionRegistry. Native tests include pinned calls
@@ -44,9 +66,10 @@ environment (not an app dependency). Build the production JNI against its header
 ```sh
 c++ -std=c++20 -O2 -shared -fPIC -pthread -Wall -Wextra -Wpedantic \
   -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" \
-  -Iengine/session/include -Iengine/core/include -Iengine/timeline/include \
+  -Iengine/color/include -Iengine/session/include -Iengine/core/include -Iengine/timeline/include \
   -Iengine/commands/include -Iengine/project/include \
-  platform/android/jni/editor_jni.cpp engine/session/src/session_registry.cpp \
+  platform/android/jni/editor_jni.cpp platform/android/jni/color_jni.cpp \
+  engine/color/src/color.cpp engine/session/src/session_registry.cpp \
   engine/session/src/session_coordinator.cpp \
   engine/core/src/time.cpp engine/timeline/src/timeline.cpp \
   engine/commands/src/command_history.cpp engine/project/src/project.cpp \
@@ -72,7 +95,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-`make test` builds/runs `/tmp/owncut_{core,session,checkpoint}_tests`, avoiding generated binaries in the repository. CMake build output belongs in ignored `build/`.
+`make test` builds/runs `/tmp/owncut_{color,core,session,checkpoint}_tests`, avoiding generated binaries in the repository. CMake build output belongs in ignored `build/`.
 
 ## Android app shell and JNI smoke test
 
