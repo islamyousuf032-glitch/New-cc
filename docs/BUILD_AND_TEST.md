@@ -1,5 +1,22 @@
 # Build and test
 
+## Decoded color gate checks (2026-10-23)
+
+Make6/Release CTest6/6 and decoded/source/GPU ASan+UBSan passed. Existing strict JNI
+compile command applies unchanged. Actual JVM tests now exercise12-int expected/output
+blocks, malformed/null shapes/flags, changed geometry/tags/range/HDR rejection. Optional
+production Kotlin/native runner includes DecoderColorGate.kt; -Werror2.3.21 checks repeated
+format validation, late changes, unknown output and terminal failure/close alongside prior
+plan/projection/pixel tests. No synthetic Android stubs are used for these host passes.
+
+GuardedDecoderTest is new Android synthetic Codec-proxy source, **uncompiled/unrun**.
+Both surface overloads, timestamp/drop/cleanup/owner-thread assertions require Android
+runner validation. Real MediaCodec/output pixels and live preview/export are separate.
+CI39958756231 annotation says job not started due to billing/spending, not compiler proof.
+Candidate.configure now requires (context,builder) to bind guarded asset loader AND GL
+factory. No APK, codec, performance or install-over result. See ADR0020.
+
+
 ## Phase 1C source/plan checks (2026-10-23)
 
 Six Make/Release CTest suites and source/GPU ASan+UBSan pass. Existing full host JNI

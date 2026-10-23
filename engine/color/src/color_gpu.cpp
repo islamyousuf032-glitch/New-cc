@@ -15,6 +15,15 @@ void validate_sdr_video_source(const VideoColorMetadata& source) {
     if (source.range != VideoRange::full && source.range != VideoRange::limited)
         throw std::invalid_argument("grade source requires explicit full or limited video range");
 }
+void validate_decoded_video_format(const DecodedVideoFormat& expected, const DecodedVideoFormat& actual) {
+    validate_sdr_video_source(expected.color);
+    validate_sdr_video_source(actual.color);
+    if (expected.width <= 0 || expected.height <= 0 || actual.width != expected.width || actual.height != expected.height)
+        throw std::invalid_argument("decoded video geometry differs from admitted input");
+    if (actual.color.primaries != expected.color.primaries || actual.color.transfer != expected.color.transfer ||
+        actual.color.range != expected.color.range)
+        throw std::invalid_argument("decoded video color differs from admitted input");
+}
 void validate(TextureEncoding e) {
     if (e != TextureEncoding::srgb && e != TextureEncoding::linear709 && e != TextureEncoding::media3_sdr709)
         throw std::invalid_argument("unsupported grading texture encoding");

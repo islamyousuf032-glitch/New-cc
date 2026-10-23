@@ -1,5 +1,16 @@
 # Architecture index and execution history
 
+## Candidate decoder boundary (2026-10-23)
+
+C++ validates decoded coded geometry/color against the admitted input descriptor; JNI
+transports a fixed12-int block. Codec-owner-thread DecoderColorGate revalidates every
+surface render and latches failures/closure. GuardedDecoderFactory delegates audio and
+intercepts both rendered-buffer release overloads; drops do not render. Candidate builder
+uses DefaultAssetLoaderFactory + guarded decoder + explicit GL factory. No shipping route
+calls it. Factory Format lacks URI, so descriptor matching is not source identity; crop/
+rotation/pixels/thread behavior and actual Android operation remain unverified (ADR0020).
+
+
 ## Phase 1C source/plan boundary (2026-10-23; candidate)
 
 C++ owns VideoColorMetadata admission; JNI canonical codes are independent of platform

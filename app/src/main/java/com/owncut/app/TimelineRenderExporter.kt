@@ -6,12 +6,15 @@ import android.os.HandlerThread
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.util.Clock
 import androidx.media3.effect.DefaultVideoFrameProcessor
 import androidx.media3.effect.GlEffect
 import androidx.media3.effect.Presentation
 import androidx.media3.transformer.Codec
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.DefaultEncoderFactory
+import androidx.media3.transformer.DefaultDecoderFactory
+import androidx.media3.transformer.DefaultAssetLoaderFactory
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
@@ -43,7 +46,11 @@ internal object TimelineRenderExporter {
      */
     data class Candidate(val colors: ColorRenderPlan, val composition: Composition,
                          val factory: DefaultVideoFrameProcessor.Factory) {
-        fun configure(builder: Transformer.Builder): Transformer.Builder = builder.setVideoFrameProcessorFactory(factory)
+        fun configure(context: Context, builder: Transformer.Builder): Transformer.Builder = builder
+            .setVideoFrameProcessorFactory(factory)
+            .setAssetLoaderFactory(DefaultAssetLoaderFactory(context.applicationContext,
+                GuardedDecoderFactory(DefaultDecoderFactory.Builder(context.applicationContext).build(),colors),
+                Clock.DEFAULT,null))
     }
     internal fun probeCandidate(context: Context, plan: TimelineRemuxExporter.Plan,
         revision: String, cancelled: AtomicBoolean): Candidate {

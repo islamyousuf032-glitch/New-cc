@@ -1,5 +1,32 @@
 # Progress
 
+## Phase1C continuation — candidate decoder output gate (2026-10-23)
+
+Added native strict expected/decoded format validation (coded geometry and SDR color/
+range/HDR metadata), narrow12-int JNI transport and pure Kotlin terminal DecoderColorGate.
+Each rendered frame revalidates output; unknown/changed output or format-query failure
+cannot resume with cached proof. Candidate-only GuardedDecoderFactory intercepts both
+boolean/timestamp surface release overloads, delegates audio/drop cleanup, checks owner
+thread, retains timestamps and releases underlying codec at most once. Candidate builder
+configuration now binds guarded DefaultAssetLoaderFactory plus the explicit GL factory.
+
+**Passed locally:** Make6; Release CMake/CTest6/6; decoded/source/GPU contract ASan+UBSan;
+strict full JNI build; actual JVM decoded-shape/flag/metadata/geometry tests and prior
+contracts; production Kotlin2.3.21 -Werror/native gate/plan/projection/pixel checks. Native
+gate tests cover late format/range changes, missing output, query invalidation, terminal
+failure/close. Existing281 resource/3themes,7metadata/3install-over tests pass.
+
+**Not run:** Android adapter/test compilation/lint/ART and GuardedDecoderTest synthetic
+Codec proxy; actual MediaCodec, default asset loader/owner-thread lifecycle, decoder
+pixel/color/crop/rotation, preview/seek/surface/cancel, encoded export/phone/install-over.
+No shipping route invokes the candidate. No source byte identity proof; factory input
+Format has no URI. Strict checks may refuse legitimate decoder normalization; Android
+behavior must be measured before support expands. Shader math unchanged; no new GPU run.
+Android CI39958756231 check120431099638 explicitly did not start (billing/spending limit).
+No APK; next remains Android build, actual codec/shared preview connection and acceptance.
+Phase1C incomplete, verified readiness **25% complete /75% remaining** (ADR0020).
+
+
 ## Phase 1C continuation — source boundary and candidate composition (2026-10-23)
 
 Added native source-color admission (explicit Rec709/SDR/known range, no HDR-static

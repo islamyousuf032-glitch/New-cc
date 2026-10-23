@@ -88,3 +88,24 @@ Java_com_owncut_app_ColorEngine_nativeValidateVideoSourceV1(JNIEnv* env, jobject
     } catch (const std::bad_alloc&) { fail(env,"java/lang/OutOfMemoryError","color metadata validation allocation failed"); }
       catch (const std::exception& error) { fail(env,"java/lang/IllegalArgumentException",error.what()); }
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_owncut_app_ColorEngine_nativeValidateDecodedFormatV1(JNIEnv* env, jobject, jintArray values) {
+    try {
+        if (!values || env->GetArrayLength(values) != 12)
+            throw std::invalid_argument("decoded format comparison requires 12 integers");
+        std::array<jint,12> block{};
+        env->GetIntArrayRegion(values,0,12,block.data());
+        if (env->ExceptionCheck()) return;
+        const auto decode=[&](std::size_t offset) {
+            const auto flag=block[offset+5];
+            if (flag != 0 && flag != 1) throw std::invalid_argument("invalid decoded HDR flag");
+            return editor::color::DecodedVideoFormat{block[offset],block[offset+1],{
+                static_cast<editor::color::VideoPrimaries>(block[offset+2]),
+                static_cast<editor::color::VideoTransfer>(block[offset+3]),
+                static_cast<editor::color::VideoRange>(block[offset+4]),flag != 0}};
+        };
+        editor::color::validate_decoded_video_format(decode(0),decode(6));
+    } catch (const std::bad_alloc&) { fail(env,"java/lang/OutOfMemoryError","decoded format validation allocation failed"); }
+      catch (const std::exception& error) { fail(env,"java/lang/IllegalArgumentException",error.what()); }
+}

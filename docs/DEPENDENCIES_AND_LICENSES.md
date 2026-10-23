@@ -168,3 +168,11 @@ Official C.java1.8.1 inspected through GitHub to verify SRGB constant; no third-
 copied. Same excluded-cache OpenJDK17u headers, jdk4py25.0.2.1, JPype1.7.1 and SHA512-verified
 kotlin-compiler2.3.21/CMake tools as ADR0018 checks; no tooling enters Git/APK. New source
 metadata schema is ephemeral, not a persisted file-format/runtime dependency change.
+
+## Candidate decoder gate (2026-10-23)
+No added dependency/pin change. Uses existing Media3 Codec/DefaultAssetLoaderFactory and
+platform Surface; LogSessionId is only the existing nullable Media3 factory parameter,
+never constructed on old Android. Official Apache2.0 Codec/DefaultCodec/MediaFormatUtil/
+asset-loader API source inspected, not copied (ADR0020 links). Same excluded host tools/
+licenses as prior checkpoint. Android min26/ABI/build/security support remains unverified
+for this adapter; no new runtime binary, SDK mirror or private-source dependency added.

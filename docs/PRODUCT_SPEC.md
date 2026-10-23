@@ -1,5 +1,14 @@
 # Product specification
 
+## Candidate decoder gate (2026-10-23; not released)
+
+Require known admitted SDR output tags and unchanged coded geometry/range before every
+rendered release; fail closed on missing/changed metadata or query failure. This strict
+subset can refuse valid decoder normalization until tested. Native/host checks pass,
+Android/codec/preview/export acceptance does not. No URI identity or pixel correctness
+claim, no guard removal/new APK; see ADR0020.
+
+
 ## Phase 1C source admission/candidate (2026-10-23)
 
 Initial supported candidate subset requires raw explicit Rec709 + SDR-video + full/limited

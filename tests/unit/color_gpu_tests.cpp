@@ -17,6 +17,14 @@ void tests() {
     }
 
     fails([]{validate_sdr_video_source({VideoPrimaries::rec709,VideoTransfer::sdr_video,VideoRange::full,true});});
+    const DecodedVideoFormat expected{1920,1080,{VideoPrimaries::rec709,VideoTransfer::sdr_video,VideoRange::limited}};
+    validate_decoded_video_format(expected,expected);
+    auto actual=expected;actual.width=1280;fails([&]{validate_decoded_video_format(expected,actual);});
+    actual=expected;actual.height=0;fails([&]{validate_decoded_video_format(expected,actual);});
+    actual=expected;actual.color.range=VideoRange::full;fails([&]{validate_decoded_video_format(expected,actual);});
+    actual=expected;actual.color.transfer=VideoTransfer::unknown;fails([&]{validate_decoded_video_format(expected,actual);});
+    actual=expected;actual.color.has_hdr_static_metadata=true;fails([&]{validate_decoded_video_format(expected,actual);});
+    actual=expected;actual.width=0;fails([&]{validate_decoded_video_format(actual,actual);});
     check(grade_vertex_shader().find("#version 100") == 0);
     const Rgb input{0.5,0.25,0.75};
     for(auto e : {TextureEncoding::srgb,TextureEncoding::linear709,TextureEncoding::media3_sdr709}) {

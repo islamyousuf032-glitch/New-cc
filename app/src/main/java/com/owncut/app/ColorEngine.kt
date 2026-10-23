@@ -56,6 +56,13 @@ internal object ColorEngine {
     data class VideoColorMetadata(val primaries: VideoPrimaries, val transfer: VideoTransfer, val range: VideoRange, val hasHdrStaticMetadata: Boolean=false)
     fun validateVideoSource(source: VideoColorMetadata) = nativeValidateVideoSourceV1(
         source.primaries.nativeCode,source.transfer.nativeCode,source.range.nativeCode,source.hasHdrStaticMetadata)
+    data class DecodedVideoFormat(val width: Int, val height: Int, val color: VideoColorMetadata) {
+        fun parametersV1(): IntArray = intArrayOf(width,height,color.primaries.nativeCode,
+            color.transfer.nativeCode,color.range.nativeCode,if(color.hasHdrStaticMetadata) 1 else 0)
+    }
+    fun validateDecodedFormat(expected: DecodedVideoFormat, actual: DecodedVideoFormat) =
+        nativeValidateDecodedFormatV1(expected.parametersV1()+actual.parametersV1())
+    private external fun nativeValidateDecodedFormatV1(parameters: IntArray)
     private external fun nativeValidateVideoSourceV1(primaries: Int, transfer: Int, range: Int, hdrStatic: Boolean)
     private external fun nativeShaderV1(parameters: DoubleArray, enabled: Boolean, encoding: Int, vertex: Boolean): String
     private external fun nativeRenderV1(source: ByteBuffer, output: ByteBuffer, width: Int,

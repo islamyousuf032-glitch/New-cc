@@ -20,6 +20,14 @@ struct VideoColorMetadata {
 // Admission policy only; decoder/platform owns YUV/range normalization to the
 // explicit Media3 DEFAULT RGB texture. Never infer missing tags from resolution.
 void validate_sdr_video_source(const VideoColorMetadata& source);
+struct DecodedVideoFormat {
+    int width{};
+    int height{};
+    VideoColorMetadata color{};
+};
+// Strict initial subset: unknown tags, changed coded geometry/range/transfer fail.
+// Does not verify URI byte identity, rotation/crop transforms, or texture pixels.
+void validate_decoded_video_format(const DecodedVideoFormat& expected, const DecodedVideoFormat& actual);
 [[nodiscard]] Rgb texture_reference(Rgb normalized, const Grade& grade, TextureEncoding encoding);
 // Original GLES 2 shader, immutable parameters baked by C++ (no Kotlin grade math).
 // Require fragment highp; reject grades whose intermediates cannot safely fit floats.

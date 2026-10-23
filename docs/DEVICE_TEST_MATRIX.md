@@ -1,5 +1,18 @@
 # Device test matrix
 
+## Candidate decoder boundary (2026-10-23)
+
+- Native decoded verifier/JNI/pure-Kotlin gate tests passed, CTest6/6 and ASan+UBSan.
+- GuardedDecoderTest synthetic Codec proxy added: both rendered release overloads,
+  unchanged timestamp, absent/changed/query-failing formats, terminal failure, cleanup/
+  owner-thread handling. **Android compilation and execution unrun**.
+- Actual default asset-loader thread/release behavior, decoder color-range/size reporting,
+  coded-padding/crop/rotation normalization, source replacement/URI binding, rendered
+  pixels, shared preview/seek/cancel/lifecycle and encoded output remain pending.
+- CI39958756231 job never started (billing/spending), not device/compiler success.
+  Guards remain, no APK or phone/install-over claim; user owns phone testing (ADR0020).
+
+
 ## Phase 1C source/plan continuation (2026-10-23)
 
 - Host source admission/immutable-plan tests passed (6native suites, JNI200 combinations,

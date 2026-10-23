@@ -1,5 +1,19 @@
 # Color grading reference pipeline v1
 
+## Decoded output gate (2026-10-23; candidate only)
+
+Native DecodedVideoFormat compares admitted expected vs current decoder output, with
+positive exact coded dimensions and matching known SDR color/range, no HDR metadata.
+Missing/changed tags refuse instead of reusing probe defaults. DecoderColorGate validates
+every render via metadata JNI (cost unmeasured), latching failures/close. No per-frame
+shader generation or full-pixel JNI is introduced. GuardedDecoderFactory checks both surface release
+overloads before forwarding and leaves timestamps/audio unchanged. Candidate.configure
+binds it via DefaultAssetLoaderFactory; no live route uses it. Source identity, crop/
+rotation, actual codec reporting, pixels and threading remain separate unverified gates;
+strict geometry/range checks may reject valid normalization. Native/JNI/Kotlin tests pass,
+Android adapter/tests unrun; prior software shader result is not codec proof (ADR0020).
+
+
 ## Source admission and shared plan (2026-10-23; candidate)
 
 C++ now admits only explicit Rec709/SDR-video/full-or-limited with no HDR-static metadata;

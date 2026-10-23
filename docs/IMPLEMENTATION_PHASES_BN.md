@@ -54,6 +54,8 @@ refuse করে, preview স্পষ্টভাবে ungraded বলে; And
   Android compilation/চলমান preview/export connection **এখনো হয়নি**।
 - [x] Raw local-source metadata probe, native admission ও immutable per-clip color plan source।
 - [x] Candidate composition-এ clip grade → global720p Presentation এবং explicit factory binding source।
+- [x] Native expected/decoder-output verifier ও per-render terminal gate; candidate decoder hook source।
+  Host/JNI/Kotlin tests পাস; actual Android codec/thread/pixel পরীক্ষা নয়।
 - [ ] Probe/candidate-এর Android compilation ও actual decoder/codec validation; live route এখনো যুক্ত নয়।
 
 

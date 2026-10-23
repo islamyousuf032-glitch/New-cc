@@ -12,7 +12,8 @@ internal data class VideoSourceMetadata(
 
 /** Pure immutable transport for BOTH candidate preview and export. No timeline math.
  * One preparation captures native grade values and compiles native shader recipes;
- * no JNI/metadata I/O per frame. No global URI cache or mutable partially published plan.
+ * no per-frame shader generation or source probing. Decoder gates may perform per-render
+ * native metadata validation. No global URI cache or mutable partially published plan.
  */
 internal class ColorRenderPlan private constructor(val revision: String, val clips: List<PreparedClip>) {
     data class PreparedClip(val clip: ClipSnapshot, val source: VideoSourceMetadata,

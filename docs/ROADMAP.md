@@ -1,5 +1,14 @@
 # Roadmap and acceptance gates
 
+## Phase1C decoded boundary checkpoint (2026-10-23)
+
+Native decoded-format verifier and terminal per-render gate pass host/JNI/Kotlin tests;
+candidate decoder-factory source now connects it before both surface release overloads.
+No live preview/shipping graded export. Android compilation, actual codec/owner-thread/
+pixel/source identity and shared preview integration remain open. CI39958756231 did not
+start due to billing/spending limits. No new credit, stays25%/75% (ADR0020).
+
+
 ## Phase 1C next checkpoint (2026-10-23)
 
 Raw source probing/native color admission, immutable shared color plan and candidate

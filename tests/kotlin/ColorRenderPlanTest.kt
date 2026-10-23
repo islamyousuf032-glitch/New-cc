@@ -17,6 +17,32 @@ fun main() {
             else rejected { ColorEngine.validateVideoSource(source) }
         }
     rejected { ColorEngine.validateVideoSource(supported.copy(hasHdrStaticMetadata=true)) }
+    val expected=ColorEngine.DecodedVideoFormat(1920,1080,supported)
+    val gate=DecoderColorGate(expected)
+    check(gate.state==DecoderColorGate.State.AWAITING_FORMAT)
+    gate.beforeRender(expected);gate.beforeRender(expected)
+    check(gate.state==DecoderColorGate.State.VERIFIED)
+    rejected { gate.beforeRender(expected.copy(width=1280)) }
+    check(gate.state==DecoderColorGate.State.FAILED)
+    try { gate.beforeRender(expected);error("failed gate resumed") } catch (_: IllegalStateException) { }
+    gate.close();gate.close();check(gate.state==DecoderColorGate.State.CLOSED)
+    try { gate.beforeRender(expected);error("closed gate rendered") } catch (_: IllegalStateException) { }
+    val absent=DecoderColorGate(expected)
+    rejected { absent.beforeRender(null) }
+    check(absent.state==DecoderColorGate.State.FAILED)
+    val query=DecoderColorGate(expected)
+    try { query.beforeRender { error("output format query failed") };error("query failure ignored") }
+    catch (_: IllegalStateException) { check(query.state==DecoderColorGate.State.FAILED) }
+    var queriedAgain=false
+    try { query.beforeRender { queriedAgain=true;expected };error("query failure resumed") }
+    catch (_: IllegalStateException) { check(!queriedAgain) }
+    val changed=DecoderColorGate(expected)
+    changed.beforeRender(expected)
+    rejected { changed.beforeRender(expected.copy(color=supported.copy(range=ColorEngine.VideoRange.FULL))) }
+    val invalidated=DecoderColorGate(expected);invalidated.invalidate()
+    try { invalidated.beforeRender(expected);error("query failure resumed") } catch (_: IllegalStateException) { }
+    rejected { DecoderColorGate(expected.copy(width=0)) }
+    println("Production Kotlin/native decoded gate: repeated validation, late format changes, unknown output and terminal lifecycle passed")
     val grade=ColorGrade(exposureStops=1.0)
     val first=ClipSnapshot("first","v1","content://shared",0,30,0,1000,grade,true)
     val second=first.copy(id="second",startFrame=30,sourceInMs=1000,sourceOutMs=2000,

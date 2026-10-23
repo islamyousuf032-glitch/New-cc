@@ -77,7 +77,8 @@ def main():
         color_fixture.write_bytes(fixture_class('com/owncut/app/ColorEngine', {
             'nativeRenderV1':'(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;IIII[DZ)V',
             'nativeShaderV1':'([DZIZ)Ljava/lang/String;',
-            'nativeValidateVideoSourceV1':'(IIIZ)V'}))
+            'nativeValidateVideoSourceV1':'(IIIZ)V',
+            'nativeValidateDecodedFormatV1':'([I)V'}))
         jpype.startJVM(str(java_home/'lib/server/libjvm.so'), '-Xcheck:jni',
                       '--enable-native-access=ALL-UNNAMED', classpath=[str(root)], convertStrings=True)
         try:
@@ -201,6 +202,16 @@ def main():
                             if p==1 and t==1 and r in (1,2): color.nativeValidateVideoSourceV1(p,t,r,False)
                             else: failure(lambda: color.nativeValidateVideoSourceV1(p,t,r,False))
                 failure(lambda: color.nativeValidateVideoSourceV1(1,1,1,True))
+                expected=[1920,1080,1,1,2,0]
+                def compare(values): color.nativeValidateDecodedFormatV1(jpype.JArray(jpype.JInt)(values))
+                compare(expected+expected)
+                for index,value in enumerate([1280,720,0,4,1,1]):
+                    actual=expected.copy();actual[index]=value
+                    failure(lambda: compare(expected+actual))
+                failure(lambda: compare(expected))
+                failure(lambda: compare(expected+expected[:-1]+[2]))
+                failure(lambda: color.nativeValidateDecodedFormatV1(None))
+                print('Production JNI decoded formats: exact match, changed/unknown tags, geometry, HDR and malformed blocks passed')
                 print('Production JNI source admission: 200 combinations, only explicit Rec709/SDR/known range admitted')
                 def shader(values=parameters, enabled=True, encoding=0, vertex=False):
                     return color.nativeShaderV1(jpype.JArray(jpype.JDouble)(values),enabled,encoding,vertex)

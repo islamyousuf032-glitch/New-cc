@@ -12,6 +12,14 @@ Owncut is an original, offline-first Android video-editing project. Its product 
 
 ## Current checkpoint
 
+**Phase 1C decoder boundary:** native expected/output format validation and a terminal
+per-render color gate now pass native/JNI/pure-Kotlin tests. Candidate configuration
+installs a guarded Media3 decoder factory; both surface-render release overloads check
+current output metadata before forwarding. **Android adapter/codec compilation and real
+output remain unverified**; live preview/export guards stay, no APK. CI39958756231 did
+not start due to billing/spending limits. [ADR0020](docs/DECISIONS/0020-decoder-output-color-gate.md).
+
+
 **Phase 1C continuation:** worker-only raw video-color probing, native source-admission
 policy and an immutable per-clip color plan now have source/host implementation. Candidate
 composition binds each grade before global 720p scaling and carries an explicit processor
