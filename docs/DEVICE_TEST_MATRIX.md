@@ -1,5 +1,13 @@
 # Device test matrix
 
+## Lifetime/projection batch (2026-10-23; no new device results)
+
+Once a signer-compatible update exists, user checks should include: long multi-clip
+projects, scrolling/dragging near viewport edges, selection/undo/redo refresh, save/reopen,
+project switching and rotation while save/load/recovery is busy. The native lifetime race
+is host-tested; busy Activity recreation/writer-lease behavior is still an open gate.
+Host Kotlin/JVM projection checks are not Android rendering or performance measurements.
+
 ## New batch handoff — 2026-10-23
 
 **No new phone or emulator result.** Phone testing is owned by the user. Host JVM JNI,

@@ -27,3 +27,5 @@
 
 - ADR 0014: phone testing is user-owned. Default CI is native/build/lint/static/test-source checks; emulator/render/install-over are manual opt-in. Always disclose skipped tests. Signed candidates must still match the approved APK signer/package and monotonic version.
 - Checkpoint receipts are diagnostic, not a WAL or authority to discard recovery. Archive only typed malformed receipts with a readable primary; preserve future formats/I/O failures. Keep strict UTF-8↔UTF-16 JNI conversion and UUID project identity.
+
+- ADR 0015: JNI tokens must never be pointer casts/reused IDs; pin a registry owner through each call. Snapshot cache publication requires a complete checked revision, not partial pages. Viewport culling must preserve overlaps, painter order and dragged clips. Run optional production Kotlin host tests when changing these projections; they do not validate Android lifecycle/rendering.

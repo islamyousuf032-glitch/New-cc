@@ -1,5 +1,13 @@
 # Product specification
 
+## Timeline/lifetime batch (2026-10-23; host evidence only)
+
+Unchanged timeline revisions reuse immutable snapshots; changed revisions arrive through
+256-entry checked native pages. Viewport interval projections avoid drawing offscreen
+clips, including correct dragged-clip inclusion. Native invalid/stale handles are rejected
+rather than dereferenced. This is not a complete scalable asset system or virtualized
+editor. Full Android acceptance and user phone testing remain required; Flow is read-only.
+
 ## Current recovery/sources implementation (2026-10-23; Android acceptance pending)
 
 Managed project saves checkpoint recovery and primary with diagnostic receipts. The

@@ -1,5 +1,26 @@
 # Build and test
 
+## New lifetime/projection checks (2026-10-23)
+
+`make test` and CTest now compile SessionRegistry. Native tests include pinned calls
+surviving close, rejected invalid/stale handles and 320 parallel create/close tokens.
+The optional real-JVM JNI script also checks revision pages, parallel destroy/read and
+forged handles. Add `engine/session/src/session_registry.cpp` when building host JNI.
+
+Optional production pure Kotlin test (compiler matches pinned app Kotlin **2.3.21**):
+
+```sh
+python3 tests/run_host_kotlin.py "$JAVA_HOME" "$KOTLIN_HOME"
+```
+
+It compiles TimelineSnapshot/TimelineClipIndex with `-Werror` and runs the original
+fixture without Android stubs. Generated JARs are temporary. This passed using cache-only
+Java 25.0.2 and the official Kotlin compiler distribution via npm `kotlin-compiler@2.3.21`
+(registry SHA512 integrity verified); neither changes the Android JDK 17 build pin.
+It is **not** a full app/EngineSession/TimelineView/Android compilation. Android
+TimelinePagingTest sources are added; their compile/run remains pending. Latest CMake
+3/3, session/registry ASan+UBSan, strict native JNI and real-JVM checks also passed.
+
 ## Current fast validation and phone handoff — 2026-10-23
 
 Default Android CI runs resource/patch guards, all three native suites, Android APK
@@ -25,7 +46,8 @@ c++ -std=c++20 -O2 -shared -fPIC -pthread -Wall -Wextra -Wpedantic \
   -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" \
   -Iengine/session/include -Iengine/core/include -Iengine/timeline/include \
   -Iengine/commands/include -Iengine/project/include \
-  platform/android/jni/editor_jni.cpp engine/session/src/session_coordinator.cpp \
+  platform/android/jni/editor_jni.cpp engine/session/src/session_registry.cpp \
+  engine/session/src/session_coordinator.cpp \
   engine/core/src/time.cpp engine/timeline/src/timeline.cpp \
   engine/commands/src/command_history.cpp engine/project/src/project.cpp \
   -o /tmp/libowncut_host.so

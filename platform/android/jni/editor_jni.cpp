@@ -1,6 +1,8 @@
 #include <jni.h>
 
 #include "editor/session_coordinator.hpp"
+#include "editor/session_registry.hpp"
+#include <charconv>
 #include "editor/unicode.hpp"
 #include "editor/project.hpp"
 #include "editor/time.hpp"
@@ -22,9 +24,7 @@ const TimeBase kMilliseconds{1, 1000};
 
 using EngineSession = SessionCoordinator;
 
-EngineSession* from_handle(jlong handle) noexcept {
-    return reinterpret_cast<EngineSession*>(static_cast<std::uintptr_t>(handle));
-}
+SessionRegistry sessions;
 
 static_assert(std::is_same_v<jchar,std::uint16_t>);
 std::string from_java(JNIEnv* env, jstring value) {
@@ -69,10 +69,8 @@ void throw_java_argument(JNIEnv* env, const char* message) noexcept {
     env->DeleteLocalRef(type);
 }
 
-EngineSession& require_session(jlong handle) {
-    auto* session = from_handle(handle);
-    if (session == nullptr) throw std::invalid_argument("native engine session is closed");
-    return *session;
+std::shared_ptr<EngineSession> require_session(jlong handle) {
+    return sessions.acquire(handle);
 }
 
 void append_json_string(std::string& output, const std::string& value) {
@@ -101,6 +99,24 @@ void append_json_string(std::string& output, const std::string& value) {
     output.push_back('"');
 }
 
+void append_clip(std::string& output, const ClipLocation& location) {
+    const auto& clip = location.clip;
+    const auto start = clip.timeline_start.rescaled(kFrameTimeBase).ticks;
+    const auto duration = (clip.source_out - clip.source_in).rescaled(kFrameTimeBase).ticks;
+    const auto source_in_ms = clip.source_in.rescaled(kMilliseconds).ticks;
+    const auto source_out_ms = clip.source_out.rescaled(kMilliseconds).ticks;
+    output += "{\"id\":";
+    append_json_string(output, clip.id);
+    output += ",\"trackId\":";
+    append_json_string(output, location.track_id);
+    output += ",\"mediaId\":";
+    append_json_string(output, clip.media_id);
+    output += ",\"startFrame\":" + std::to_string(start);
+    output += ",\"durationFrames\":" + std::to_string(duration);
+    output += ",\"sourceInMs\":" + std::to_string(source_in_ms);
+    output += ",\"sourceOutMs\":" + std::to_string(source_out_ms) + "}";
+}
+
 std::string make_timeline_snapshot(const EngineSession& session) {
     std::string output = "{\"clips\":[";
     bool first = true;
@@ -110,23 +126,9 @@ std::string make_timeline_snapshot(const EngineSession& session) {
         const auto page = session.clip_page(offset, SessionCoordinator::max_page_size, revision);
         revision = page.revision;
         for (const auto& location : page.clips) {
-            const auto& clip = location.clip;
             if (!first) output.push_back(',');
             first = false;
-            const auto start = clip.timeline_start.rescaled(kFrameTimeBase).ticks;
-            const auto duration = (clip.source_out - clip.source_in).rescaled(kFrameTimeBase).ticks;
-            const auto source_in_ms = clip.source_in.rescaled(kMilliseconds).ticks;
-            const auto source_out_ms = clip.source_out.rescaled(kMilliseconds).ticks;
-            output += "{\"id\":";
-            append_json_string(output, clip.id);
-            output += ",\"trackId\":";
-            append_json_string(output, location.track_id);
-            output += ",\"mediaId\":";
-            append_json_string(output, clip.media_id);
-            output += ",\"startFrame\":" + std::to_string(start);
-            output += ",\"durationFrames\":" + std::to_string(duration);
-            output += ",\"sourceInMs\":" + std::to_string(source_in_ms);
-            output += ",\"sourceOutMs\":" + std::to_string(source_out_ms) + "}";
+            append_clip(output, location);
         }
         offset = page.next_offset;
         if (offset == page.total) break;
@@ -148,8 +150,7 @@ std::string make_status(const EngineSession& session) {
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_owncut_app_EngineSession_nativeCreate(JNIEnv* env, jobject, jstring project_id) {
     try {
-        auto session = std::make_unique<EngineSession>(from_java(env,project_id));
-        return static_cast<jlong>(reinterpret_cast<std::uintptr_t>(session.release()));
+        return sessions.create(from_java(env,project_id));
     } catch (const std::exception& error) {
         throw_java_argument(env, error.what());
         return 0;
@@ -159,8 +160,8 @@ Java_com_owncut_app_EngineSession_nativeCreate(JNIEnv* env, jobject, jstring pro
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_owncut_app_EngineSession_nativeGetStatus(JNIEnv* env, jobject, jlong handle) {
     try {
-        auto& session = require_session(handle);
-        const auto status = make_status(session);
+        auto session = require_session(handle);
+        const auto status = make_status(*session);
         return to_java(env,status);
     } catch (const std::exception& error) {
         throw_java_argument(env, error.what());
@@ -171,8 +172,8 @@ Java_com_owncut_app_EngineSession_nativeGetStatus(JNIEnv* env, jobject, jlong ha
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_owncut_app_EngineSession_nativeGetTimelineSnapshot(JNIEnv* env, jobject, jlong handle) {
     try {
-        auto& session = require_session(handle);
-        const auto snapshot = make_timeline_snapshot(session);
+        auto session = require_session(handle);
+        const auto snapshot = make_timeline_snapshot(*session);
         return to_java(env,snapshot);
     } catch (const std::exception& error) {
         throw_java_argument(env, error.what());
@@ -184,9 +185,9 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_com_owncut_app_EngineSession_nativeResolvePlayhead(JNIEnv* env, jobject, jlong handle,
                                                         jstring track_id, jlong frame) {
     try {
-        auto& session = require_session(handle);
+        auto session = require_session(handle);
         const auto track = from_java(env, track_id);
-        const auto resolved = session.resolve_playhead(track, Timestamp{frame, kFrameTimeBase});
+        const auto resolved = session->resolve_playhead(track, Timestamp{frame, kFrameTimeBase});
         if (!resolved) return nullptr;
         std::string json{"{\"clipId\":"};
         append_json_string(json, resolved->clip_id);
@@ -200,9 +201,9 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_com_owncut_app_EngineSession_nativeAddMediaClip(JNIEnv* env, jobject, jlong handle,
                                                       jstring media_id, jlong duration_ms) {
     try {
-        auto& session = require_session(handle);
+        auto session = require_session(handle);
         auto media = from_java(env, media_id);
-        const auto id = session.add_media(media, duration_ms);
+        const auto id = session->add_media(media, duration_ms);
         return to_java(env,id);
     } catch (const std::exception& error) {
         throw_java_argument(env, error.what());
@@ -214,10 +215,10 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeRelinkClipMedia(JNIEnv* env, jobject, jlong handle,
                                                           jstring clip_id, jstring replacement_media_id) {
     try {
-        auto& session = require_session(handle);
+        auto session = require_session(handle);
         auto clip = from_java(env, clip_id);
         auto media = from_java(env, replacement_media_id);
-        session.execute(
+        session->execute(
             std::make_unique<RelinkClipMediaCommand>(clip, media));
     } catch (const std::exception& error) { throw_java_argument(env, error.what()); }
 }
@@ -227,10 +228,10 @@ Java_com_owncut_app_EngineSession_nativeMoveClip(JNIEnv* env, jobject, jlong han
                                                   jstring clip_id, jstring destination_track_id,
                                                   jlong destination_start_frame) {
     try {
-        auto& session = require_session(handle);
+        auto session = require_session(handle);
         auto clip = from_java(env, clip_id);
         auto destination = from_java(env, destination_track_id);
-        session.execute(
+        session->execute(
             std::make_unique<MoveClipCommand>(clip, destination,
                                                Timestamp{destination_start_frame, kFrameTimeBase}));
     } catch (const std::exception& error) { throw_java_argument(env, error.what()); }
@@ -240,10 +241,10 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeSplitClip(JNIEnv* env, jobject, jlong handle,
                                                    jstring clip_id, jlong cut_frame, jstring right_clip_id) {
     try {
-        auto& session = require_session(handle);
+        auto session = require_session(handle);
         auto clip = from_java(env, clip_id);
         auto right = from_java(env, right_clip_id);
-        session.execute(
+        session->execute(
             std::make_unique<SplitClipCommand>(clip, Timestamp{cut_frame, kFrameTimeBase}, right));
     } catch (const std::exception& error) { throw_java_argument(env, error.what()); }
 }
@@ -252,9 +253,9 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeTrimClip(JNIEnv* env, jobject, jlong handle,
                                                   jstring clip_id, jboolean left_edge, jlong boundary_ms) {
     try {
-        auto& session = require_session(handle);
+        auto session = require_session(handle);
         auto clip = from_java(env, clip_id);
-        session.execute(
+        session->execute(
             std::make_unique<TrimClipCommand>(clip, left_edge == JNI_TRUE ? TrimEdge::left : TrimEdge::right,
                                                Timestamp{boundary_ms, kMilliseconds}));
     } catch (const std::exception& error) { throw_java_argument(env, error.what()); }
@@ -264,12 +265,12 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeDeleteClip(JNIEnv* env, jobject, jlong handle,
                                                     jstring clip_id, jboolean ripple) {
     try {
-        auto& session = require_session(handle);
+        auto session = require_session(handle);
         auto clip = from_java(env, clip_id);
         if (ripple == JNI_TRUE) {
-            session.execute(std::make_unique<RippleDeleteClipCommand>(clip));
+            session->execute(std::make_unique<RippleDeleteClipCommand>(clip));
         } else {
-            session.execute(std::make_unique<DeleteClipCommand>(clip));
+            session->execute(std::make_unique<DeleteClipCommand>(clip));
         }
     } catch (const std::exception& error) { throw_java_argument(env, error.what()); }
 }
@@ -277,8 +278,8 @@ Java_com_owncut_app_EngineSession_nativeDeleteClip(JNIEnv* env, jobject, jlong h
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_owncut_app_EngineSession_nativeUndo(JNIEnv* env, jobject, jlong handle) {
     try {
-        auto& session = require_session(handle);
-        return session.undo() ? JNI_TRUE : JNI_FALSE;
+        auto session = require_session(handle);
+        return session->undo() ? JNI_TRUE : JNI_FALSE;
     } catch (const std::exception& error) {
         throw_java_argument(env, error.what());
         return JNI_FALSE;
@@ -288,8 +289,8 @@ Java_com_owncut_app_EngineSession_nativeUndo(JNIEnv* env, jobject, jlong handle)
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_owncut_app_EngineSession_nativeRedo(JNIEnv* env, jobject, jlong handle) {
     try {
-        auto& session = require_session(handle);
-        return session.redo() ? JNI_TRUE : JNI_FALSE;
+        auto session = require_session(handle);
+        return session->redo() ? JNI_TRUE : JNI_FALSE;
     } catch (const std::exception& error) {
         throw_java_argument(env, error.what());
         return JNI_FALSE;
@@ -299,41 +300,42 @@ Java_com_owncut_app_EngineSession_nativeRedo(JNIEnv* env, jobject, jlong handle)
 extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeSaveProject(JNIEnv* env, jobject, jlong handle, jstring path) {
     try {
-        auto& session = require_session(handle);
+        auto session = require_session(handle);
         auto file_path = from_java(env, path);
-        session.save(file_path);
+        session->save(file_path);
     } catch (const std::exception& error) { throw_java_argument(env, error.what()); }
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeLoadProject(JNIEnv* env, jobject, jlong handle, jstring path) {
     try {
-        auto& session = require_session(handle);
+        auto session = require_session(handle);
         auto file_path = from_java(env, path);
-        session.load(file_path);
+        session->load(file_path);
     } catch (const std::exception& error) { throw_java_argument(env, error.what()); }
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_owncut_app_EngineSession_nativeDestroy(JNIEnv*, jobject, jlong handle) {
-    delete from_handle(handle);
+Java_com_owncut_app_EngineSession_nativeDestroy(JNIEnv* env, jobject, jlong handle) {
+    try { sessions.close(handle); }
+    catch (const std::exception& error) { throw_java_argument(env,error.what()); }
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeSaveAutosave(JNIEnv* env, jobject, jlong handle, jstring path) {
     try {
-        auto& session = require_session(handle);
+        auto session = require_session(handle);
         auto file_path = from_java(env, path);
-        session.autosave(file_path);
+        session->autosave(file_path);
     } catch (const std::exception& error) { throw_java_argument(env, error.what()); }
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_owncut_app_EngineSession_nativeLoadAutosave(JNIEnv* env, jobject, jlong handle, jstring path) {
     try {
-        auto& session = require_session(handle);
+        auto session = require_session(handle);
         auto file_path = from_java(env, path);
-        return session.recover(file_path) ? JNI_TRUE : JNI_FALSE;
+        return session->recover(file_path) ? JNI_TRUE : JNI_FALSE;
     } catch (const std::exception& error) {
         throw_java_argument(env, error.what());
         return JNI_FALSE;
@@ -343,31 +345,31 @@ Java_com_owncut_app_EngineSession_nativeLoadAutosave(JNIEnv* env, jobject, jlong
 extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeClearAutosave(JNIEnv* env, jobject, jlong handle, jstring path) {
     try {
-        require_session(handle).clear_recovery(from_java(env, path));
+        require_session(handle)->clear_recovery(from_java(env, path));
     } catch (const std::exception& error) { throw_java_argument(env, error.what()); }
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeSaveCopy(JNIEnv* env, jobject, jlong handle, jstring path) {
-    try { require_session(handle).save_copy(from_java(env, path)); }
+    try { require_session(handle)->save_copy(from_java(env, path)); }
     catch (const std::exception& error) { throw_java_argument(env, error.what()); }
 }
 extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeRestoreDraft(JNIEnv* env, jobject, jlong handle, jstring path) {
-    try { require_session(handle).restore_draft(from_java(env, path)); }
+    try { require_session(handle)->restore_draft(from_java(env, path)); }
     catch (const std::exception& error) { throw_java_argument(env, error.what()); }
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeCheckpointProject(JNIEnv* env, jobject, jlong handle, jstring path) {
-    try { require_session(handle).checkpoint(from_java(env,path)); }
+    try { require_session(handle)->checkpoint(from_java(env,path)); }
     catch (const std::exception& error) { throw_java_argument(env,error.what()); }
 }
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_owncut_app_EngineSession_nativeGetMediaAssets(JNIEnv* env, jobject, jlong handle) {
     try {
-        const auto assets = require_session(handle).media_assets();
+        const auto assets = require_session(handle)->media_assets();
         std::string json = "{\"assets\":[";
         bool first_asset = true;
         for (const auto& asset : assets) {
@@ -390,6 +392,43 @@ Java_com_owncut_app_EngineSession_nativeGetMediaAssets(JNIEnv* env, jobject, jlo
 
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_owncut_app_EngineSession_nativeRepairCheckpoint(JNIEnv* env, jobject, jlong handle, jstring path) {
-    try { return require_session(handle).repair_checkpoint(from_java(env,path)) ? JNI_TRUE : JNI_FALSE; }
+    try { return require_session(handle)->repair_checkpoint(from_java(env,path)) ? JNI_TRUE : JNI_FALSE; }
     catch (const std::exception& error) { throw_java_argument(env,error.what()); return JNI_FALSE; }
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_owncut_app_EngineSession_nativeGetRevision(JNIEnv* env, jobject, jlong handle) {
+    try { return to_java(env, std::to_string(require_session(handle)->status().revision)); }
+    catch (const std::exception& error) { throw_java_argument(env,error.what()); return nullptr; }
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_owncut_app_EngineSession_nativeGetClipPage(JNIEnv* env, jobject, jlong handle,
+                                                 jint offset, jint limit, jstring expected) {
+    try {
+        if (offset < 0 || limit <= 0) throw std::invalid_argument("invalid snapshot page range");
+        std::optional<std::uint64_t> revision;
+        if (expected != nullptr) {
+            const auto text = from_java(env,expected);
+            std::uint64_t value = 0;
+            const auto result = std::from_chars(text.data(),text.data()+text.size(),value);
+            if (text.empty() || result.ec != std::errc{} || result.ptr != text.data()+text.size())
+                throw std::invalid_argument("invalid snapshot revision");
+            revision = value;
+        }
+        const auto page = require_session(handle)->clip_page(static_cast<std::size_t>(offset),
+                                                            static_cast<std::size_t>(limit),revision);
+        // Decimal string preserves every uint64 revision without JSON/Java double rounding.
+        std::string json = "{\"revision\":\"" + std::to_string(page.revision) +
+            "\",\"total\":" + std::to_string(page.total) +
+            ",\"nextOffset\":" + std::to_string(page.next_offset) + ",\"clips\":[";
+        bool first = true;
+        for (const auto& location : page.clips) {
+            if (!first) json.push_back(',');
+            first = false;
+            append_clip(json,location);
+        }
+        json += "]}";
+        return to_java(env,json);
+    } catch (const std::exception& error) { throw_java_argument(env,error.what()); return nullptr; }
 }

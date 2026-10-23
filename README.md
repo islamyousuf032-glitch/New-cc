@@ -12,6 +12,12 @@ Owncut is an original, offline-first Android video-editing project. Its product 
 
 ## Current checkpoint
 
+**Next implementation batch, 2026-10-23:** safe native lifetime handles, exact-revision
+JNI pages, immutable Kotlin snapshot cache and indexed viewport drawing. Native,
+sanitizer and real JVM checks pass; production pure Kotlin cache/index also compiles
+with pinned 2.3.21 and passes host tests. Full Android build/phone acceptance remains
+pending; no new APK. See ADR 0015 and latest PROGRESS for evidence and remaining scope.
+
 **2026-10-23 implementation batch (Android acceptance pending):** checkpoint receipts
 and safe explicit repair; future-format preservation; derived Sources browser; UUID
 project IDs; Bengali/emoji-safe JNI. Latest native/host JVM/sanitizer/resource checks pass.

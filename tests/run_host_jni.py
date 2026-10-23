@@ -16,6 +16,8 @@ import uuid
 BINDINGS = {
     'nativeCreate': '(Ljava/lang/String;)J',
     'nativeGetStatus': '(J)Ljava/lang/String;',
+    'nativeGetRevision': '(J)Ljava/lang/String;',
+    'nativeGetClipPage': '(JIILjava/lang/String;)Ljava/lang/String;',
     'nativeGetTimelineSnapshot': '(J)Ljava/lang/String;',
     'nativeGetMediaAssets': '(J)Ljava/lang/String;',
     'nativeResolvePlayhead': '(JLjava/lang/String;J)Ljava/lang/String;',
@@ -117,8 +119,40 @@ def main():
                 check(primary.read_bytes() == before)
                 engine.nativeCheckpointProject(first, str(primary))
                 for index in range(270): engine.nativeAddMediaClip(second, 'content://batch/'+str(index), 1000)
-                check(len(json.loads(engine.nativeGetTimelineSnapshot(second))['clips']) == 272)
-                print('Host JVM JNI: Unicode, exceptions, symbols, UUID input, paging, media catalog, checkpoint and repair passed')
+                all_clips = json.loads(engine.nativeGetTimelineSnapshot(second))['clips']
+                check(len(all_clips) == 272)
+                page = json.loads(engine.nativeGetClipPage(second, 0, 256, None))
+                revision = page['revision']
+                check(isinstance(revision, str) and revision == engine.nativeGetRevision(second))
+                check(page['total'] == 272 and page['nextOffset'] == 256)
+                last = json.loads(engine.nativeGetClipPage(second, 256, 256, revision))
+                check(page['clips'] + last['clips'] == all_clips and last['nextOffset'] == 272)
+                check(json.loads(engine.nativeGetClipPage(second,272,1,revision))['clips'] == [])
+                for offset,limit,expected in [(-1,1,None),(273,1,None),(0,0,None),(0,257,None),
+                    (0,1,''),(0,1,'-1'),(0,1,'1x'),(0,1,'18446744073709551616')]:
+                    failure(lambda: engine.nativeGetClipPage(second,offset,limit,expected))
+                engine.nativeAddMediaClip(second,'content://changed',1000)
+                failure(lambda: engine.nativeGetClipPage(second,256,256,revision))
+                # Destroy races must never dereference a freed address; close is idempotent.
+                from concurrent.futures import ThreadPoolExecutor
+                temporary = engine.nativeCreate(str(uuid.uuid4()))
+                def read_or_closed(_):
+                    for i in range(80):
+                        try: engine.nativeGetClipPage(temporary,0,1,None)
+                        except jpype.JClass('java.lang.IllegalArgumentException'): pass
+                with ThreadPoolExecutor(max_workers=4) as pool:
+                    jobs = [pool.submit(read_or_closed,i) for i in range(4)]
+                    engine.nativeDestroy(temporary)
+                    for job in jobs: job.result()
+                engine.nativeDestroy(temporary)
+                failure(lambda: engine.nativeGetStatus(temporary))
+                failure(lambda: engine.nativeGetStatus(0))
+                failure(lambda: engine.nativeGetStatus(-1))
+                failure(lambda: engine.nativeGetStatus(9223372036854775807))
+                replacement = engine.nativeCreate(str(uuid.uuid4()))
+                check(replacement > temporary)
+                engine.nativeDestroy(replacement)
+                print('Host JVM JNI: Unicode, revision pages, stale/invalid handles, concurrent destroy, catalog and recovery passed')
             finally:
                 for handle in handles: engine.nativeDestroy(handle)
         finally: jpype.shutdownJVM()

@@ -1,5 +1,8 @@
 #include "editor/session_coordinator.hpp"
+#include "editor/session_registry.hpp"
 #include <atomic>
+#include <array>
+#include <limits>
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -155,8 +158,53 @@ void paging_and_concurrent_calls() {
     (void)session.add_media("changed",1000);
     fails([&]{ (void)session.clip_page(256,256,first.revision); });
 }
+void registry_lifetime_and_nonreused_handles() {
+    SessionRegistry registry;
+    fails([&]{ (void)registry.acquire(0); });
+    fails([&]{ (void)registry.acquire(-1); });
+    fails([&]{ (void)registry.acquire(std::numeric_limits<std::int64_t>::max()); });
+    const auto first = registry.create("retained");
+    auto pin = registry.acquire(first);
+    std::weak_ptr<SessionCoordinator> weak = pin;
+    std::atomic<bool> closed{false}, worked{false};
+    std::thread worker([&, owned = std::move(pin)] {
+        while (!closed.load()) std::this_thread::yield();
+        (void)owned->add_media("after-close",1000);
+        worked = owned->status().clips == 1;
+    });
+    registry.close(first);
+    check(!weak.expired());
+    fails([&]{ (void)registry.acquire(first); });
+    registry.close(first); registry.close(0); registry.close(-1);
+    closed = true;
+    worker.join();
+    check(worked && weak.expired());
+    const auto second = registry.create("independent");
+    check(second > first && registry.acquire(second)->status().clips == 0);
+    fails([&]{ (void)registry.acquire(first); });
+    registry.close(second);
+
+    std::array<std::vector<SessionRegistry::Handle>,4> tokens;
+    std::array<std::thread,4> writers;
+    for (std::size_t t=0;t<writers.size();++t) writers[t]=std::thread([&,t] {
+        for (int i=0;i<80;++i) {
+            const auto handle=registry.create("parallel");
+            tokens[t].push_back(handle);
+            (void)registry.acquire(handle)->add_media("source",1000);
+            registry.close(handle);
+        }
+    });
+    for (auto& thread : writers) thread.join();
+    std::set<SessionRegistry::Handle> unique;
+    for (const auto& list : tokens) for (const auto handle : list) {
+        check(unique.insert(handle).second && handle > second);
+        fails([&]{ (void)registry.acquire(handle); });
+    }
+    check(unique.size() == 320);
+}
 } // namespace
 int main() {
+    registry_lifetime_and_nonreused_handles();
     history_snapshots_and_failure(); save_recovery_and_isolation(); legacy_and_track_boundaries(); paging_and_concurrent_calls();
     std::cout << "Session ownership, rollback, revision, persistence, paging and concurrency tests passed\n";
 }

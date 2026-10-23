@@ -52,13 +52,15 @@ ClipPage SessionCoordinator::clip_page(std::size_t offset, std::size_t limit,
     if (offset > total) throw std::invalid_argument("snapshot offset out of range");
     ClipPage result{{}, total, offset, revision_};
     result.clips.reserve(std::min(limit, total - offset));
-    std::size_t index = 0;
+    // Skip whole tracks and address their vector directly. Walking every preceding
+    // clip on every page made a complete paged read quadratic in clip count.
+    auto skip = offset;
     for (const auto& track : project_.timeline.tracks()) {
-        for (const auto& clip : track.clips) {
-            if (index++ < offset) continue;
-            result.clips.push_back({track.id, clip});
-            if (result.clips.size() == limit) break;
-        }
+        if (skip >= track.clips.size()) { skip -= track.clips.size(); continue; }
+        const auto count = std::min(limit - result.clips.size(), track.clips.size() - skip);
+        for (std::size_t i = 0; i < count; ++i)
+            result.clips.push_back({track.id, track.clips[skip + i]});
+        skip = 0;
         if (result.clips.size() == limit) break;
     }
     result.next_offset += result.clips.size();

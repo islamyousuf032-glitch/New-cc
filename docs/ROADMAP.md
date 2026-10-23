@@ -1,5 +1,14 @@
 # Roadmap and acceptance gates
 
+## Next implementation checkpoint — safe lifetime/projections (2026-10-23)
+
+Native opaque handles with in-flight lifetime pinning, exact revision-page JNI, immutable
+Kotlin revision cache and indexed viewport draw culling are implemented and host-tested.
+Production pure Kotlin cache/index now has real compiler/JVM checks in addition to C++
+and JNI tests. These do not close busy-Activity recreation/controller ownership, full
+UI virtualization or the Android gate. Graph evaluation and advanced roadmap remain open.
+Readiness remains **25% credited / 75% remaining**, not elapsed implementation effort.
+
 ## Active batch checkpoint — 2026-10-23
 
 Implemented and host-tested: diagnostic checkpoint receipts/shared atomic storage,

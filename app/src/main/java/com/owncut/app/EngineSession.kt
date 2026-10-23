@@ -1,16 +1,7 @@
 package com.owncut.app
 
 import org.json.JSONObject
-
-internal data class ClipSnapshot(
-    val id: String,
-    val trackId: String,
-    val mediaId: String,
-    val startFrame: Long,
-    val durationFrames: Long,
-    val sourceInMs: Long,
-    val sourceOutMs: Long,
-)
+import org.json.JSONArray
 
 internal data class MediaAssetSummary(val mediaId: String, val clipIds: List<String>, val requiredSourceEndMs: Long)
 
@@ -22,6 +13,8 @@ internal data class PlayheadPosition(val clipId: String, val timelineFrame: Long
  */
 internal class EngineSession : AutoCloseable {
     private var handle: Long = nativeCreate(java.util.UUID.randomUUID().toString())
+
+    private val snapshotCache = TimelineSnapshotCache()
 
     init {
         check(handle != 0L) { AppLanguage.text(R.string.message_22b4d27a73) }
@@ -36,22 +29,28 @@ internal class EngineSession : AutoCloseable {
     @Synchronized
     fun clips(): List<ClipSnapshot> {
         check(handle != 0L) { AppLanguage.text(R.string.message_bf5f0d21b6) }
-        val array = JSONObject(nativeGetTimelineSnapshot(handle)).getJSONArray("clips")
-        return buildList(array.length()) {
-            for (index in 0 until array.length()) {
-                val clip = array.getJSONObject(index)
-                add(ClipSnapshot(
-                    id = clip.getString("id"),
-                    trackId = clip.getString("trackId"),
-                    mediaId = clip.getString("mediaId"),
-                    startFrame = clip.getLong("startFrame"),
-                    durationFrames = clip.getLong("durationFrames"),
-                    sourceInMs = clip.getLong("sourceInMs"),
-                    sourceOutMs = clip.getLong("sourceOutMs"),
-                ))
-            }
+        return snapshotCache.read(nativeGetRevision(handle)) { offset, limit, revision ->
+            clipPage(offset, limit, revision)
         }
     }
+
+    @Synchronized
+    fun clipPage(offset: Int, limit: Int = 256, expectedRevision: String? = null): ClipSnapshotPage {
+        check(handle != 0L) { AppLanguage.text(R.string.message_bf5f0d21b6) }
+        require(offset >= 0 && limit in 1..256)
+        val json = JSONObject(nativeGetClipPage(handle, offset, limit, expectedRevision))
+        return ClipSnapshotPage(parseClips(json.getJSONArray("clips")), json.getString("revision"),
+            json.getInt("total"), json.getInt("nextOffset"))
+    }
+
+    private fun parseClips(array: JSONArray): List<ClipSnapshot> = List(array.length()) { index ->
+        val clip = array.getJSONObject(index)
+        ClipSnapshot(clip.getString("id"), clip.getString("trackId"), clip.getString("mediaId"),
+            clip.getLong("startFrame"), clip.getLong("durationFrames"),
+            clip.getLong("sourceInMs"), clip.getLong("sourceOutMs"))
+    }
+    private external fun nativeGetRevision(handle: Long): String
+    private external fun nativeGetClipPage(handle: Long, offset: Int, limit: Int, expectedRevision: String?): String
 
     @Synchronized
     fun mediaAssets(): List<MediaAssetSummary> {
@@ -162,6 +161,7 @@ internal class EngineSession : AutoCloseable {
         val current = handle
         if (current != 0L) {
             handle = 0L
+            snapshotCache.clear()
             nativeDestroy(current)
         }
     }

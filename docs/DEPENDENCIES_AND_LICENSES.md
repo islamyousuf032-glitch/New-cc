@@ -1,5 +1,15 @@
 # Dependencies and licensing
 
+## Additional optional host compiler check (2026-10-23)
+
+Official JetBrains npm `kotlin-compiler@2.3.21` (repository metadata points to
+https://github.com/JetBrains/kotlin, Apache-2.0) was downloaded into development cache;
+registry SHA512 integrity was verified and distribution notices retained. It matches
+the existing app Kotlin pin and adds no APK dependency. The host script uses its CLI,
+the existing cache-only JVM and original Kotlin fixtures. No compiler/JAR is vendored.
+This check does not constitute a fresh complete maintenance/advisory audit; re-review
+upstream before making this optional compiler download a required build dependency.
+
 ## Optional host checks added 2026-10-23 (not shipped)
 
 No new app/runtime dependency. The cache-only host JNI smoke test used **JPype1 1.7.1**

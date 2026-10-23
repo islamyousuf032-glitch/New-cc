@@ -1,5 +1,33 @@
 # Progress
 
+## Safe lifetime and timeline projections — 2026-10-23, next batch
+
+Implemented **SessionRegistry** opaque/nonreused handles with per-call shared lifetime;
+invalid/stale handles fail safely, close is idempotent and active calls survive removal.
+Added entry-bounded native page/revision endpoints, direct page vector access instead
+of rescanning earlier clips, immutable revision-cached Kotlin snapshot publication,
+and viewport interval culling with cached lane/name projections and moving-clip handling.
+See ADR 0015. These are implementation improvements, not a complete controller or node
+engine. No claim of full memory virtualization or measured phone performance.
+
+**Passed on this batch:** Make three suites; CMake Release/CTest **3/3**; session/registry
+**ASan+UBSan**; strict production JNI library build; real JVM **-Xcheck:jni** including
+parallel destroy/read and forged/stale handles, exact revisions and invalid/stale page
+rejection; production pure Kotlin cache/index compiled with **2.3.21 -Werror** and run on
+host JVM, checking **8192 clips / 600** brute-force viewport comparisons and **32-page**
+cache reads, immutable results and rejected malformed/interrupted snapshots; existing
+279 bilingual/theme, seven metadata and three install-over guard tests.
+
+**Not run:** full Android/Kotlin app compilation, ART/instrumentation, phone, codecs/GPU,
+physical update/install-over. New TimelinePagingTest Android sources are added, not run.
+The host Kotlin compile covers only the real platform-independent cache/index/DTO
+sources, not EngineSession/TimelineView or synthetic Android stubs. No new APK; legacy
+signing and remote CI billing/access obstacles are not fixed by this work.
+
+Milestone implementation advanced; **verified roadmap credit remains 25% / 75% remaining**.
+Activity/controller ownership while project I/O is busy, scalable asset registry, real
+persisted/evaluated nodes, grading/audio and the `.ccraw` definition remain open.
+
 ## Recovery, sources and Unicode batch — 2026-10-23
 
 **Implementation checkpoint, not an Android/device acceptance milestone.** Weighted

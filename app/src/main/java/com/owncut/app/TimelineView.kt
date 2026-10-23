@@ -27,6 +27,9 @@ internal class TimelineView(context: Context) : View(context) {
     private val laneHeight = 72f * density
     private var clipNames = emptyMap<String, String>()
     private var tracks = emptyList<String>()
+    private var laneIndices = emptyMap<String, Int>()
+    private var clipIndicesById = emptyMap<String, Int>()
+    private var clipIndex = TimelineClipIndex(emptyList())
     internal var clips = emptyList<ClipSnapshot>(); private set
     internal var endFrame = 0L; private set
     internal var playheadFrame = 0L; private set
@@ -55,11 +58,15 @@ internal class TimelineView(context: Context) : View(context) {
     fun setTimeline(values: List<ClipSnapshot>, selected: String?) {
         if (clips != values) {
             focusedVirtualId = View.NO_ID
+            hoveredVirtualId = View.NO_ID
+            clipIndex = TimelineClipIndex(values)
+            clipIndicesById = values.withIndex().associate { it.value.id to it.index }
+            clipNames = values.associate { it.id to (android.net.Uri.parse(it.mediaId).lastPathSegment?.substringAfterLast('/')?.takeLast(24) ?: it.id) }
+            tracks = values.map { it.trackId }.distinct().sorted()
+            laneIndices = tracks.withIndex().associate { it.value to it.index }
             sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
         }
         clips = values
-        clipNames = values.associate { it.id to (android.net.Uri.parse(it.mediaId).lastPathSegment?.substringAfterLast('/')?.takeLast(24) ?: it.id) }
-        tracks = values.map { it.trackId }.distinct().sorted()
         selectedId = selected
         selectedTrack = values.firstOrNull { it.id == selected }?.trackId
         endFrame = values.maxOfOrNull { Math.addExact(it.startFrame, it.durationFrames) } ?: 0L
@@ -79,7 +86,7 @@ internal class TimelineView(context: Context) : View(context) {
     private fun trackAt(y: Float): String? = if (y < rulerHeight) selectedTrack ?: tracks.firstOrNull()
         else tracks.getOrNull(((y - rulerHeight) / laneHeight).toInt())
     private fun clipRect(clip: ClipSnapshot): RectF {
-        val lane = tracks.indexOf(clip.trackId)
+        val lane = laneIndices[clip.trackId] ?: return RectF()
         val top = rulerHeight + lane * laneHeight + 17f * density
         return RectF(xForFrame(clip.startFrame), top,
             xForFrame(clip.startFrame + clip.durationFrames).coerceAtLeast(xForFrame(clip.startFrame) + 1f),
@@ -132,7 +139,14 @@ internal class TimelineView(context: Context) : View(context) {
             paint.color = StudioUi.muted
             canvas.drawText(AppLanguage.text(R.string.message_88e5aebc23, track), visible.left + 4f * density, rulerHeight + lane * laneHeight + 12 * density, paint)
         }
-        for (clip in clips) {
+        // Expand by one pixel in frame space: very short clips draw at least 1 px.
+        val padding = ceil(1.0 / pixelsPerFrame).toLong().coerceAtLeast(1L)
+        val left = (frameAt(visible.left.toFloat()) - padding).coerceAtLeast(0L)
+        val rightFrame = frameAt(visible.right.toFloat())
+        val right = if (Long.MAX_VALUE - rightFrame < padding) Long.MAX_VALUE else rightFrame + padding
+        val candidates = clipIndex.intersecting(left, right, movingClip?.let { clipIndicesById[it.id] })
+        for (index in candidates) {
+            val clip = clips[index]
             val rect = clipRect(clip)
             if (movingClip?.id == clip.id) rect.offset(moveDelta, 0f)
             if (rect.right < visible.left || rect.left > visible.right) continue

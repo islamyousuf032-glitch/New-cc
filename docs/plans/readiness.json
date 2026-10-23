@@ -55,7 +55,7 @@
       "id": "session_coordinator",
       "weight": 4,
       "status": "in_progress",
-      "evidence": "Native C++ coordinator extracted into JNI with revision paging, rollback and copy/draft operations; portable and sanitizer tests passed. Android bridge tests, Activity controller and durable journal remain pending; ADR 0013."
+      "evidence": "Native coordinator/checkpoint receipts, pinned opaque JNI handles, exact revision pages, immutable Kotlin cache and viewport projections implemented; Make/CMake, ASan+UBSan, real JVM JNI and production pure Kotlin host tests passed. Full Activity/controller lifecycle, byte-bounded UI consumption and Android acceptance remain pending; ADRs 0013–0015. No new readiness credit."
     },
     {
       "id": "update_delivery",

@@ -4,6 +4,7 @@ project(owncut_engine VERSION 0.1.0 LANGUAGES CXX)
 option(OWNCUT_BUILD_TESTS "Build portable engine unit tests" ON)
 
 add_library(owncut_engine
+    engine/session/src/session_registry.cpp
     engine/session/src/session_coordinator.cpp
     engine/graph/src/graph.cpp
     engine/core/src/time.cpp

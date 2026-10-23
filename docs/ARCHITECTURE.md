@@ -1,5 +1,15 @@
 # Architecture index and execution history
 
+## Safe handles and timeline projections (2026-10-23)
+
+ADR 0015 replaces JNI pointer handles with process-local SessionRegistry tokens. Each
+call pins shared ownership, while close blocks new acquisitions without freeing an
+in-flight session. Native snapshots now expose exact revision-string pages; Android's
+EngineSession caches a complete immutable list by revision, replacing whole-JSON reads.
+Native page indexing skips preceding track vectors. TimelineClipIndex culls draw candidates
+by viewport and preserves painter order/dragged clips. Full list storage, hit testing and
+Activity task/controller recreation ownership are not yet virtualized/extracted.
+
 ## Latest implementation — checkpoint/sources batch (2026-10-23)
 
 `AtomicFileStore` centralizes temp-write/flush/fsync/rename/parent-sync.
