@@ -15,6 +15,11 @@ struct ClipPage final {
     std::size_t total, next_offset;
     std::uint64_t revision;
 };
+struct MediaAssetSummary final {
+    std::string media_id;
+    std::vector<std::string> clip_ids;
+    std::int64_t required_source_end_ms;
+};
 struct SessionStatus final {
     std::string name;
     std::size_t tracks, clips;
@@ -30,6 +35,7 @@ public:
     explicit SessionCoordinator(std::string id, TimeBase base = {1, 30});
     [[nodiscard]] SessionSnapshot snapshot() const;
     [[nodiscard]] SessionStatus status() const;
+    [[nodiscard]] std::vector<MediaAssetSummary> media_assets() const;
     static constexpr std::size_t max_page_size = 256;
     [[nodiscard]] ClipPage clip_page(std::size_t offset, std::size_t limit,
         std::optional<std::uint64_t> expected_revision = std::nullopt) const;
@@ -39,6 +45,8 @@ public:
     [[nodiscard]] bool undo();
     [[nodiscard]] bool redo();
     void save(const std::filesystem::path& path);
+    void checkpoint(const std::filesystem::path& path);
+    [[nodiscard]] bool repair_checkpoint(const std::filesystem::path& path);
     void load(const std::filesystem::path& path);
     void save_copy(const std::filesystem::path& path);
     void restore_draft(const std::filesystem::path& path);

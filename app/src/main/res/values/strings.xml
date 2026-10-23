@@ -267,4 +267,15 @@
     <string name="repair_catalog">Repair project entry · %1$s</string>
     <string name="repair_catalog_title">Repair library entry (original metadata is preserved)</string>
     <string name="external_saved_only">Warning: External project saved, but the local checkpoint did not complete; recovery was not cleared: %1$s</string>
+    <string name="media_sources">Browse timeline sources</string>
+    <string name="media_sources_title">Timeline sources · %1$d</string>
+    <string name="media_sources_empty">Sources currently used by clips appear here. Unused imported assets are not stored in this list.</string>
+    <string name="media_source_item">%1$d · %2$s\n%3$d clips · required through %4$s</string>
+    <string name="media_sources_next">Next sources</string>
+    <string name="media_sources_previous">Previous sources</string>
+    <string name="checkpoint_repair">Repair checkpoint record</string>
+    <string name="checkpoint_repair_explanation">Archive only a damaged checkpoint record, keeping the original bytes. Project and recovery are not changed. Unknown future versions are refused.</string>
+    <string name="checkpoint_repair_accept">Archive damaged record</string>
+    <string name="checkpoint_repaired">Damaged checkpoint record archived. Project and recovery were not changed; saving can be retried.</string>
+    <string name="checkpoint_no_repair">No damaged checkpoint record needs repair.</string>
 </resources>

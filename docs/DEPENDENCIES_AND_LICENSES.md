@@ -1,5 +1,23 @@
 # Dependencies and licensing
 
+## Optional host checks added 2026-10-23 (not shipped)
+
+No new app/runtime dependency. The cache-only host JNI smoke test used **JPype1 1.7.1**
+(upstream https://github.com/jpype-project/jpype, wheel metadata `Apache-2.0`), a local JVM
+and original fixture bytecode. **jdk4py 25.0.2.1** came from PyPI, upstream
+https://github.com/activeviam/jdk4py; its metadata classifies GPLv2 and bundled Java
+25.0.2 includes GPLv2 with the Classpath exception and per-module legal notices.
+This is a development runtime, not a JDK compiler or an Android build-toolchain change.
+Official OpenJDK 17 JNI headers were obtained from `openjdk/jdk` at `jdk-17+35`
+(GPLv2 + Classpath exception notices retained in cache). **PyYAML 6.0.3** (MIT) was used
+only to parse workflow syntax, not to execute application inputs. These tools and
+transitive Python packages are not vendored or included in APKs.
+
+Local distribution metadata/notices and actual execution were inspected; this is not
+a fresh full upstream maintenance/security/advisory audit or blanket approval for
+redistribution. Re-audit current official releases/notices before promoting any into
+required CI or shipped dependencies. Android CI remains on the existing JDK 17 pins.
+
 ## Current dependencies
 
 - Engine uses the C++ standard library only; no third-party runtime/library dependency is currently added.

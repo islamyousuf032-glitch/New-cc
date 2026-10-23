@@ -23,11 +23,29 @@ internal class ManagedProjectStore private constructor(private val file: File, p
     @Synchronized fun checkpoint(session: EngineSession) {
         checkOpen(); check(loaded) { AppLanguage.text(R.string.project_not_loaded) }
         check(expected == fingerprint()) { AppLanguage.text(R.string.project_conflict) }
-        session.saveProject(file.absolutePath)
-        // Keep recovery until successful native save and a fresh readable validation.
-        EngineSession().use { it.loadProject(file.absolutePath) }
+        try { session.checkpointProject(file.absolutePath) }
+        catch(error: Exception) {
+            // A failed acknowledgment may follow a durable primary rename. Only accept
+            // our exact current bytes, never an arbitrary changed external document.
+            runCatching { reconcileOwnWrite(session) }
+            throw error
+        }
+        // Native journal validates the primary before recording commit/clearing recovery.
         expected = fingerprint()
         session.clearAutosave(file.absolutePath)
+    }
+    private fun reconcileOwnWrite(session: EngineSession) {
+        val copy=File.createTempFile("checkpoint-compare-", ".owncut", file.parentFile)
+        try {
+            session.saveCopy(copy.absolutePath)
+            val actual=fingerprint()
+            if (actual != null && actual == fingerprint(copy)) expected=actual
+        } finally { copy.delete() }
+    }
+    @Synchronized fun repairCheckpoint(session: EngineSession): Boolean {
+        checkOpen(); check(loaded)
+        check(expected == fingerprint()) { AppLanguage.text(R.string.project_conflict) }
+        return session.repairCheckpoint(file.absolutePath)
     }
     @Synchronized fun autosave(session: EngineSession, canWrite: () -> Boolean = { true }) {
         checkOpen(); check(loaded)

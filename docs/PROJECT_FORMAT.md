@@ -1,5 +1,16 @@
 # Project format and persistence checkpoint
 
+## Diagnostic checkpoint sidecar (2026-10-23)
+
+Project and autosave payloads stay schema v1. `<primary>.checkpoint` is a separate,
+bounded (4160 bytes) `OWNCUTCK` v1 diagnostic receipt with generation, session revision,
+prepared/committed/clean phase and project ID. It is not a project schema bump, undo
+journal, integrity checksum or automatic recovery authority. The primary and recovery
+remain independently parsed project documents. See ADR 0014 for ordering and refusal
+rules. Unsupported receipt versions and recognized future `OWNCUTPJ` recovery formats
+are preserved, not overwritten/cleared. Only explicit malformed-receipt repair archives
+the receipt after confirming a readable primary; it never promotes/deletes recovery.
+
 ## Status
 
 The portable C++ project codec is wired to app-private filesystem paths for background save/load and autosave recovery. The Android Activity now also has a SAF project-document Save As/Open adapter: it writes/reads the codec's file representation through an app-cache temporary file, then streams to/from a user-selected `content://` document. The Kotlin adapter was built in release `phone-test-39247694047`; its provider behavior still needs physical Documents-provider validation. A selected-clip SAF relink action with undo/redo and source-duration validation is included in APK `phone-test-39250035336`. The newer working-tree command updates all clips sharing the old media reference atomically and undoably; that group change still needs Android build and physical-device checks. Provider-side atomic replacement, persisted project-document grants, crash-recovery journaling, and storage-space checks are not implemented. Linux/Android local path saves now use file+directory `fsync`; this does not guarantee power-loss recovery. Original media is referenced by opaque `media_id` values and is never rewritten by project serialization.

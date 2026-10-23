@@ -1,5 +1,21 @@
 # Install-over APK patches: signing and verification
 
+## Current candidate policy — 2026-10-23 (supersedes mandatory-emulator wording)
+
+Phone testing belongs to the user. Default CI builds/lints/compiles test sources and
+runs native/static/metadata/alignment checks, without booting an emulator. Manual
+`workflow_dispatch.run_device_tests=true` retains emulator/render/N−1→N persistence
+checks; any requested failure blocks that run's candidate publication. Skipped checks
+are not a pass. Published metadata records `deviceValidation=not-run|ci-emulator` and
+`phoneValidation=owned-by-user; not asserted by CI`.
+
+A candidate remains a **full signed update APK** matching the approved legacy package
+and signing certificate, with increasing published versionCode, checksum and metadata.
+No random new signer or uninstall/data-clear fallback. Missing signing setup means no
+APK publication. This policy removes the automatic emulator wait, not the signature
+compatibility requirement. It does not resolve the existing lost-key/owner-setup or
+GitHub billing/access limitations, and does not claim any new successful update test.
+
 An app patch here is a **full signed APK update**, not a delta or an AAB. Android
 requires the same package (`com.owncut.app`), a compatible signing identity and a
 non-decreasing versionCode. CI assigns `1000 + GITHUB_RUN_NUMBER`; every new run number
@@ -51,11 +67,11 @@ was generated and uploaded to Git, releases, artifacts or this conversation.
   APK is published** (including debug test artifacts).
 - With setup: temporary keystore in runner temp, never source/artifact; shared signing
   for test/debug and non-debuggable release variants. Delete temp key even on failure.
-- Full emulator regression, then install baseline version N−1, seed a real native
+- When explicitly requested: full emulator regression, then install baseline version N−1, seed a real native
   project and actual app language/theme preferences, install N using `adb install -r`,
   and assert those survive. Initial uninstall is **only on the disposable CI emulator
   before seeding**, never between baseline and update, never on the user's phone.
-- A configured release also installs over that tested debug variant (same certificate)
+- On that optional device run, a configured release also installs over the tested debug variant (same certificate)
   and repeats persistence assertions. Signature verification pins the certificate,
   verifies actual manifest package/version and rejects debuggable release output.
   It additionally verifies signer/package/version against the previously approved

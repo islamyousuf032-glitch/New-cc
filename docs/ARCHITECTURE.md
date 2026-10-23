@@ -1,5 +1,21 @@
 # Architecture index and execution history
 
+## Latest implementation — checkpoint/sources batch (2026-10-23)
+
+`AtomicFileStore` centralizes temp-write/flush/fsync/rename/parent-sync.
+`CheckpointJournal` adds bounded versioned diagnostic receipts beside unchanged v1
+project/recovery files. `SessionCoordinator` serializes checkpoint, repair and derived
+media catalog calls with edits; JNI remains a conversion boundary. Managed storage owns
+writer leases/catalog and exact-model fingerprint reconciliation. This is not a single
+transaction across native files and the Android catalog. Repair is explicit and archives
+malformed receipts only; unknown versions and I/O errors are not repairable corruption.
+See [ADR 0014](DECISIONS/0014-checkpoints-sources-and-phone-handoff.md).
+
+Sources is derived from current timeline references, with 20-entry presentation pages;
+full native JSON/UI snapshot materialization remains. UUID identity is supplied by Kotlin;
+standard UTF-8/UTF-16 conversion replaces modified-UTF JNI shortcuts. Flow remains read-only.
+Android lifecycle/controller extraction and a real graph evaluator are still pending.
+
 
 ## Current baseline — project and node architecture v1
 

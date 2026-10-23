@@ -8,5 +8,7 @@ test:
 	/tmp/owncut_core_tests
 	$(CXX) $(CXXFLAGS) -pthread $(INCLUDES) $(SOURCES) tests/unit/session_tests.cpp -o /tmp/owncut_session_tests
 	/tmp/owncut_session_tests
+	$(CXX) $(CXXFLAGS) -pthread $(INCLUDES) $(SOURCES) tests/unit/checkpoint_tests.cpp -o /tmp/owncut_checkpoint_tests
+	/tmp/owncut_checkpoint_tests
 clean:
-	rm -f /tmp/owncut_core_tests /tmp/owncut_session_tests
+	rm -f /tmp/owncut_core_tests /tmp/owncut_session_tests /tmp/owncut_checkpoint_tests

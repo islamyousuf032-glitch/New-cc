@@ -267,4 +267,15 @@
     <string name="repair_catalog">প্রজেক্ট এন্ট্রি মেরামত · %1$s</string>
     <string name="repair_catalog_title">লাইব্রেরি এন্ট্রি মেরামত (পুরোনো metadata রেখে)</string>
     <string name="external_saved_only">সতর্কতা: বাইরের প্রজেক্ট ফাইল সেভ হয়েছে, কিন্তু local checkpoint সম্পূর্ণ হয়নি; recovery মোছা হয়নি: %1$s</string>
+    <string name="media_sources">টাইমলাইনের সোর্স দেখুন</string>
+    <string name="media_sources_title">টাইমলাইনের সোর্স · %1$d</string>
+    <string name="media_sources_empty">ক্লিপে ব্যবহৃত সোর্স এখানে দেখা যাবে। অব্যবহৃত imported asset এই তালিকায় রাখা হয় না।</string>
+    <string name="media_source_item">%1$d · %2$s\n%3$dটি ক্লিপ · %4$s পর্যন্ত সোর্স প্রয়োজন</string>
+    <string name="media_sources_next">পরের সোর্স</string>
+    <string name="media_sources_previous">আগের সোর্স</string>
+    <string name="checkpoint_repair">চেকপয়েন্ট রেকর্ড মেরামত</string>
+    <string name="checkpoint_repair_explanation">শুধু নষ্ট চেকপয়েন্ট রেকর্ডের মূল bytes রেখে archive করা হবে। Project ও recovery বদলাবে না। অজানা নতুন সংস্করণের রেকর্ড মেরামত করা হবে না।</string>
+    <string name="checkpoint_repair_accept">নষ্ট রেকর্ড archive করুন</string>
+    <string name="checkpoint_repaired">নষ্ট চেকপয়েন্ট রেকর্ড archive হয়েছে। Project ও recovery বদলায়নি; আবার সেভ করা যাবে।</string>
+    <string name="checkpoint_no_repair">মেরামতের প্রয়োজন এমন নষ্ট চেকপয়েন্ট রেকর্ড নেই।</string>
 </resources>

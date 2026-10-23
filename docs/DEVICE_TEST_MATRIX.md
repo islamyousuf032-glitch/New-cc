@@ -1,5 +1,22 @@
 # Device test matrix
 
+## New batch handoff — 2026-10-23
+
+**No new phone or emulator result.** Phone testing is owned by the user. Host JVM JNI,
+C++ interruption hooks and sanitizers do not validate Android lifecycle/storage/codecs.
+When a compatible signed update is available, the targeted user checklist is:
+
+- Update without uninstall/data clear; existing projects, language/theme and media survive.
+- Open multiple projects; save/reopen, import/edit/history and export still behave normally.
+- Sources → page/select referenced media; confirm expected clip and preview.
+- Use Bengali/emoji in supported names/URIs; save/reopen without replacement characters.
+- Recover an offered draft explicitly; a receipt repair must not erase recovery or media.
+
+Do not intentionally corrupt live documents for a phone smoke test. Detailed corruption/
+interruption cases belong to disposable fixtures. Automated Android tests for the new
+batch are written but compilation/execution are pending. Optional CI emulator tests are
+manual opt-in and are not a prerequisite for the user's phone-testing handoff (ADR 0014).
+
 The Galaxy F23 row below records a user-reported manual smoke test. Other rows remain planned targets. Emulator instrumentation passed in run `39603413359`; physical-phone reports are user observations, not independent measurements.
 
 | Device / class | Coverage | Result / limits |

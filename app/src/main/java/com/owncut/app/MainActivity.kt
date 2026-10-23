@@ -46,6 +46,8 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     private var projectTitle: TextView? = null
     private var projectToolsScroll: HorizontalScrollView? = null
     private var detailsPanel: ScrollView? = null
+    private var mediaSourcesDialog: AlertDialog? = null
+    private var checkpointRepairDialog: AlertDialog? = null
     private val workspaceTabs = mutableMapOf<String, Button>()
     private val workspacePanels = mutableMapOf<String, MutableList<android.view.View>>()
     private lateinit var preview: AspectRatioTextureView
@@ -446,6 +448,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         projectButtons.addView(actionButton(AppLanguage.text(R.string.message_15d58dd451), StudioIcon.SAVE_AS) { launchProjectSavePicker() }, wrapButtonParams())
         if (libraryId == null) projectButtons.addView(actionButton(AppLanguage.text(R.string.message_15341f178d), StudioIcon.OPEN) { launchProjectOpenPicker() }, wrapButtonParams())
         projectButtons.addView(actionButton(AppLanguage.text(R.string.message_a7f8686836), StudioIcon.RECOVER) { confirmRecoverAutosave() }, wrapButtonParams())
+        if (libraryId != null) projectButtons.addView(actionButton(AppLanguage.text(R.string.checkpoint_repair), StudioIcon.INFO) { confirmRepairCheckpoint() }, wrapButtonParams())
         val deliverPanel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         deliverPanel.addView(TextView(this).apply {
             text = AppLanguage.text(R.string.message_fd76f9371a)
@@ -490,6 +493,8 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         }
         controls.addView(importButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         controls.addView(relinkButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        controls.addView(actionButton(AppLanguage.text(R.string.media_sources), StudioIcon.MEDIA) { showMediaSources() },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         root.addView(playButton, matchWrap())
         root.addView(controls, matchWrap())
         deliverPanel.background = StudioUi.shape(this)
@@ -589,6 +594,51 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
             ))
         }
         setContentView(workspaceScroll)
+    }
+
+    // Referenced timeline sources only: no claim of a persistent unused-asset registry.
+    private fun showMediaSources(page: Int = 0) {
+        if (isDestroyed || isFinishing) return
+        if (projectIoBusy || blockWhileMediaLoads()) return
+        try {
+            val assets = engine?.mediaAssets().orEmpty()
+            val pageSize = 20
+            val pageIndex = page.coerceIn(0, ((assets.size - 1).coerceAtLeast(0) / pageSize))
+            val visible = assets.drop(pageIndex * pageSize).take(pageSize)
+            val dialog = AlertDialog.Builder(this)
+                .setTitle(AppLanguage.text(R.string.media_sources_title, assets.size))
+                .setNegativeButton(AppLanguage.text(R.string.message_ca21daf138), null)
+            if (visible.isEmpty()) dialog.setMessage(AppLanguage.text(R.string.media_sources_empty))
+            else {
+                val labels = visible.mapIndexed { index, asset ->
+                    val label = Uri.parse(asset.mediaId).lastPathSegment.orEmpty().replace('\n',' ').replace('\r',' ').take(64)
+                    AppLanguage.text(R.string.media_source_item, pageIndex*pageSize+index+1,
+                        label, asset.clipIds.size, formatTime(asset.requiredSourceEndMs))
+                }.toTypedArray()
+                dialog.setItems(labels) { _, index ->
+                    if (!projectIoBusy && !blockWhileMediaLoads()) {
+                        try {
+                            val source = visible[index]
+                            val clip = engine?.clips()?.filter { it.id in source.clipIds }?.minByOrNull { it.startFrame }
+                            if (clip != null) selectClip(clip)
+                        } catch(error: Exception) { showError(error) }
+                    }
+                }
+                if ((pageIndex+1)*pageSize < assets.size)
+                    dialog.setPositiveButton(AppLanguage.text(R.string.media_sources_next)) { _, _ ->
+                        mainHandler.post { if(!isDestroyed) showMediaSources(pageIndex+1) }
+                    }
+                if (pageIndex > 0)
+                    dialog.setNeutralButton(AppLanguage.text(R.string.media_sources_previous)) { _, _ ->
+                        mainHandler.post { if(!isDestroyed) showMediaSources(pageIndex-1) }
+                    }
+            }
+            val shown=dialog.create()
+            mediaSourcesDialog?.dismiss()
+            mediaSourcesDialog=shown
+            shown.setOnDismissListener { if(mediaSourcesDialog === shown) mediaSourcesDialog=null }
+            shown.show()
+        } catch(error: Exception) { showError(error) }
     }
 
     private fun pageLabel(page: String) = AppLanguage.text(when(page) {
@@ -1063,13 +1113,50 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
             .show()
     }
 
+    private fun confirmRepairCheckpoint() {
+        if (isDestroyed || isFinishing) return
+        if (projectIoBusy || blockWhileMediaLoads()) return
+        val dialog=AlertDialog.Builder(this)
+            .setTitle(AppLanguage.text(R.string.checkpoint_repair))
+            .setMessage(AppLanguage.text(R.string.checkpoint_repair_explanation))
+            .setNegativeButton(AppLanguage.text(R.string.message_ca21daf138),null)
+            .setPositiveButton(AppLanguage.text(R.string.checkpoint_repair_accept)) { _, _ ->
+                if (projectIoBusy || selectedMediaLoading) return@setPositiveButton
+                val store=managedStore ?: return@setPositiveButton
+                val session=engine ?: return@setPositiveButton
+                projectIoBusy=true; projectIoOperation=ProjectIoOperation.SAVE
+                metadataExecutor.execute {
+                    try {
+                        val repaired=store.repairCheckpoint(session)
+                        mainHandler.post {
+                            if(!isDestroyed) {
+                                projectIoBusy=false; projectIoOperation=null
+                                statusText.text=AppLanguage.text(if(repaired) R.string.checkpoint_repaired else R.string.checkpoint_no_repair)
+                            }
+                        }
+                    } catch(error: Exception) {
+                        mainHandler.post {
+                            if(!isDestroyed) {
+                                projectIoBusy=false; projectIoOperation=null
+                                statusText.text=AppLanguage.text(R.string.message_11e7c90ac5,error.message)
+                            }
+                        }
+                    }
+                }
+            }.create()
+        checkpointRepairDialog?.dismiss()
+        checkpointRepairDialog=dialog
+        dialog.setOnDismissListener { if(checkpointRepairDialog === dialog) checkpointRepairDialog=null }
+        dialog.show()
+    }
+
     private fun confirmRecoverAutosave() {
         if (blockWhileMediaLoads()) return
         AlertDialog.Builder(this)
             .setTitle(AppLanguage.text(R.string.message_fc80eb0ad5))
             .setMessage(AppLanguage.text(R.string.message_d795d2fb3e))
             .setNegativeButton(AppLanguage.text(R.string.message_ca21daf138), null)
-            .setPositiveButton("Recover") { _, _ ->
+            .setPositiveButton(AppLanguage.text(R.string.message_a7f8686836)) { _, _ ->
                 if (projectIoBusy || selectedMediaLoading) return@setPositiveButton
                 val session = engine ?: return@setPositiveButton
                 pendingAutosave?.cancel(false)
@@ -1794,6 +1881,8 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     }
 
     override fun onDestroy() {
+        mediaSourcesDialog?.dismiss(); mediaSourcesDialog=null
+        checkpointRepairDialog?.dismiss(); checkpointRepairDialog=null
         metadataRequestSequence += 1
         if (!handingOffEngine) pendingAutosave?.cancel(false)
         if (::preview.isInitialized) preview.surfaceTextureListener = null

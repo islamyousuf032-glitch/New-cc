@@ -12,6 +12,8 @@ internal data class ClipSnapshot(
     val sourceOutMs: Long,
 )
 
+internal data class MediaAssetSummary(val mediaId: String, val clipIds: List<String>, val requiredSourceEndMs: Long)
+
 internal data class PlayheadPosition(val clipId: String, val timelineFrame: Long, val sourcePositionMs: Long)
 
 /**
@@ -19,7 +21,7 @@ internal data class PlayheadPosition(val clipId: String, val timelineFrame: Long
  * Project and autosave file methods are blocking; call them from a worker, not the UI thread.
  */
 internal class EngineSession : AutoCloseable {
-    private var handle: Long = nativeCreate()
+    private var handle: Long = nativeCreate(java.util.UUID.randomUUID().toString())
 
     init {
         check(handle != 0L) { AppLanguage.text(R.string.message_22b4d27a73) }
@@ -50,6 +52,18 @@ internal class EngineSession : AutoCloseable {
             }
         }
     }
+
+    @Synchronized
+    fun mediaAssets(): List<MediaAssetSummary> {
+        check(handle != 0L) { AppLanguage.text(R.string.message_bf5f0d21b6) }
+        val array = JSONObject(nativeGetMediaAssets(handle)).getJSONArray("assets")
+        return List(array.length()) { index ->
+            val item = array.getJSONObject(index)
+            val ids = item.getJSONArray("clipIds")
+            MediaAssetSummary(item.getString("mediaId"), List(ids.length()) { ids.getString(it) }, item.getLong("requiredSourceEndMs"))
+        }
+    }
+    private external fun nativeGetMediaAssets(handle: Long): String
 
     @Synchronized
     fun resolvePlayhead(trackId: String, timelineFrame: Long): PlayheadPosition? {
@@ -164,7 +178,19 @@ internal class EngineSession : AutoCloseable {
     }
     private external fun nativeSaveCopy(handle: Long, path: String)
     private external fun nativeRestoreDraft(handle: Long, path: String)
-    private external fun nativeCreate(): Long
+    @Synchronized
+    fun checkpointProject(path: String) {
+        check(handle != 0L) { AppLanguage.text(R.string.message_bf5f0d21b6) }
+        nativeCheckpointProject(handle,path)
+    }
+    @Synchronized
+    fun repairCheckpoint(path: String): Boolean {
+        check(handle != 0L) { AppLanguage.text(R.string.message_bf5f0d21b6) }
+        return nativeRepairCheckpoint(handle,path)
+    }
+    private external fun nativeRepairCheckpoint(handle: Long, path: String): Boolean
+    private external fun nativeCheckpointProject(handle: Long, path: String)
+    private external fun nativeCreate(projectId: String): Long
     private external fun nativeGetStatus(handle: Long): String
     private external fun nativeGetTimelineSnapshot(handle: Long): String
     private external fun nativeResolvePlayhead(handle: Long, trackId: String, timelineFrame: Long): String?

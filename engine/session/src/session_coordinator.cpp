@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace editor {
 SessionCoordinator::SessionCoordinator(std::string id, TimeBase base)
@@ -23,6 +24,22 @@ SessionStatus SessionCoordinator::status() const {
     for (const auto& track : project_.timeline.tracks()) clips += track.clips.size();
     return {project_.name, project_.timeline.tracks().size(), clips, revision_,
             revision_ != saved_revision_, history_.can_undo(), history_.can_redo()};
+}
+std::vector<MediaAssetSummary> SessionCoordinator::media_assets() const {
+    std::lock_guard lock(mutex_);
+    std::vector<MediaAssetSummary> assets;
+    std::unordered_map<std::string,std::size_t> indices;
+    for (const auto& track : project_.timeline.tracks()) {
+        for (const auto& clip : track.clips) {
+            const auto [found,inserted] = indices.emplace(clip.media_id,assets.size());
+            if (inserted) assets.push_back({clip.media_id,{},0});
+            auto& asset = assets[found->second];
+            asset.clip_ids.push_back(clip.id);
+            asset.required_source_end_ms = std::max(asset.required_source_end_ms,
+                                                    clip.source_out.rescaled({1,1000}).ticks);
+        }
+    }
+    return assets;
 }
 ClipPage SessionCoordinator::clip_page(std::size_t offset, std::size_t limit,
                                       std::optional<std::uint64_t> expected_revision) const {
@@ -109,6 +126,15 @@ void SessionCoordinator::save(const std::filesystem::path& path) {
     ProjectStore::save_atomic(path, project_);
     saved_revision_ = revision_; // only after native save/fsync succeeds
 }
+void SessionCoordinator::checkpoint(const std::filesystem::path& path) {
+    std::lock_guard lock(mutex_);
+    CheckpointJournal::commit(path,project_,revision_);
+    saved_revision_ = revision_;
+}
+bool SessionCoordinator::repair_checkpoint(const std::filesystem::path& path) {
+    std::lock_guard lock(mutex_);
+    return CheckpointJournal::archive_corrupt(path).has_value();
+}
 void SessionCoordinator::load(const std::filesystem::path& path) {
     std::lock_guard lock(mutex_);
     require_revision_capacity();
@@ -131,6 +157,8 @@ void SessionCoordinator::restore_draft(const std::filesystem::path& path) {
 }
 void SessionCoordinator::autosave(const std::filesystem::path& primary) {
     std::lock_guard lock(mutex_);
+    try { (void)CheckpointJournal::inspect(primary); }
+    catch(const CorruptCheckpointReceipt&) { /* permit saving a known-format draft for repair */ }
     ProjectStore::save_autosave(primary, project_);
 }
 bool SessionCoordinator::recover(const std::filesystem::path& primary) {

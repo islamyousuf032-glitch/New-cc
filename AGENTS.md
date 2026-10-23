@@ -24,3 +24,6 @@
 - Native project/history mutation belongs in SessionCoordinator, not JNI fields. Keep JNI result keys and Kotlin synchronized-handle lifetime contract compatible.
 - Pages reject stale revisions; do not silently assemble mixed snapshots. Whole JSON/Kotlin lists are still materialized; do not describe this as end-to-end bounded UI memory.
 - save_copy must not mark a primary checkpoint clean, and restore_draft must stay dirty. Native saved revision does not replace Activity dirty state until managed checkpoint/catalog transactions are unified.
+
+- ADR 0014: phone testing is user-owned. Default CI is native/build/lint/static/test-source checks; emulator/render/install-over are manual opt-in. Always disclose skipped tests. Signed candidates must still match the approved APK signer/package and monotonic version.
+- Checkpoint receipts are diagnostic, not a WAL or authority to discard recovery. Archive only typed malformed receipts with a readable primary; preserve future formats/I/O failures. Keep strict UTF-8↔UTF-16 JNI conversion and UUID project identity.

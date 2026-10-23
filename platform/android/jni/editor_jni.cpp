@@ -1,13 +1,15 @@
 #include <jni.h>
 
 #include "editor/session_coordinator.hpp"
+#include "editor/unicode.hpp"
 #include "editor/project.hpp"
 #include "editor/time.hpp"
 #include "editor/timeline.hpp"
 
-#include <atomic>
 #include <cstdint>
 #include <memory>
+#include <limits>
+#include <type_traits>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -17,7 +19,6 @@ using namespace editor;
 
 const TimeBase kFrameTimeBase{1, 30};
 const TimeBase kMilliseconds{1, 1000};
-std::atomic<std::uint64_t> g_project_sequence{1};
 
 using EngineSession = SessionCoordinator;
 
@@ -25,25 +26,47 @@ EngineSession* from_handle(jlong handle) noexcept {
     return reinterpret_cast<EngineSession*>(static_cast<std::uintptr_t>(handle));
 }
 
+static_assert(std::is_same_v<jchar,std::uint16_t>);
 std::string from_java(JNIEnv* env, jstring value) {
     if (value == nullptr) throw std::invalid_argument("string argument is null");
-    const char* utf = env->GetStringUTFChars(value, nullptr);
-    if (utf == nullptr) throw std::runtime_error("could not access Java string");
-    struct UtfCharsGuard final {
-        JNIEnv* env;
-        jstring value;
-        const char* chars;
-        ~UtfCharsGuard() { env->ReleaseStringUTFChars(value, chars); }
-    } guard{env, value, utf};
-    std::string result(utf);
+    const auto length=env->GetStringLength(value);
+    const jchar* chars=env->GetStringChars(value,nullptr);
+    if (chars == nullptr) throw std::runtime_error("could not access Java string");
+    struct Guard final {
+        JNIEnv* env; jstring value; const jchar* chars;
+        ~Guard() { env->ReleaseStringChars(value,chars); }
+    } guard{env,value,chars};
+    auto result=utf8_from_utf16({chars,static_cast<std::size_t>(length)});
     if (result.empty()) throw std::invalid_argument("string argument must not be empty");
+    if (result.find('\0') != std::string::npos) throw std::invalid_argument("string argument contains NUL");
     return result;
+}
+jstring to_java(JNIEnv* env, std::string_view text) {
+    if(text.size() > static_cast<std::size_t>(std::numeric_limits<jsize>::max()))
+        throw std::length_error("native string exceeds Java size limit");
+    const auto utf16=utf16_from_utf8(text);
+    static constexpr jchar empty=0;
+    return env->NewString(utf16.empty() ? &empty : utf16.data(),static_cast<jsize>(utf16.size()));
 }
 
 void throw_java_argument(JNIEnv* env, const char* message) noexcept {
     if (env->ExceptionCheck()) return;
-    jclass type = env->FindClass("java/lang/IllegalArgumentException");
-    if (type != nullptr) env->ThrowNew(type, message);
+    jclass type=env->FindClass("java/lang/IllegalArgumentException");
+    if (type == nullptr) return;
+    try {
+        const auto constructor=env->GetMethodID(type,"<init>","(Ljava/lang/String;)V");
+        if(constructor != nullptr) {
+            jstring text=to_java(env,message);
+            if(text != nullptr) {
+                jobject error=env->NewObject(type,constructor,text);
+                if(error != nullptr) { env->Throw(static_cast<jthrowable>(error)); env->DeleteLocalRef(error); }
+                env->DeleteLocalRef(text);
+            }
+        }
+    } catch (...) {
+        if(!env->ExceptionCheck()) env->ThrowNew(type,"Native operation failed"); // ASCII fallback only
+    }
+    env->DeleteLocalRef(type);
 }
 
 EngineSession& require_session(jlong handle) {
@@ -123,10 +146,9 @@ std::string make_status(const EngineSession& session) {
 } // namespace
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_owncut_app_EngineSession_nativeCreate(JNIEnv* env, jobject) {
+Java_com_owncut_app_EngineSession_nativeCreate(JNIEnv* env, jobject, jstring project_id) {
     try {
-        auto project_id = "android-project-" + std::to_string(g_project_sequence.fetch_add(1));
-        auto session = std::make_unique<EngineSession>(std::move(project_id));
+        auto session = std::make_unique<EngineSession>(from_java(env,project_id));
         return static_cast<jlong>(reinterpret_cast<std::uintptr_t>(session.release()));
     } catch (const std::exception& error) {
         throw_java_argument(env, error.what());
@@ -139,7 +161,7 @@ Java_com_owncut_app_EngineSession_nativeGetStatus(JNIEnv* env, jobject, jlong ha
     try {
         auto& session = require_session(handle);
         const auto status = make_status(session);
-        return env->NewStringUTF(status.c_str());
+        return to_java(env,status);
     } catch (const std::exception& error) {
         throw_java_argument(env, error.what());
         return nullptr;
@@ -151,7 +173,7 @@ Java_com_owncut_app_EngineSession_nativeGetTimelineSnapshot(JNIEnv* env, jobject
     try {
         auto& session = require_session(handle);
         const auto snapshot = make_timeline_snapshot(session);
-        return env->NewStringUTF(snapshot.c_str());
+        return to_java(env,snapshot);
     } catch (const std::exception& error) {
         throw_java_argument(env, error.what());
         return nullptr;
@@ -170,7 +192,7 @@ Java_com_owncut_app_EngineSession_nativeResolvePlayhead(JNIEnv* env, jobject, jl
         append_json_string(json, resolved->clip_id);
         json += ",\"timelineFrame\":" + std::to_string(resolved->timeline_position.ticks);
         json += ",\"sourcePositionMs\":" + std::to_string(resolved->source_position.rescaled(kMilliseconds).ticks) + "}";
-        return env->NewStringUTF(json.c_str());
+        return to_java(env,json);
     } catch (const std::exception& error) { throw_java_argument(env, error.what()); return nullptr; }
 }
 
@@ -181,7 +203,7 @@ Java_com_owncut_app_EngineSession_nativeAddMediaClip(JNIEnv* env, jobject, jlong
         auto& session = require_session(handle);
         auto media = from_java(env, media_id);
         const auto id = session.add_media(media, duration_ms);
-        return env->NewStringUTF(id.c_str());
+        return to_java(env,id);
     } catch (const std::exception& error) {
         throw_java_argument(env, error.what());
         return nullptr;
@@ -334,4 +356,40 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_owncut_app_EngineSession_nativeRestoreDraft(JNIEnv* env, jobject, jlong handle, jstring path) {
     try { require_session(handle).restore_draft(from_java(env, path)); }
     catch (const std::exception& error) { throw_java_argument(env, error.what()); }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_owncut_app_EngineSession_nativeCheckpointProject(JNIEnv* env, jobject, jlong handle, jstring path) {
+    try { require_session(handle).checkpoint(from_java(env,path)); }
+    catch (const std::exception& error) { throw_java_argument(env,error.what()); }
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_owncut_app_EngineSession_nativeGetMediaAssets(JNIEnv* env, jobject, jlong handle) {
+    try {
+        const auto assets = require_session(handle).media_assets();
+        std::string json = "{\"assets\":[";
+        bool first_asset = true;
+        for (const auto& asset : assets) {
+            if (!first_asset) json += ',';
+            first_asset = false;
+            json += "{\"mediaId\":"; append_json_string(json,asset.media_id);
+            json += ",\"requiredSourceEndMs\":" + std::to_string(asset.required_source_end_ms) + ",\"clipIds\":[";
+            bool first_clip = true;
+            for (const auto& id : asset.clip_ids) {
+                if (!first_clip) json += ',';
+                first_clip = false;
+                append_json_string(json,id);
+            }
+            json += "]}";
+        }
+        json += "]}";
+        return to_java(env,json);
+    } catch (const std::exception& error) { throw_java_argument(env,error.what()); return nullptr; }
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_owncut_app_EngineSession_nativeRepairCheckpoint(JNIEnv* env, jobject, jlong handle, jstring path) {
+    try { return require_session(handle).repair_checkpoint(from_java(env,path)) ? JNI_TRUE : JNI_FALSE; }
+    catch (const std::exception& error) { throw_java_argument(env,error.what()); return JNI_FALSE; }
 }

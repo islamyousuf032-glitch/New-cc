@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <fstream>
 #include <iterator>
+#include <limits>
 #include <ostream>
 #include <stdexcept>
 #include <string_view>
@@ -119,6 +120,27 @@ void require_no_trailing_data(std::istream& in) {
     if (in.bad()) throw std::runtime_error("failed reading project data");
 }
 
+void reject_future_recovery(const std::filesystem::path& path) {
+    if (std::filesystem::exists(path)) {
+        if(!std::filesystem::is_regular_file(path)) throw std::runtime_error("autosave is not a regular file");
+        std::ifstream input(path,std::ios::binary);
+        if(!input) throw std::runtime_error("could not inspect existing autosave");
+        char magic[8]{}; input.read(magic,8);
+        if(input.bad()) throw std::runtime_error("I/O error inspecting autosave");
+        if(input && std::string_view(magic,8) == std::string_view(kMagic,8)) {
+            // Do not destroy a future client's only draft. Truncated/ordinary corrupt
+            // v0/v1 recovery retains existing replacement behavior.
+            char version_bytes[4]{}; input.read(version_bytes,4);
+            if(input.bad()) throw std::runtime_error("I/O error inspecting autosave version");
+            if(input) {
+                std::uint32_t version=0;
+                for(unsigned i=0;i<4;++i) version |= static_cast<std::uint32_t>(static_cast<unsigned char>(version_bytes[i])) << (8*i);
+                if(version > ProjectCodec::current_version) throw UnsupportedProjectVersion("existing recovery belongs to a newer editor; original was kept");
+            }
+        }
+    }
+}
+
 std::filesystem::path make_temp_path(const std::filesystem::path& target) {
     static std::atomic<std::uint64_t> sequence{0};
     const auto now = std::chrono::steady_clock::now().time_since_epoch().count();
@@ -208,7 +230,7 @@ Project ProjectCodec::read(std::istream& input) {
         throw std::runtime_error("invalid project header");
 
     const auto version = read_u32(input);
-    if (version > current_version) throw std::runtime_error("project schema version is newer than this editor");
+    if (version > current_version) throw UnsupportedProjectVersion("project schema version is newer than this editor");
     if (version != 0 && version != current_version) throw std::runtime_error("unsupported project schema version");
 
     auto id = read_string(input);
@@ -249,14 +271,15 @@ Project ProjectCodec::read(std::istream& input) {
     return project;
 }
 
-void ProjectStore::save_atomic(const std::filesystem::path& path, const Project& project) {
+void AtomicFileStore::write(const std::filesystem::path& path,
+                            const std::function<void(std::ostream&)>& writer) {
     if (path.empty() || path.filename().empty()) throw std::invalid_argument("project path must name a file");
     const auto temp_path = make_temp_path(path);
     try {
         {
             std::ofstream output(temp_path, std::ios::binary | std::ios::out | std::ios::trunc);
             if (!output) throw std::runtime_error("could not create temporary project file");
-            ProjectCodec::write(project, output);
+            writer(output);
             output.flush();
             if (!output) throw std::runtime_error("could not flush temporary project file");
             output.close();
@@ -278,6 +301,10 @@ void ProjectStore::save_atomic(const std::filesystem::path& path, const Project&
     }
 }
 
+void ProjectStore::save_atomic(const std::filesystem::path& path, const Project& project) {
+    AtomicFileStore::write(path, [&](std::ostream& output) { ProjectCodec::write(project, output); });
+}
+
 Project ProjectStore::load(const std::filesystem::path& path) {
     std::ifstream input(path, std::ios::binary);
     if (!input) throw std::runtime_error("could not open project file");
@@ -293,7 +320,9 @@ std::filesystem::path ProjectStore::autosave_path_for(const std::filesystem::pat
 }
 
 void ProjectStore::save_autosave(const std::filesystem::path& project_path, const Project& project) {
-    save_atomic(autosave_path_for(project_path), project);
+    const auto path=autosave_path_for(project_path);
+    reject_future_recovery(path);
+    save_atomic(path, project);
 }
 
 std::optional<Project> ProjectStore::load_autosave(const std::filesystem::path& project_path) {
@@ -306,9 +335,97 @@ std::optional<Project> ProjectStore::load_autosave(const std::filesystem::path& 
 }
 
 void ProjectStore::clear_autosave(const std::filesystem::path& project_path) {
+    (void)CheckpointJournal::inspect(project_path); // never discard an unknown future transaction's draft
     const auto autosave = autosave_path_for(project_path);
+    reject_future_recovery(autosave);
     std::error_code error;
-    (void)std::filesystem::remove(autosave, error);
+    const bool removed = std::filesystem::remove(autosave, error);
     if (error) throw std::filesystem::filesystem_error("could not remove autosave", autosave, error);
+#if defined(__linux__) || defined(__ANDROID__)
+    if (removed) sync_parent_directory(autosave);
+#else
+    (void)removed;
+#endif
+}
+
+std::filesystem::path CheckpointJournal::path_for(const std::filesystem::path& primary) {
+    if (primary.empty() || primary.filename().empty()) throw std::invalid_argument("checkpoint path must name a file");
+    auto result = primary; result += ".checkpoint"; return result;
+}
+std::optional<CheckpointReceipt> CheckpointJournal::inspect(const std::filesystem::path& primary) {
+    const auto path = path_for(primary);
+    if (!std::filesystem::exists(path)) return std::nullopt;
+    if (!std::filesystem::is_regular_file(path)) throw std::runtime_error("checkpoint record is not a regular file");
+    std::ifstream in(path, std::ios::binary);
+    if (!in) throw std::runtime_error("could not open checkpoint receipt");
+    try {
+        char magic[8]{}; in.read(magic,8);
+        if (!in || std::string_view(magic,8) != "OWNCUTCK") throw std::runtime_error("invalid checkpoint receipt");
+        if (read_u32(in) != 1) throw UnsupportedCheckpointVersion("unsupported checkpoint receipt version");
+        if (std::filesystem::file_size(path) > 4160) throw std::runtime_error("checkpoint receipt size limit exceeded");
+        const auto generation = read_u64(in), revision = read_u64(in);
+        const auto phase = read_u8(in);
+        if (generation == 0 || phase > 2) throw std::runtime_error("invalid checkpoint receipt state");
+        auto id = read_string(in);
+        if (id.empty()) throw std::runtime_error("checkpoint project id is required");
+        require_no_trailing_data(in);
+        return CheckpointReceipt{generation,revision,static_cast<CheckpointPhase>(phase),std::move(id)};
+    } catch(const UnsupportedCheckpointVersion&) { throw; }
+      catch(const std::filesystem::filesystem_error&) { throw; }
+      catch(const std::bad_alloc&) { throw; }
+      catch(const std::exception& error) {
+        if(in.bad()) throw std::runtime_error("I/O error reading checkpoint receipt");
+        throw CorruptCheckpointReceipt(error.what());
+    }
+}
+std::optional<std::filesystem::path> CheckpointJournal::archive_corrupt(const std::filesystem::path& primary) {
+    try { (void)inspect(primary); return std::nullopt; }
+    catch (const CorruptCheckpointReceipt&) {
+        // At least the primary must be readable before changing checkpoint metadata.
+        // Recovery bytes are never modified by repair.
+        (void)ProjectStore::load(primary);
+        const auto source=path_for(primary);
+        auto archive=source;
+        static std::atomic<std::uint64_t> sequence{0};
+        archive += ".preserved-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count())+
+                   "-"+std::to_string(sequence.fetch_add(1));
+        if (std::filesystem::exists(archive)) throw std::runtime_error("checkpoint archive already exists");
+        std::filesystem::rename(source,archive);
+#if defined(__linux__) || defined(__ANDROID__)
+        sync_parent_directory(source);
+#endif
+        return archive;
+    }
+}
+void CheckpointJournal::commit(const std::filesystem::path& primary, const Project& project,
+                               std::uint64_t session_revision,
+                               const std::function<void(CheckpointStep)>& after_step) {
+    auto notify = [&](CheckpointStep step) { if (after_step) after_step(step); };
+    // Unknown future metadata must be refused before touching its recovery payload.
+    std::optional<CheckpointReceipt> previous;
+    try { previous=inspect(primary); }
+    catch(const CorruptCheckpointReceipt&) {
+        ProjectStore::save_autosave(primary,project); // known-format draft, primary/receipt preserved
+        throw;
+    }
+    ProjectStore::save_autosave(primary,project);
+    notify(CheckpointStep::recovery_written);
+    if (previous && previous->generation == std::numeric_limits<std::uint64_t>::max())
+        throw std::overflow_error("checkpoint generation exhausted");
+    const auto generation = previous ? previous->generation+1 : 1;
+    auto receipt = [&](CheckpointPhase phase) {
+        AtomicFileStore::write(path_for(primary),[&](std::ostream& out) {
+            out.write("OWNCUTCK",8); write_u32(out,1); write_u64(out,generation);
+            write_u64(out,session_revision); write_u8(out,static_cast<std::uint8_t>(phase));
+            write_string(out,project.id);
+        });
+    };
+    receipt(CheckpointPhase::prepared); notify(CheckpointStep::prepared);
+    ProjectStore::save_atomic(primary,project); notify(CheckpointStep::primary_written);
+    // Parse from disk before recording commit or removing the only recovery copy.
+    (void)ProjectStore::load(primary);
+    receipt(CheckpointPhase::committed); notify(CheckpointStep::committed);
+    ProjectStore::clear_autosave(primary); notify(CheckpointStep::recovery_cleared);
+    receipt(CheckpointPhase::clean); notify(CheckpointStep::clean);
 }
 } // namespace editor

@@ -1,5 +1,44 @@
 # Build and test
 
+## Current fast validation and phone handoff — 2026-10-23
+
+Default Android CI runs resource/patch guards, all three native suites, Android APK
+build/lint/AndroidTest-source compilation and alignment. Emulator/render/install-over
+are **not** run on push; dispatch with `run_device_tests=true` explicitly requests them.
+A requested device failure blocks publication. A signed candidate without those runs
+must say `deviceValidation=not-run`, never "device verified". Approved-signer/package/
+version checks still apply. The user owns phone testing; see ADR 0014 and UPDATE_APKS.
+
+Latest local results: Make three suites, CMake Release/CTest 3/3, checkpoint ASan+UBSan,
+strict host JNI shared-library build, real JVM `-Xcheck:jni`, 279 resource/theme checks,
+7 metadata and 3 install-over guard tests, and workflow syntax/guard checks all passed.
+Android/Kotlin compilation, codecs, emulator/phone/update installation remain unrun for
+this batch. No new APK. Older entries below describe earlier checkpoints.
+
+### Optional Linux host JVM JNI smoke test
+
+Use a local JDK with JNI headers and install `JPype1==1.7.1` into an isolated development
+environment (not an app dependency). Build the production JNI against its headers:
+
+```sh
+c++ -std=c++20 -O2 -shared -fPIC -pthread -Wall -Wextra -Wpedantic \
+  -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" \
+  -Iengine/session/include -Iengine/core/include -Iengine/timeline/include \
+  -Iengine/commands/include -Iengine/project/include \
+  platform/android/jni/editor_jni.cpp engine/session/src/session_coordinator.cpp \
+  engine/core/src/time.cpp engine/timeline/src/timeline.cpp \
+  engine/commands/src/command_history.cpp engine/project/src/project.cpp \
+  -o /tmp/libowncut_host.so
+python3 tests/run_host_jni.py "$JAVA_HOME" /tmp/libowncut_host.so
+```
+
+The script generates original fixture bytecode (no `javac` needed), runs the actual
+production class/symbol bindings under `-Xcheck:jni` and removes temporary documents.
+It tests Unicode, native exceptions, UUID input, session isolation, >256 clips,
+media catalog and checkpoint/repair. This is **not** Kotlin/ART/Android/codec testing.
+The local run used cache-only Java 25.0.2 with official OpenJDK 17 JNI headers; Android
+CI still uses its pinned JDK 17. No generated JVM binaries are checked in.
+
 ## Portable C++ core
 
 Requirements: GCC or Clang with C++20. CMake 3.20+ is supported.
@@ -11,7 +50,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-`make test` compiles to `/tmp/owncut_core_tests` and runs it, avoiding generated binaries in the repository. CMake build output belongs in ignored `build/`.
+`make test` builds/runs `/tmp/owncut_{core,session,checkpoint}_tests`, avoiding generated binaries in the repository. CMake build output belongs in ignored `build/`.
 
 ## Android app shell and JNI smoke test
 
@@ -316,5 +355,6 @@ corrupt load/recovery, copy/draft distinction, v0 load, ID collisions, track-bou
 pages, stale/invalid pages and simultaneous writers/readers. ASan/UBSan were run on
 the session suite locally; TSan and Android tests were not run.
 
-`NativeCoordinatorContractTest` must pass on Android before distributing this JNI
-refactor. This does not waive the separate install-over and approved-signer gates.
+Android coordinator/checkpoint contract tests remain acceptance work. Per ADR 0014,
+phone-test candidates may precede emulator execution but must disclose this; stable
+signing and approved-signer/package/version verification remain mandatory.

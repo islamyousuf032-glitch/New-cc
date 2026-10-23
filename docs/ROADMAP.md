@@ -1,5 +1,23 @@
 # Roadmap and acceptance gates
 
+## Active batch checkpoint — 2026-10-23
+
+Implemented and host-tested: diagnostic checkpoint receipts/shared atomic storage,
+interruption hooks, future-format preservation, explicit receipt repair, derived Sources
+browser, UUID identities and standard-Unicode JNI. Android tests are written, not yet
+compiled/executed for this batch. This does **not** close the write-ahead journal,
+power-loss, scalable asset registry, controller-lifecycle or Android acceptance gates.
+
+Next integrated work: controller/lifecycle ownership and bounded UI snapshots; then a
+persisted typed graph with real preview/export evaluation before editable node controls.
+Advanced grading, RAW/camera `.ccraw` specification and the remaining forward roadmap
+are not implemented. No decorative Flow editing is counted as engine progress.
+
+Readiness: **25% credited / 75% remaining**; no new device-verified credit. CI's default
+handoff is now a statically checked signed candidate, with optional manual emulator
+checks; this supersedes older mandatory-emulator publication wording, not product
+acceptance criteria. Phone testing remains with the user. See ADR 0014 / UPDATE_APKS.
+
 ## Phase 0 — Foundation (implemented with remaining hardening)
 
 - [x] Repository/environment audit recorded.

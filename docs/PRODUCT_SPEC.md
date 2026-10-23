@@ -1,5 +1,18 @@
 # Product specification
 
+## Current recovery/sources implementation (2026-10-23; Android acceptance pending)
+
+Managed project saves checkpoint recovery and primary with diagnostic receipts. The
+Tools repair action requires confirmation, preserves damaged receipt bytes and recovery,
+and refuses unsupported future formats or filesystem failures. Sources groups only
+media already referenced by clips, pages 20 entries, and selects an associated earliest
+clip; it is not a complete asset-bin/import-management system. New sessions use UUIDs,
+and the JNI boundary supports Bengali and supplementary Unicode such as emoji.
+
+Acceptance still requires Android build and user phone checks of save/reopen/recovery,
+source selection and Unicode. Host tests do not establish UI, codec or update behavior.
+Phone testing is user-owned; automatic CI device runs are optional (ADR 0014).
+
 ## Vision
 
 A touch-first, offline-first, non-destructive Android video editor with a distinct identity and professional editing depth. Cloud accounts and AI services are never required for core editing. Original media remains untouched.
