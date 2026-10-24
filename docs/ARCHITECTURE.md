@@ -1,5 +1,12 @@
 # Architecture index and execution history
 
+## Fresh-install exception (2026-10-24)
+
+Fresh-install debug candidate uses a separate explicit publication route and metadata;
+stable update signing guards are unchanged. Validate actual APK identity before release.
+No runtime architecture/color change (ADR0028).
+
+
 ## Current build checkpoint (2026-10-24)
 
 Explicit highp sampler precision is part of the shared native shader contract, not just

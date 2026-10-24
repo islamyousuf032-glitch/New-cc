@@ -36,6 +36,7 @@ jobs:
         run: |
           python3 tests/check_ui_resources.py
           python3 tests/test_patch_metadata.py
+          python3 tests/test_fresh_install.py
           python3 tests/test_signing_preflight.py
           python3 tests/test_install_over_guard.py
           python3 scripts/progress.py
@@ -67,7 +68,7 @@ jobs:
             echo 'ready=true' >> "$GITHUB_OUTPUT"
           else
             echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo '::warning::Stable signing is not configured. Tests will run; no downloadable APK will be published.'
+            echo '::warning::Stable signing is not configured. No update-compatible patch will be published; explicitly requested fresh-install candidates use a separate route.'
           fi
       - name: Install pinned Android SDK components
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;3.22.1"
@@ -239,6 +240,22 @@ jobs:
             --title "Owncut app patch ${OWNCUT_VERSION_CODE}" \
             --notes "Signed full update APK, versionCode ${OWNCUT_VERSION_CODE}. Approved previous APK signer/package verified. Device checks passed: ${DEVICE_CHECKS_PASSED}. Phone testing is owned by the user; no phone result is claimed. Built from ${GITHUB_SHA}."
           echo "APK release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}" >> "$GITHUB_STEP_SUMMARY"
+      # Explicit one-batch owner consent; never a PR artifact or an implicit patch fallback.
+      - name: Publish explicitly requested fresh-install debug APK
+        if: success() && steps.signing.outputs.ready == 'false' && github.event_name == 'push' && github.ref == 'refs/heads/arena/6e511b63-new-cc' && contains(github.event.head_commit.message, '[fresh-install-apk]')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=app/build/outputs/apk/debug/owncut-fresh-install-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk "$apk"
+          python3 scripts/verify_fresh_install.py "$apk" "$ANDROID_HOME/build-tools/36.0.0/apksigner" "$OWNCUT_VERSION_CODE" "$GITHUB_SHA"
+          (cd app/build/outputs/apk/debug && sha256sum owncut-fresh-install-debug.apk > owncut-fresh-install-debug.apk.sha256)
+          tag="fresh-install-${GITHUB_RUN_ID}"
+          gh release create "$tag" "$apk" "$apk.sha256" app/build/outputs/apk/debug/fresh-install-metadata.json \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Owncut fresh-install TEST APK ${OWNCUT_VERSION_CODE}" \
+            --notes "User-authorized fresh install, NOT an update-compatible patch. Back up projects before uninstalling: app-local data/settings may be deleted. Debug signed with a temporary runner key; future update compatibility is not guaranteed. Phone/device tests not run; testing belongs to the user. Built from ${GITHUB_SHA}. Normal graded-export guards remain."
+          echo "Fresh-install test APK: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}" >> "$GITHUB_STEP_SUMMARY"
       - name: Remove temporary signing material
         if: always()
         run: rm -f "$RUNNER_TEMP/owncut-patch.jks"

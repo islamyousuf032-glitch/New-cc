@@ -1,5 +1,12 @@
 # নতুন APK তৈরির বাধা: কী হয়েছে এবং সমাধানের পথ
 
+## Fresh-install exception (2026-10-24)
+
+ব্যবহারকারী এখন এই test-এর জন্য fresh install অনুমোদন করেছেন। তাই original key ছাড়াই
+আলাদা debug-signed APK প্রকাশের route যোগ হয়েছে; stable update-এর নিয়ম অপরিবর্তিত।
+Uninstall-এর আগে project/media backup জরুরি; পরের update compatible হবে এমন নিশ্চয়তা নেই।
+
+
 ## Current build checkpoint (2026-10-24)
 
 Repository public করার পর Android40095688463-এ assembly/lint/test-source compilation/ZIP

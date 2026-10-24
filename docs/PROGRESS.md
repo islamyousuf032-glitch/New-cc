@@ -1,5 +1,15 @@
 ## Mesa sampler precision correction under verification (2026-10-24)
 
+## Explicit fresh-install test APK exception (2026-10-24)
+
+User now authorizes uninstall/fresh install for this test, superseding the earlier mandatory
+install-over requirement for this candidate only. Separate debug-signed fresh-install
+prerelease route requires an explicit commit marker, actual signature/package/version
+checks and passing Android build gates. Stable update route remains unchanged. Back up
+projects/media before uninstall; app-local data/settings may be lost. Temporary signer
+may change; future update compatibility NOT guaranteed. Publication pending (ADR0028).
+
+
 ## Verified Android build and sampler fix (2026-10-24)
 
 Production code atb802517 passes Android40095688463: APK assembly, lint, Android test-source

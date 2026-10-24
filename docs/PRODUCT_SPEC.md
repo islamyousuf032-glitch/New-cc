@@ -1,5 +1,12 @@
 # Product specification
 
+## Fresh-install exception (2026-10-24)
+
+User explicitly accepts uninstall/fresh install for the current test candidate. Warn of
+app-local data loss and back up projects/media; temporary debug signer does not promise
+future updates. Do not describe this as an update patch or finished grading (ADR0028).
+
+
 ## Current build checkpoint (2026-10-24)
 
 Actual Android assembly/lint/test-source compilation/alignment passes; this is not phone

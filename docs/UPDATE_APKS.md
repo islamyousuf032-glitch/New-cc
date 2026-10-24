@@ -1,5 +1,15 @@
 # Install-over APK patches: signing and verification
 
+## Explicit fresh-install test APK exception (2026-10-24)
+
+User now authorizes uninstall/fresh install for this test, superseding the earlier mandatory
+install-over requirement for this candidate only. Separate debug-signed fresh-install
+prerelease route requires an explicit commit marker, actual signature/package/version
+checks and passing Android build gates. Stable update route remains unchanged. Back up
+projects/media before uninstall; app-local data/settings may be lost. Temporary signer
+may change; future update compatibility NOT guaranteed. Publication pending (ADR0028).
+
+
 ## Current build checkpoint (2026-10-24)
 
 Public repository jobs now execute and Android40095688463 passes assembly/lint/test-source

@@ -64,3 +64,7 @@
 - Shared grade shaders must explicitly declare highp sampler2D as well as highp floats.
   Mesa default lowp sampling caused a measured parity failure; do not relax gates to hide
   it. Android compilation now passes, but device/encoder/parity remains unrun (ADR0027).
+
+- ADR0028 explicitly permits the current user-authorized fresh-install debug candidate.
+  Only publish through separate commit-marker opt-in route; never call it update-compatible.
+  Warn of uninstall data loss, do not clear a phone, and preserve stable patch signer gates.

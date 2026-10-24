@@ -1,5 +1,12 @@
 # Dependencies and licensing
 
+## Fresh-install exception (2026-10-24)
+
+No new dependency/tool version/key asset. Fresh-install metadata verifier uses Python
+stdlib and existing SDK apksigner/aapt2; existing runner debug signing, never exported
+private key. Eight new mock tests do not sign/install real APKs (ADR0028).
+
+
 ## Current build checkpoint (2026-10-24)
 
 No new dependency/tool version/assets. Fix uses existing Media3 Format.NO_VALUE and

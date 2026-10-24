@@ -1,5 +1,12 @@
 # Device test matrix
 
+## Fresh-install exception (2026-10-24)
+
+Current test candidate may require uninstall/fresh install by explicit user consent.
+User must back up projects/media first; do not claim settings/project retention on uninstall.
+Phone tests remain user-owned; build verification is not device acceptance (ADR0028).
+
+
 ## Verified Android build and sampler fix (2026-10-24)
 
 Production code atb802517 passes Android40095688463: APK assembly, lint, Android test-source

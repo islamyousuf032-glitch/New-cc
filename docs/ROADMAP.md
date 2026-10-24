@@ -1,5 +1,11 @@
 # Roadmap and acceptance gates
 
+## Fresh-install exception (2026-10-24)
+
+Separate fresh-install test delivery is now authorized; stable update route preserved.
+Publication/phone acceptance pending, no feature or readiness credit (ADR0028).
+
+
 ## Verified Android build and sampler fix (2026-10-24)
 
 Production code atb802517 passes Android40095688463: APK assembly, lint, Android test-source
