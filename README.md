@@ -1,5 +1,14 @@
 > **Historical user-approved phone-tested APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
 
+## Color panel discoverability fix (2026-10-24)
+
+User screenshot exposed Color panel detached during final layout assembly. Reattach to
+context scroll pane; show labelled theme-aware actions before long help text. Icon-only
+navigation unchanged. Regression instrumentation asserts attached/shown actions across
+3themes, hidden on Edit; execution remains user-owned/pending. No new dependency, grade
+math, export guard or readiness change (25%/75%). New APK build pending; see ADR0029.
+
+
 ## Fresh-install candidate PUBLISHED (2026-10-24)
 
 [Download test APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/fresh-install-40096664665/owncut-fresh-install-debug.apk) — 8,004,475bytes; [release/checksum/metadata](https://github.com/islamyousuf032-glitch/New-cc/releases/tag/fresh-install-40096664665).

@@ -72,3 +72,7 @@
 - Fresh-install candidate fresh-install-40096664665 is actually published (source f9f7464),
   not phone-accepted. Keep its source/digest and uninstall data-loss warning distinct from
   stable update compatibility. Documentation-only follow-ups do not rebuild that artifact.
+
+- Final workspace assembly must reattach every contextual panel after root.removeAllViews.
+  Color actions need visible labels, not icon-only StudioButton; test final attached/shown
+  hierarchy across tabs/themes (ADR0029). Compile-only is not phone acceptance.

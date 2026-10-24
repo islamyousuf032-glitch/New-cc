@@ -1,5 +1,14 @@
 # Dependencies and licensing
 
+## Color panel discoverability fix (2026-10-24)
+
+User screenshot exposed Color panel detached during final layout assembly. Reattach to
+context scroll pane; show labelled theme-aware actions before long help text. Icon-only
+navigation unchanged. Regression instrumentation asserts attached/shown actions across
+3themes, hidden on Edit; execution remains user-owned/pending. No new dependency, grade
+math, export guard or readiness change (25%/75%). New APK build pending; see ADR0029.
+
+
 ## Fresh-install publication result (2026-10-24)
 
 ADR0028 candidate fresh-install-40096664665 atf9f7464 is published: Android/native/GLES

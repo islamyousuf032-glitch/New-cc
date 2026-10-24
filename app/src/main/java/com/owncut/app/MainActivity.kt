@@ -504,9 +504,18 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         root.addView(deliverPanel, matchWrap())
         workspacePanels.getOrPut("Media") { mutableListOf() }.add(controls)
         val colorPanel=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-        colorPanel.addView(TextView(this).apply { text=AppLanguage.text(R.string.color_still_notice);setTextColor(StudioUi.muted) })
-        colorPanel.addView(actionButton(AppLanguage.text(R.string.color_editor_title),StudioIcon.COLOR) { showClipColorEditor() },matchWrap())
-        colorPanel.addView(actionButton(AppLanguage.text(R.string.color_live_title),StudioIcon.PLAY) {
+        // Context actions need visible labels; StudioButton intentionally draws icons only.
+        fun colorAction(label: String, action: () -> Unit) = Button(this).apply {
+            text=label;isAllCaps=false;setTextColor(StudioUi.accent)
+            backgroundTintList=null;background=StudioUi.shape(this@MainActivity)
+            minHeight=dp(52);setPadding(dp(12),dp(8),dp(12),dp(8))
+            setOnClickListener {
+                if(projectIoBusy) Toast.makeText(this@MainActivity,AppLanguage.text(R.string.message_ccdca32722),Toast.LENGTH_SHORT).show()
+                else action()
+            }
+        }
+        colorPanel.addView(colorAction(AppLanguage.text(R.string.color_editor_title)) { showClipColorEditor() },matchWrap())
+        colorPanel.addView(colorAction(AppLanguage.text(R.string.color_live_title)) {
             if(!blockWhileMediaLoads() && liveColorDialog?.isShowing != true) {
                 try {
                     val clip=currentSelectedClip() ?: error(AppLanguage.text(R.string.message_f4e00f9522))
@@ -515,6 +524,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
                 } catch(error: Exception) { showError(error) }
             }
         },matchWrap())
+        colorPanel.addView(TextView(this).apply { text=AppLanguage.text(R.string.color_still_notice);setTextColor(StudioUi.muted) })
         root.addView(colorPanel,matchWrap())
         workspacePanels.getOrPut("Color") { mutableListOf() }.add(colorPanel)
         val flow = TextView(this).apply {
@@ -592,6 +602,8 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         contextBody.addView(controls,matchWrap()); contextBody.addView(secondaryTools,matchWrap())
         workspacePanels.getOrPut("Tools") { mutableListOf() }.add(secondaryTools)
         contextBody.addView(projectControls,matchWrap()); contextBody.addView(editHelpText,matchWrap())
+        // root.removeAllViews detached Color too: reattach it to the final scrollable pane.
+        contextBody.addView(colorPanel,matchWrap())
         contextBody.addView(deliverPanel,matchWrap()); contextBody.addView(flow,matchWrap())
         contextBody.addView(statusText,matchWrap()); contextBody.addView(engineStatusText,matchWrap())
         workspacePanels.getOrPut("Tools") { mutableListOf() }.add(statusText)

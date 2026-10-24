@@ -36,7 +36,16 @@ class MinimalLayoutTest {
                         page("Media"); assertTrue(metadata.isShown); assertTrue(sourceBar.isShown)
                         page("Tools"); assertFalse(metadata.isShown)
                         assertTrue(children(activity.findViewById(android.R.id.content)).filterIsInstance<StudioButton>().any { it.icon == StudioIcon.TRIM_LEFT && it.isShown })
+                        page("Color")
+                        val colorActions=children(activity.findViewById(android.R.id.content))
+                            .filterIsInstance<android.widget.Button>()
+                            .filter { it !is StudioButton }
+                        for(label in listOf(R.string.color_editor_title,R.string.color_live_title)) {
+                            val button=colorActions.single { it.text.toString()==AppLanguage.text(label) }
+                            assertTrue("Color action must be attached and shown",button.isAttachedToWindow && button.isShown)
+                        }
                         page("Edit")
+                        assertTrue(colorActions.none { it.isShown })
                         assertSame(preview,field("preview").get(activity)); assertSame(timeline,field("timelineContainer").get(activity))
                     }
                     scenario.recreate()
