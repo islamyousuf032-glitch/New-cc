@@ -1,5 +1,14 @@
 # Build and test
 
+## Android build checkpoint (2026-10-24)
+
+Run40095260838 at47005f5 passed actual APK assembly, lint, Android test-source compilation
+and ZIP alignment. Earlier UNCOMPILED statements below are historical; source is now
+compiled, device/codec/live/export tests still UNRUN. Stable signing unavailable in that
+run; no update-compatible candidate published. Host GLES failure remains separate/open.
+No phone acceptance or readiness credit;25%/75%.
+
+
 ## Alternate build host / signing preflight (2026-10-24)
 
 Manual android.yml runner=self-hosted selects self-hosted/linux/x64/owncut-build only on

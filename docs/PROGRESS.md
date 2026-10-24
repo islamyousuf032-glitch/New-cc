@@ -1,3 +1,13 @@
+## Android compilation now passes (2026-10-24)
+
+Android40095260838 at47005f5 PASSED actual APK assembly, lintDebug, Android instrumentation
+source compilation and ZIP alignment, plus native regression/resource/signing-policy
+checks. Experimental still/live/draft/export-test sources are now COMPILED, not executed.
+No emulator/device tests ran. Stable signing is explicitly unavailable in this run;
+candidate publication skipped, so no downloadable update-compatible APK was delivered.
+Portable host GLES fails independently; annotate its actual traceback and run native CTest
+before it so a GPU failure cannot conceal CPU test results. Thresholds unchanged.
+
 ## First Android compilation after public switch (2026-10-24)
 
 Android40094980849 now executes real build steps: billing startup obstruction cleared for

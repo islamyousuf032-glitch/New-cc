@@ -1,5 +1,14 @@
 > **Latest verified debug APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
 
+## Android build checkpoint (2026-10-24)
+
+Run40095260838 at47005f5 passed actual APK assembly, lint, Android test-source compilation
+and ZIP alignment. Earlier UNCOMPILED statements below are historical; source is now
+compiled, device/codec/live/export tests still UNRUN. Stable signing unavailable in that
+run; no update-compatible candidate published. Host GLES failure remains separate/open.
+No phone acceptance or readiness credit;25%/75%.
+
+
 ## APK build recovery (2026-10-24)
 
 [বাংলা সমাধান নির্দেশিকা](docs/APK_BUILD_RECOVERY_BN.md): owner billing correction or an
