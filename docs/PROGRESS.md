@@ -1,5 +1,21 @@
 # Progress
 
+## Unsaved color draft connection (2026-10-24)
+
+Connected Color editor draft playback to the isolated shared native shader pipeline.
+Native GPU-budget validation precedes opening; project/session/clip staleness is checked.
+Preview captures settings without a history command; closing editor closes its child
+player. MainActivity retains background dismissal ownership. Dirty fields invalidate
+Apply/Before and visibly mark the old still; asynchronous old results cannot authorize
+a mismatched draft. Apply continues to require a matching successful still render.
+
+Passed pinned Kotlin2.3.21 -Werror real JNI regressions including bilingual immutable
+draft/native invalid-value rejection;301strings/3themes/17labels and whitespace checks.
+Android sources uncompiled/unrun. Latest CI40084821664 has zero steps and billing/spending-
+limit annotation; not compiler evidence. No new APK, device test, parity or credit.
+25% complete/75% remaining; shipping grade-export guard intact (ADR0025).
+
+
 ## Preview lifecycle, seeking and still-frame requests (2026-10-24)
 
 Implemented immediate failure release, terminal stale-callback protection, buffering-aware

@@ -1,5 +1,14 @@
 # Device test matrix
 
+## Draft playback handoff — UNRUN (2026-10-24)
+
+When a new update-compatible APK exists, user-owned phone acceptance includes draft
+playback without saving/history change, bilingual/invalid entry, Before/play/pause,
+return to editor with fields preserved, dirty-still/Apply feedback, editor close and
+background release. These are pending acceptance items, not a request to run unavailable
+binaries or a claim of assistant phone testing (ADR0025).
+
+
 ## Preview transport/still request gates — UNRUN (2026-10-24)
 
 On a future update-compatible APK, user-owned phone checks: fail preflight/decode while

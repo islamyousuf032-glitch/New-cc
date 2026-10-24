@@ -15,6 +15,14 @@ fun main() {
     check(ColorGradeDraft.parse(values,false)==parsed.copy(enabled=false))
     rejected { ColorGradeDraft.parse(values.drop(1),true) }
     rejected { ColorGradeDraft.parse(values.toMutableList().apply { set(0,"not a number") },true) }
+    val preview=ColorGradeDraft.validatedPreview(values,true)
+    check(preview==parsed)
+    values[0]="২.০"
+    check(preview.exposureStops==1.5) // immutable captured settings
+    rejected { ColorGradeDraft.validatedPreview(values.toMutableList().apply { set(0,"NaN") },true) }
+    rejected { ColorGradeDraft.validatedPreview(values.toMutableList().apply { set(0,"999999") },true) }
+    check(!ColorGradeDraft.validatedPreview(values,false).enabled)
+    println("Draft preview: bilingual immutable snapshot, native GPU budget and invalid-value rejection passed")
     val argb=intArrayOf(0x25808080,0x00ff0000)
     val unchanged=argb.copyOf()
     check(ColorFrameBuffers.render(argb,2,1,ColorGrade(exposureStops=1.0)).contentEquals(intArrayOf(0x25b0b0b0,0x00ff0000)))

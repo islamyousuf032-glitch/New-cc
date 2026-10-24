@@ -1,5 +1,13 @@
 > **Latest verified debug APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
 
+## Unsaved draft playback (2026-10-24)
+
+Color editor now offers experimental live playback of the current draft without applying
+or saving it. Native shader validation captures immutable settings; Apply still requires
+a successful matching still render. Edited/stale stills are explicitly marked. Android
+compilation/phone verification and a new update-compatible APK remain pending (ADR0025).
+
+
 ## Preview usability hardening (2026-10-24)
 
 Experimental preview now has terminal failure/close ownership, buffering-aware controls,

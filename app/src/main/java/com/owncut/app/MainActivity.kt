@@ -691,8 +691,15 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         try {
             val clip=currentSelectedClip() ?: error(AppLanguage.text(R.string.message_f4e00f9522))
             pauseForTimelineScrub()
-            colorDialog=ClipColorEditor.show(this,clip,previewPositionMs.coerceIn(clip.sourceInMs,
-                (clip.sourceOutMs-1).coerceAtLeast(clip.sourceInMs))) { grade ->
+            val colorPosition=previewPositionMs.coerceIn(clip.sourceInMs,
+                (clip.sourceOutMs-1).coerceAtLeast(clip.sourceInMs))
+            colorDialog=ClipColorEditor.show(this,clip,colorPosition,previewDraft={ grade ->
+                check(engine === session && !projectIoBusy && !isDestroyed) { AppLanguage.text(R.string.message_ccdca32722) }
+                check(session.clips().firstOrNull { it.id==clip.id }==clip) { AppLanguage.text(R.string.color_source_changed) }
+                liveColorDialog?.dismiss()
+                // gradeActive is a saved native predicate, not used by the isolated shader plan.
+                LiveColorPreview.show(this,clip.copy(grade=grade),colorPosition).also { liveColorDialog=it }
+            }) { grade ->
                 check(engine === session && !projectIoBusy && !isDestroyed) { AppLanguage.text(R.string.message_ccdca32722) }
                 val current=requireNotNull(session.clips().firstOrNull { it.id==clip.id }) { AppLanguage.text(R.string.color_source_changed) }
                 check(current==clip) { AppLanguage.text(R.string.color_source_changed) }

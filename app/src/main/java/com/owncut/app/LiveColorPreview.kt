@@ -16,7 +16,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** Explicit experimental playback of ONE saved clip snapshot. No draft/session writes.
+/** Explicit experimental playback of ONE immutable saved/draft clip snapshot. No draft/session writes.
  * Main player stays paused. Close/background/surface teardown belongs to ExoPlayer.
  * Worker preflight never starts a stale player after dialog dismissal.
  */

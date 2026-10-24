@@ -1,5 +1,14 @@
 # Build and test
 
+## Draft preview host checks (2026-10-24)
+
+Existing optional JNI tests/run_host_kotlin.py command covers production draft capture,
+Bengali digits, enabled/bypass capture, native invalid/NaN rejection and immutable values.
+Pinned Kotlin2.3.21 -Werror and all existing JNI adapters pass;301resource/3theme/17label
+checks pass. These are not Android UI/player results. CI40084821664 never started due
+billing; app/test sources remain uncompiled/unrun. No new downloadable APK (ADR0025).
+
+
 ## Preview policy regression coverage (2026-10-24)
 
 The existing tests/run_host_kotlin.py command now always includes production

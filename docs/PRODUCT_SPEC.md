@@ -1,5 +1,13 @@
 # Product specification
 
+## Experimental draft playback (2026-10-24)
+
+Color editor can open experimental playback of its current draft without saving.
+Apply remains a separate validated-still action. Edited values visibly invalidate
+the still/Apply; closing the editor also closes its preview. Source/session changes
+reject stale opening/commit. Implemented source only; Android acceptance pending.
+
+
 ## Experimental preview behavior (2026-10-24)
 
 Failure/close must disable controls and release the isolated player; late events cannot

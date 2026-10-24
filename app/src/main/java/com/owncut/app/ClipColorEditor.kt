@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 @UnstableApi
 internal object ClipColorEditor {
-    fun show(activity: Activity, clip: ClipSnapshot, positionMs: Long, commit: (ColorGrade) -> Unit): AlertDialog {
+    fun show(activity: Activity, clip: ClipSnapshot, positionMs: Long, previewDraft: ((ColorGrade) -> AlertDialog)?=null, commit: (ColorGrade) -> Unit): AlertDialog {
         require(clip.sourceInMs>=0 && positionMs>=clip.sourceInMs && positionMs<clip.sourceOutMs)
         val main=Handler(Looper.getMainLooper())
         val worker=Executors.newSingleThreadExecutor()
@@ -50,6 +50,12 @@ internal object ClipColorEditor {
         val reset=Button(activity).apply { text=AppLanguage.text(R.string.color_reset_draft) }
         buttons.addView(render,LinearLayout.LayoutParams(0,-2,1f));buttons.addView(compare,LinearLayout.LayoutParams(0,-2,1f))
         root.addView(buttons);root.addView(reset)
+        val live=Button(activity).apply {
+            text=AppLanguage.text(R.string.color_preview_draft)
+            isEnabled=previewDraft!=null
+        }
+        root.addView(live)
+        var draftPlayer: AlertDialog?=null
         val dialog=AlertDialog.Builder(activity).setTitle(AppLanguage.text(R.string.color_editor_title))
             .setView(ScrollView(activity).apply { addView(root) })
             .setPositiveButton(AppLanguage.text(R.string.color_apply),null)
@@ -62,9 +68,23 @@ internal object ClipColorEditor {
         fun draft()=ColorGradeDraft.parse(fields.map { it.text.toString() },enabled.isChecked)
         fun updateButtons() {
             render.isEnabled=!busy && original != null
+            live.isEnabled=!busy && previewDraft!=null
             dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled=!busy && accepted != null
         }
-        fun dirty() { accepted=null;dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled=false }
+        fun dirty() {
+            accepted=null;dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled=false
+            compare.isEnabled=false
+            status.text=AppLanguage.text(R.string.color_draft_changed)
+        }
+        live.setOnClickListener {
+            try {
+                val settings=ColorGradeDraft.validatedPreview(fields.map { it.text.toString() },enabled.isChecked)
+                draftPlayer?.dismiss()
+                draftPlayer=previewDraft?.invoke(settings)
+            } catch(error: Exception) {
+                status.text=AppLanguage.text(R.string.color_error,error.message ?: error.javaClass.simpleName)
+            }
+        }
         for(field in fields) field.addTextChangedListener(object: android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?,start: Int,count: Int,after: Int) {}
             override fun onTextChanged(s: CharSequence?,start: Int,before: Int,count: Int) { dirty() }
@@ -94,7 +114,8 @@ internal object ClipColorEditor {
                             if(!closed.get()) {
                                 graded=result;preview.setImageBitmap(if(compare.isChecked) original else result)
                                 accepted=if(runCatching { draft()==settings }.getOrDefault(false)) settings else null
-                                busy=false;compare.isEnabled=true;updateButtons();status.text=AppLanguage.text(R.string.color_still_notice)
+                                busy=false;compare.isEnabled=accepted!=null;updateButtons()
+                                status.text=AppLanguage.text(if(accepted!=null) R.string.color_still_notice else R.string.color_draft_changed)
                             }
                         }
                     } catch(error: Exception) { main.post { if(!closed.get()) {
@@ -104,7 +125,8 @@ internal object ClipColorEditor {
             } catch(error: Exception) { status.text=AppLanguage.text(R.string.color_error,error.message ?: error.javaClass.simpleName) }
         }
         dialog.setOnDismissListener {
-            closed.set(true);worker.shutdownNow();preview.setImageDrawable(null);original=null;graded=null
+            closed.set(true);draftPlayer?.dismiss();draftPlayer=null
+            worker.shutdownNow();preview.setImageDrawable(null);original=null;graded=null
             // Do not recycle a bitmap while a posted native/RenderThread consumer might still hold it.
         }
         dialog.setOnShowListener {

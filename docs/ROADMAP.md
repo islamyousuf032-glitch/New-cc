@@ -1,5 +1,13 @@
 # Roadmap and acceptance gates
 
+## Phase1C draft iteration (2026-10-24)
+
+Unsaved draft-to-live preview is wired without repeated Apply/history commands; stale
+still feedback and child-player ownership implemented. Native-host coverage passes, but
+Android build, phone playback/export parity and update-compatible APK remain open.
+No readiness credit or export guard removal (ADR0025).
+
+
 ## Phase1C preview usability hardening (2026-10-24)
 
 Terminal resource ownership, buffering/seek controls, accessible progress input and bounded

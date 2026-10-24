@@ -50,3 +50,8 @@
   Keep touch/keyboard/accessibility seek on the same exclusive-end transport policy. CPU
   proxy bounds are not decoder memory or export limits; never restore full-resolution
   fallback on API26 oversized sources. See ADR0024; Android behavior remains unverified.
+
+- Draft live preview must not write session/history or authorize Apply. Validate native GPU
+  budget, capture immutable values and reject stale session/clip. Parent dismissal closes
+  the child player; activity backgrounding releases it. Dirty still feedback must not
+  imply the current draft rendered. See ADR0025.

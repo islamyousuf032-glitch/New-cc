@@ -1,5 +1,14 @@
 # Architecture index and execution history
 
+## Draft preview ownership (2026-10-24)
+
+ColorGradeDraft.validatedPreview parses immutable values and calls the native shared GPU
+budget validator; no session writes. MainActivity validates current session/clip and
+passes a copied snapshot to LiveColorPreview. Editor owns child dismissal; activity owns
+background release. Saved gradeActive is not reinterpreted as draft color policy; the
+isolated plan generates native shaders from grade values. Android validation pending.
+
+
 ## Preview transport ownership (2026-10-24)
 
 Platform-only terminal state policy owns preview controls; failure clears player ownership

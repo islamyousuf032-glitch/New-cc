@@ -314,7 +314,9 @@
     <string name="color_source_changed">সম্পাদনার সময়ে ক্লিপ বদলেছে। Color বন্ধ করে আবার খুলুন।</string>
     <string name="color_live_title">লাইভ গ্রেড প্রিভিউ (পরীক্ষামূলক)</string>
     <string name="color_live_loading">সোর্স metadata যাচাই ও graded playback প্রস্তুত হচ্ছে…</string>
-    <string name="color_live_notice">সংরক্ষিত clip grade-এর পরীক্ষামূলক playback। Before-এ grade ছাড়া তুলনা করুন। Loop clip trim-এর মধ্যেই থাকে। সাধারণ timeline playback/export অপরিবর্তিত; Android/device validation বাকি।</string>
+    <string name="color_live_notice">ক্লিপের অপরিবর্তনীয় গ্রেড স্ন্যাপশটের পরীক্ষামূলক প্লেব্যাক; এটি সেভ না করা ড্রাফটও হতে পারে। আগে অপশন গ্রেড ছাড়া তুলনা করে। লুপ ক্লিপের ট্রিমের মধ্যেই থাকে। এই প্রিভিউ পরিবর্তন সেভ করে না। সাধারণ টাইমলাইন প্লেব্যাক ও গ্রেডেড এক্সপোর্ট অপরিবর্তিত; Android/ডিভাইসে যাচাই বাকি।</string>
     <string name="color_live_before">আগে (playback চলার সময়ে)</string>
     <string name="color_scaled_preview_requires_27">বড় স্থির প্রিভিউর জন্য Android 8.1 বা নতুন দরকার। Android 8.0-এ পুরো resolution-এর bitmap allocation বন্ধ রাখা হয়েছে; clip ও grade অপরিবর্তিত।</string>
+    <string name="color_preview_draft">ড্রাফট চালিয়ে দেখুন (পরীক্ষামূলক)</string>
+    <string name="color_draft_changed">ড্রাফট বদলেছে। প্রয়োগ করতে স্থির প্রিভিউ তৈরি করুন; ড্রাফট চালিয়ে দেখলে পরিবর্তন সেভ হয় না।</string>
 </resources>

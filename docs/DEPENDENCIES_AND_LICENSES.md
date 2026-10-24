@@ -1,5 +1,12 @@
 # Dependencies and licensing
 
+## Draft preview dependency impact (2026-10-24)
+
+No new library/tool/source/asset or license change. Reuses platform dialog ownership,
+existing ExoPlayer1.8.1/shared shader adapter and original native validation. No Android
+dependency resolution, packaging or signing execution claimed (ADR0025).
+
+
 ## Preview hardening dependency impact (2026-10-24)
 
 No new dependency, copied asset or tool version. Existing Android platform API27 scaled
