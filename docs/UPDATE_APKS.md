@@ -1,5 +1,12 @@
 # Install-over APK patches: signing and verification
 
+## Current slider-editor fresh-install candidate (2026-10-24)
+
+fresh-install-40101757559 at1f1bd21 is published with verified identity/alignment and
+checksum/metadata. This is not an update-compatible patch. Back up projects/media before
+uninstall; temporary debug signing may differ. Phone tests remain user-owned. ADR0030.
+
+
 ## Fresh-install candidate PUBLISHED (2026-10-24)
 
 [Download test APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/fresh-install-40096664665/owncut-fresh-install-debug.apk) — 8,004,475bytes; [release/checksum/metadata](https://github.com/islamyousuf032-glitch/New-cc/releases/tag/fresh-install-40096664665).

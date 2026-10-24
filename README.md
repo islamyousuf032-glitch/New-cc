@@ -1,5 +1,20 @@
 > **Historical user-approved phone-tested APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
 
+## Slider editor test APK PUBLISHED (2026-10-24)
+
+[Download slider editor test APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/fresh-install-40101757559/owncut-fresh-install-debug.apk).
+Source1f1bd21; Android40101757559 and Portable40101757571 PASS. Actual assembly/lint/
+Android regression-source compilation/alignment/identity checks/publication complete.
+APK8,008,831bytes; SHA25689ff87e012a7f69fa5f6cfd1fbdec13b1e1bb3054e0fa5332fa3a3fedfef9adf.
+Pinned Kotlin2.3.21 -Werror pure tests now pass34,017slider steps, saved-range preservation,
+bounded/cyclic diagnostics plus existing preview/projection policies. Reused reviewed
+jdk4py25.0.2.1/npm kotlin-compiler2.3.21 tooling; tarball SHA512 verified outside repository.
+Earlier new-source-unrun/build-pending notes are historical. UI instrumentation execution,
+actual phone/live/source/codec acceptance remain UNRUN/user-owned. Apply saves validated
+settings, not a promise of graded timeline/export. No claim all live failures fixed.
+Fresh-install signer may require uninstall after backup. No readiness credit;25%/75%.
+
+
 ## Slider color-editor rework (2026-10-24)
 
 Original3-group/17slider controls replace typing-only fields; debounced automatic still

@@ -1,6 +1,6 @@
 # ADR0030: Original slider editor, bounded automatic preview, explicit saving
 
-Date: 2026-10-24. Status: source implemented, build and phone acceptance pending.
+Date: 2026-10-24. Status: APK published, host policies pass; phone acceptance pending.
 
 User reports typing-only controls, Apply seemingly inert, and generic live processing
 failure. Reject proprietary UI/source copying; use original primary/RGB balance/tonal
@@ -40,3 +40,15 @@ workspace (no host JDK/compiler). New instrumentation source covers no EditTexts
 slider change and Apply despite missing decoder, plus commit rejection; not executed.
 CI must compile all app/test sources and assemble fresh-install candidate. User owns phone
 validation. Shipping grade-export guards stay, no parity/HDR/timeline claim.25%/75%.
+
+## Executed evidence
+
+Android40101757559 and Portable40101757571 at1f1bd21 PASS; real fresh-install release
+fresh-install-40101757559 contains APK/checksum/metadata. APK8,008,831bytes; SHA256
+89ff87e012a7f69fa5f6cfd1fbdec13b1e1bb3054e0fa5332fa3a3fedfef9adf.
+Pinned Kotlin2.3.21 -Werror pure production controls test now actually passes34,017steps,
+saved-range preservation, nested/long/cyclic diagnostics plus prior preview/projection
+regressions. Restored reviewed host tools from PyPI/npm, verified compiler SHA512; no
+binary/tool material in Git. UI interaction tests compiled, not executed. User's live
+failure root cause still not identified from generic report; candidate improves one
+premature failure path and diagnostic visibility, not blanket hardware/source support.

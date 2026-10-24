@@ -82,3 +82,7 @@
   Slider ranges are transport only; preserve saved extremes and exact reset identity.
   Bound/debounce preview, discard stale results, expose nested live errors. Null input-only
   output-format callback is not permission to skip raw validation of rendered buffers.
+
+- Slider candidate fresh-install-40101757559 is actually built/published at1f1bd21;
+  pure controls/diagnostic tests pass. Interaction regression is compile-only. Do not
+  infer user's live failure root cause or universal source/GPU support from this build.
