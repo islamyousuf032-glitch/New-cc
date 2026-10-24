@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.InputType
@@ -20,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @UnstableApi
 internal object ClipColorEditor {
     fun show(activity: Activity, clip: ClipSnapshot, positionMs: Long, commit: (ColorGrade) -> Unit): AlertDialog {
+        require(clip.sourceInMs>=0 && positionMs>=clip.sourceInMs && positionMs<clip.sourceOutMs)
         val main=Handler(Looper.getMainLooper())
         val worker=Executors.newSingleThreadExecutor()
         val closed=AtomicBoolean(false)
@@ -82,9 +84,11 @@ internal object ClipColorEditor {
                 // Snapshot the draft. Editing while busy cannot authorize applying a different draft.
                 worker.execute {
                     try {
+                        check(!closed.get())
                         ColorEngine.shaderSources(settings,ColorEngine.TextureEncoding.MEDIA3_SDR_709) // shared GPU budget
                         val input=source ?: error("Missing color frame")
                         val pixels=ColorFrameBuffers.render(input,frame.width,frame.height,settings)
+                        check(!closed.get())
                         val result=Bitmap.createBitmap(pixels,frame.width,frame.height,Bitmap.Config.ARGB_8888)
                         main.post {
                             if(!closed.get()) {
@@ -116,16 +120,25 @@ internal object ClipColorEditor {
             try {
                 val metadata=VideoSourceProbe.read(activity.applicationContext,clip.mediaId) { check(!closed.get()) }
                 ColorEngine.validateVideoSource(metadata.color)
+                check(!closed.get())
+                val requested=PreviewFrameSize.fit(metadata.width,metadata.height,metadata.rotationDegrees)
+                if(Build.VERSION.SDK_INT<27) require(PreviewFrameSize.fitsUnscaled(metadata.width,metadata.height,metadata.rotationDegrees)) {
+                    AppLanguage.text(R.string.color_scaled_preview_requires_27)
+                }
                 val retriever=MediaMetadataRetriever()
                 val frame=try {
                     retriever.setDataSource(activity.applicationContext,Uri.parse(clip.mediaId))
-                    val decoded=requireNotNull(retriever.getFrameAtTime(Math.multiplyExact(positionMs,1000L),MediaMetadataRetriever.OPTION_CLOSEST))
-                    try {
-                        require(decoded.colorSpace?.isSrgb == true && decoded.config==Bitmap.Config.ARGB_8888) { "Still preview requires an sRGB ARGB8888 bitmap" }
-                        val scale=minOf(1.0,720.0/decoded.height,1280.0/decoded.width)
-                        Bitmap.createScaledBitmap(decoded,(decoded.width*scale).toInt().coerceAtLeast(1),
-                            (decoded.height*scale).toInt().coerceAtLeast(1),true)
-                    } finally { /* Bitmap can be returned unchanged by createScaledBitmap; GC owns it. */ }
+                    check(!closed.get())
+                    val timeUs=Math.multiplyExact(positionMs,1000L)
+                    val decoded=requireNotNull(if(Build.VERSION.SDK_INT>=27)
+                        retriever.getScaledFrameAtTime(timeUs,MediaMetadataRetriever.OPTION_CLOSEST,requested.width,requested.height)
+                        else retriever.getFrameAtTime(timeUs,MediaMetadataRetriever.OPTION_CLOSEST))
+                    check(!closed.get())
+                    require(decoded.colorSpace?.isSrgb == true && decoded.config==Bitmap.Config.ARGB_8888) { "Still preview requires an sRGB ARGB8888 bitmap" }
+                    require(decoded.width<=PreviewFrameSize.MAX_WIDTH && decoded.height<=PreviewFrameSize.MAX_HEIGHT) {
+                        "Decoder returned a bitmap beyond the requested preview budget"
+                    }
+                    decoded
                 } finally { retriever.release() }
                 check(!closed.get())
                 val pixels=IntArray(frame.width*frame.height)

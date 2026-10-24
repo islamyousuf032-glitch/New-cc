@@ -45,3 +45,8 @@
 - ADR0022: isolated live Color preview is opt-in/saved-snapshot/experimental, not timeline replacement or shipping export parity. Specialize default MediaCodecVideoRenderer's protected graph hook, use explicit native-grade DEFAULT factory and raw-format gate. Keep sink ownership/release with base renderer/ExoPlayer, cancel stale startup on close/background. Before only during playback (no private replay-cache reflection). Android custom-renderer support/thread/pixel behavior is unverified; do not credit host tests as codec proof.
 
 - ADR0023: compare_rgba8 is byte-domain diagnostics, not color conversion/calibration. Keep readonly/alias/stride/padding safety and native metrics math. Gray fixture/candidate encode tests are Android-unrun; proposed codec thresholds are NOT results. Never retag unknown imported media or skip/fall back to make parity green. Gray ROI/native oracle doesn't establish live-display/all-color/temporal parity; guards stay.
+
+- Preview failure/close are terminal: clear ownership before release; reject late callbacks.
+  Keep touch/keyboard/accessibility seek on the same exclusive-end transport policy. CPU
+  proxy bounds are not decoder memory or export limits; never restore full-resolution
+  fallback on API26 oversized sources. See ADR0024; Android behavior remains unverified.

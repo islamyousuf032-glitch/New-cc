@@ -1,4 +1,13 @@
 > **Latest verified debug APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
+
+## Preview usability hardening (2026-10-24)
+
+Experimental preview now has terminal failure/close ownership, buffering-aware controls,
+non-jumping touch seek and keyboard/accessibility seek. Still preview requests bounded
+API27+ CPU proxies; API26 refuses oversized sources instead of decoding a full bitmap.
+Host policy/native/JNI checks pass; Android behavior/build/APK remain unverified. Shipping
+guards and25%/75% readiness unchanged. See ADR0024.
+
 > — contextual tools, focused portrait workspace, persisted theme and app language; emulator regression verified.
 > Save important project documents externally before changing debug installations.
 

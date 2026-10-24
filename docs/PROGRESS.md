@@ -1,5 +1,22 @@
 # Progress
 
+## Preview lifecycle, seeking and still-frame requests (2026-10-24)
+
+Implemented immediate failure release, terminal stale-callback protection, buffering-aware
+controls, drag-safe ticker and keyboard/accessibility seeks. Exclusive-end seek avoids EOS;
+source-position clamping precedes subtraction. API27+ requests oriented no-upscale1280×720
+still proxies; API26 refuses oversized extraction with bilingual explanation. Returned
+bitmap color/config/size and cancellation are checked; decoder-internal memory is unbounded
+by this policy. Native C++ grading and shipping guards unchanged (ADR0024).
+
+Passed: CMake build/Release CTest6/6, actual JVM/JNI regressions, pinned Kotlin2.3.21 -Werror
+policy and existing JNI adapters,299bilingual strings/3themes/17labels,7metadata/3install-over
+checks, whitespace check. Terminal tests cover25,000event steps; size tests100combinations.
+Android app/tests remain uncompiled/unrun; no actual lifecycle/accessibility/bitmap/codec/GL
+proof or APK. Latest CI40083307621 never started due billing/spending limit, not source
+compile evidence. No readiness credit:25% complete/75% remaining.
+
+
 ## Native diagnostics + encoded grade test source (2026-10-24)
 
 Added original C++ read-only/alias-safe frame comparison: per-channel max, RGB mean

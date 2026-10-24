@@ -1,5 +1,13 @@
 # Roadmap and acceptance gates
 
+## Phase1C preview usability hardening (2026-10-24)
+
+Terminal resource ownership, buffering/seek controls, accessible progress input and bounded
+still requests are implemented with host policy coverage. Actual Android lifecycle/audio/
+accessibility/rotated-frame behavior and preview/export parity remain acceptance gates.
+No guard removal, APK or readiness credit;25%/75% (ADR0024).
+
+
 ## Phase1C output-verification groundwork (2026-10-24)
 
 Native frame-comparison metrics pass native/JNI/Kotlin checks. Actual fixture/candidate

@@ -1,5 +1,13 @@
 # Dependencies and licensing
 
+## Preview hardening dependency impact (2026-10-24)
+
+No new dependency, copied asset or tool version. Existing Android platform API27 scaled
+retriever and API26 bounded-original admission; pure Kotlin UI policies and existing host
+compiler/JNI tools reused. Runtime/ABI resolution remains unrun with Android build blocked;
+no license/redistribution changes (ADR0024).
+
+
 ## Phase 1B dependency impact (2026-10-23)
 
 No new dependency/tool version. Native grade history and v2 payloads reuse the original

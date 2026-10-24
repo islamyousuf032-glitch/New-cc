@@ -316,4 +316,5 @@
     <string name="color_live_loading">Checking source metadata and preparing graded playback…</string>
     <string name="color_live_notice">Experimental playback of the saved clip grade. Before compares without the grade. Loop stays inside clip trims. Normal timeline playback and graded export remain unchanged; Android/device validation is pending.</string>
     <string name="color_live_before">Before (during playback)</string>
+    <string name="color_scaled_preview_requires_27">Large still previews need Android 8.1 or newer. This Android 8.0 preview refuses a full-resolution bitmap allocation; your clip and grade are unchanged.</string>
 </resources>

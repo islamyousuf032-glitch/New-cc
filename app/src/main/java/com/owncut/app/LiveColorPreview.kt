@@ -41,36 +41,68 @@ internal object LiveColorPreview {
         val dialog=AlertDialog.Builder(activity).setTitle(AppLanguage.text(R.string.color_live_title)).setView(root)
             .setNegativeButton(AppLanguage.text(R.string.color_cancel),null).create()
         var player: ExoPlayer?=null
-        var failed=false
+        val playback=PreviewPlaybackState()
+        var scrubbing=false
+        var comparingOriginal=false
         val ticker=object: Runnable {
             override fun run() {
-                if(closed.get()) return
+                if(closed.get() || playback.terminal) return
                 player?.let { p ->
                     val duration=p.duration
-                    if(duration>0 && !position.isPressed) position.progress=PreviewProgress.progress(p.currentPosition,duration)
+                    if(duration>0 && !scrubbing) position.progress=PreviewProgress.progress(p.currentPosition,duration)
                     play.text=AppLanguage.text(if(p.playWhenReady) R.string.action_pause else R.string.message_b5cdf40ef5)
                 }
                 handler.postDelayed(this,200)
             }
         }
-        fun fail(error: Exception) {
-            failed=true;player?.pause();play.isEnabled=false;before.isEnabled=false;position.isEnabled=false
-            status.text=AppLanguage.text(R.string.color_error,error.message ?: error.javaClass.simpleName)
-        }
-        play.setOnClickListener { player?.let { it.playWhenReady=!it.playWhenReady } }
-        position.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(bar: SeekBar?,progress: Int,fromUser: Boolean) {}
-            override fun onStartTrackingTouch(bar: SeekBar?) { player?.pause() }
-            override fun onStopTrackingTouch(bar: SeekBar?) {
-                player?.let { p -> if(p.duration>0) p.seekTo(PreviewProgress.position(p.duration,position.progress)) }
-            }
-        })
-        dialog.setOnDismissListener {
-            closed.set(true);handler.removeCallbacks(ticker);worker.shutdownNow()
+        fun releasePlayer() {
             val old=player;player=null
             try { old?.release() } catch(error: Exception) {
                 android.util.Log.e("OwncutColorPreview","Experimental preview release failed",error)
-            } // SDK owns surface detachment; never crash Activity destruction on release failure
+            }
+        }
+        fun controls() {
+            val p=player
+            play.isEnabled=p!=null && playback.canTransport
+            before.isEnabled=p!=null && playback.canCompare(p.playWhenReady) && !scrubbing
+            position.isEnabled=p!=null && playback.canSeek
+        }
+        fun fail(error: Exception) {
+            if(closed.get() || !playback.fail()) return
+            handler.removeCallbacks(ticker);worker.shutdownNow();scrubbing=false
+            controls();releasePlayer() // don't retain decoder/GL/audio focus until the user closes
+            status.text=AppLanguage.text(R.string.color_error,error.message ?: error.javaClass.simpleName)
+        }
+        play.setOnClickListener {
+            if(playback.canTransport) try { player?.let { it.playWhenReady=!it.playWhenReady } }
+            catch(error: Exception) { fail(error) }
+        }
+        fun seekToProgress() {
+            if(!playback.canSeek) return
+            try {
+                player?.let { p -> if(p.duration>0) p.seekTo(PreviewProgress.seekPosition(p.duration,position.progress)) }
+                controls()
+            } catch(error: Exception) { fail(error) }
+        }
+        position.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(bar: SeekBar?,progress: Int,fromUser: Boolean) {
+                // Keyboard/TalkBack progress changes do not send touch start/stop callbacks.
+                if(fromUser && !scrubbing) seekToProgress()
+            }
+            override fun onStartTrackingTouch(bar: SeekBar?) {
+                if(!playback.canSeek) return
+                scrubbing=true
+                try { player?.pause();controls() } catch(error: Exception) { fail(error) }
+            }
+            override fun onStopTrackingTouch(bar: SeekBar?) {
+                scrubbing=false
+                if(!playback.canSeek) { controls();return }
+                seekToProgress()
+            }
+        })
+        dialog.setOnDismissListener {
+            closed.set(true);playback.close();handler.removeCallbacks(ticker);worker.shutdownNow();scrubbing=false
+            releasePlayer()
         }
         dialog.show()
         worker.execute {
@@ -81,7 +113,7 @@ internal object LiveColorPreview {
                 val snapshot=plan.clips.single()
                 val prepared=GradedFramePipeline.prepare(snapshot)
                 handler.post {
-                    if(!closed.get()) try {
+                    if(!closed.get() && !playback.terminal) try {
                         val p=ExoPlayer.Builder(activity.applicationContext,
                             GradedPreviewRenderers(activity.applicationContext,prepared,snapshot.source)).build()
                         player=p
@@ -89,16 +121,20 @@ internal object LiveColorPreview {
                         p.addListener(object: Player.Listener {
                             override fun onPlayerError(error: PlaybackException) { if(!closed.get()) fail(error) }
                             override fun onPlaybackStateChanged(state: Int) {
-                                if(!closed.get() && !failed && state==Player.STATE_READY) {
-                                    play.isEnabled=true;before.isEnabled=p.playWhenReady;position.isEnabled=true
+                                if(closed.get() || playback.terminal) return
+                                when(state) {
+                                    Player.STATE_READY -> playback.ready()
+                                    Player.STATE_BUFFERING -> playback.buffering()
+                                    else -> playback.loading()
                                 }
+                                controls()
                             }
                             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-                                if(!closed.get() && !failed) before.isEnabled=playWhenReady && p.playbackState==Player.STATE_READY
+                                if(!closed.get() && !playback.terminal) controls()
                             }
-                            override fun onRenderedFirstFrame() { if(!closed.get() && !failed) status.text=AppLanguage.text(R.string.color_live_notice) }
+                            override fun onRenderedFirstFrame() { if(!closed.get() && !playback.terminal) status.text=AppLanguage.text(R.string.color_live_notice) }
                             override fun onVideoSizeChanged(size: VideoSize) {
-                                if(closed.get()) return
+                                if(closed.get() || playback.terminal) return
                                 texture.setVideoSize((size.width*size.pixelWidthHeightRatio).toInt().coerceAtLeast(1),size.height)
                             }
                         })
@@ -109,11 +145,20 @@ internal object LiveColorPreview {
                             MediaItem.ClippingConfiguration.Builder().setStartPositionMs(clip.sourceInMs)
                                 .setEndPositionMs(clip.sourceOutMs).build()).build())
                         before.setOnCheckedChangeListener { _,original ->
-                            try { p.setVideoEffects(if(original) emptyList() else listOf(prepared.effect)) }
+                            if(playback.terminal || closed.get() || scrubbing || !playback.canCompare(p.playWhenReady)) {
+                                if(original!=comparingOriginal) before.isChecked=comparingOriginal
+                                return@setOnCheckedChangeListener
+                            }
+                            try {
+                                p.setVideoEffects(if(original) emptyList() else listOf(prepared.effect))
+                                comparingOriginal=original
+                            }
                             catch(error: Exception) { fail(error) }
                         }
-                        p.seekTo((sourcePositionMs-clip.sourceInMs).coerceIn(0,(clip.sourceOutMs-clip.sourceInMs-1).coerceAtLeast(0)))
-                        p.prepare();p.playWhenReady=true;handler.post(ticker)
+                        p.seekTo(PreviewProgress.clipRelative(sourcePositionMs,clip.sourceInMs,clip.sourceOutMs))
+                        p.prepare()
+                        if(closed.get() || playback.terminal) return@post
+                        p.playWhenReady=true;handler.post(ticker)
                     } catch(error: Exception) { fail(error) }
                 }
             } catch(error: Exception) { handler.post { if(!closed.get()) fail(error) } }

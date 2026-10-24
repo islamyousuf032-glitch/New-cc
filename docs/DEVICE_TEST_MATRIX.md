@@ -1,5 +1,18 @@
 # Device test matrix
 
+## Preview transport/still request gates — UNRUN (2026-10-24)
+
+On a future update-compatible APK, user-owned phone checks: fail preflight/decode while
+playing/buffering; close or background during preflight/error; verify no resumed audio,
+late controls or held playback resources. Drag seek while playing/paused; thumb must not
+jump, resume intent preserved; keyboard/TalkBack progress changes seek;100% must not target
+EOS. Buffering allows pause, disables seek/Before. Check portrait/landscape/rotated/tiny/4K
+still extraction, cancellation, bad metadata and wrong bitmap properties. API26 oversized
+source must explain refusal; API27+ request stays within1280×720 without upscaling. Measure
+actual decoder memory separately. Host policy coverage is NOT these device results;
+Android build/APK and all these checks remain pending (ADR0024).
+
+
 ## Encoded grade comparison tests (2026-10-24)
 
 - Host native metrics/JNI/Kotlin exact max/mean/bias/alpha and readonly/alias/stride tests

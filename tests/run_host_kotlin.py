@@ -20,6 +20,15 @@ with tempfile.TemporaryDirectory(prefix='owncut-kotlin-') as directory:
                     str(root/'tests/kotlin/TimelineProjectionTest.kt'),'-Werror','-include-runtime','-d',str(jar)],env=env,check=True)
     subprocess.run([str(java_home/'bin/java'),'-jar',str(jar)],env=env,check=True)
 
+# Pure production preview UI/transport policies need neither Android stubs nor JNI.
+with tempfile.TemporaryDirectory(prefix='owncut-preview-policy-') as directory:
+    jar = Path(directory)/'preview-policy.jar'
+    subprocess.run(['bash',str(kotlin_home/'bin/kotlinc'),
+        *[str(root/'app/src/main/java/com/owncut/app'/name) for name in
+          ('PreviewPlaybackState.kt','PreviewFrameSize.kt','PreviewProgress.kt')],
+        str(root/'tests/kotlin/PreviewPolicyTest.kt'),'-Werror','-include-runtime','-d',str(jar)],env=env,check=True)
+    subprocess.run([str(java_home/'bin/java'),'-jar',str(jar)],env=env,check=True)
+
 # Optional actual production ColorEngine bridge, not generated Android stubs.
 if len(sys.argv) == 4:
     import shutil

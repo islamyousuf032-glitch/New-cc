@@ -1,5 +1,15 @@
 # Architecture index and execution history
 
+## Preview transport ownership (2026-10-24)
+
+Platform-only terminal state policy owns preview controls; failure clears player ownership
+before releasing and cannot be reopened by late events. Scrubbing suspends thumb updates;
+keyboard/accessibility changes use the same exclusive-end seek policy. CPU still requests
+are metadata-oriented/no-upscale1280×720 on API27+, with oversized API26 refusal. Returned
+bitmap validation does not establish source color parity or bound decoder internals.
+Native C++ grading remains authoritative; Android validation pending (ADR0024).
+
+
 ## Native parity diagnostics (2026-10-24)
 
 color::compare_rgba8 owns bounded read-only RGBA code-value diagnostics; narrow JNI/Kotlin

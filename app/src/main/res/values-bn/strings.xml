@@ -316,4 +316,5 @@
     <string name="color_live_loading">সোর্স metadata যাচাই ও graded playback প্রস্তুত হচ্ছে…</string>
     <string name="color_live_notice">সংরক্ষিত clip grade-এর পরীক্ষামূলক playback। Before-এ grade ছাড়া তুলনা করুন। Loop clip trim-এর মধ্যেই থাকে। সাধারণ timeline playback/export অপরিবর্তিত; Android/device validation বাকি।</string>
     <string name="color_live_before">আগে (playback চলার সময়ে)</string>
+    <string name="color_scaled_preview_requires_27">বড় স্থির প্রিভিউর জন্য Android 8.1 বা নতুন দরকার। Android 8.0-এ পুরো resolution-এর bitmap allocation বন্ধ রাখা হয়েছে; clip ও grade অপরিবর্তিত।</string>
 </resources>

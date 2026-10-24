@@ -1,5 +1,18 @@
 # Build and test
 
+## Preview policy regression coverage (2026-10-24)
+
+The existing tests/run_host_kotlin.py command now always includes production
+PreviewPlaybackState/PreviewProgress/PreviewFrameSize and PreviewPolicyTest, even without
+an optional JNI library. Pinned Kotlin2.3.21 -Werror passes terminal-event/control tests,
+exclusive seek extremes and100size/rotation combinations; existing real JNI adapters also
+pass when the library is supplied. CMake build/CTest6/6, real JVM/JNI,299resource/3theme/
+17label,7metadata/3install-over checks pass. Host tests do NOT exercise Android callbacks,
+TalkBack, buffering/audio, retriever output/orientation/internal memory or release timing.
+App/instrumentation uncompiled/unrun; CI40083307621 never started due billing, not a compiler
+result. No new APK. See ADR0024.
+
+
 ## Native frame metrics and Android encoded test (2026-10-24)
 
 Make6/Release CTest6/6, color+comparison ASan+UBSan, strict JNI and actual JVM/Kotlin2.3.21

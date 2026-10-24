@@ -1,5 +1,15 @@
 # Product specification
 
+## Experimental preview behavior (2026-10-24)
+
+Failure/close must disable controls and release the isolated player; late events cannot
+restart it. Buffering can pause, but cannot seek/compare. Touch seeking preserves thumb
+control; keyboard/accessibility inputs also seek. Still preview requests a bounded proxy;
+Android8.0 refuses oversized sources with explanation (Android8.1+ uses scaled extraction).
+These are implemented source, not phone acceptance. Live/export parity and update-compatible
+APK delivery remain open; shipping grade-export guards stay (ADR0024).
+
+
 ## Encoded grade acceptance test source (2026-10-24)
 
 Native frame diagnostics are implemented/host-tested. Device test source now compares
