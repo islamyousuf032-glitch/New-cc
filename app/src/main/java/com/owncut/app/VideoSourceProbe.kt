@@ -42,6 +42,14 @@ internal object VideoSourceProbe {
         } finally { extractor.release() }
     }
 
+    internal fun decoded(format: MediaFormat): ColorEngine.DecodedVideoFormat {
+        fun integer(key: String): Int? = if(format.containsKey(key)) format.getInteger(key) else null
+        return ColorEngine.DecodedVideoFormat(integer(MediaFormat.KEY_WIDTH) ?: 0,integer(MediaFormat.KEY_HEIGHT) ?: 0,
+            color(integer(MediaFormat.KEY_COLOR_STANDARD),integer(MediaFormat.KEY_COLOR_TRANSFER),integer(MediaFormat.KEY_COLOR_RANGE))
+                .copy(hasHdrStaticMetadata=format.containsKey(MediaFormat.KEY_HDR_STATIC_INFO) &&
+                    format.getByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO)?.let { it.limit()>0 } == true))
+    }
+
     // Android MediaFormat and Media3 constants are mapped independently, not assumed equal.
     internal fun color(standard: Int?, transfer: Int?, range: Int?)=ColorEngine.VideoColorMetadata(
         when(standard) { null -> ColorEngine.VideoPrimaries.UNKNOWN

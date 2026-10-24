@@ -1,5 +1,13 @@
 # Roadmap and acceptance gates
 
+## Phase1C experimental playback connection (2026-10-24)
+
+Opt-in clip player source now connects native recipe + explicit shared GPU factory +
+raw decoded format gate; clip loop/seek/audio/Before/release are implemented, not Android-
+validated. Native/host tests pass; actual renderer/codec/GL/thread/pixel and timeline/export
+acceptance remain open. No guard removal/APK or new credit;25%/75% (ADR0022).
+
+
 ## User-visible Color batch (2026-10-23)
 
 Source implementation now includes17controls, actual native CPU still preview, Before/After,

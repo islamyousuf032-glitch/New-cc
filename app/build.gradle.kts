@@ -72,6 +72,7 @@ android {
 dependencies {
     implementation("androidx.media3:media3-transformer:1.8.1")
     implementation("androidx.media3:media3-effect:1.8.1")
+    implementation("androidx.media3:media3-exoplayer:1.8.1")
     androidTestImplementation("androidx.test:core:1.7.0")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")

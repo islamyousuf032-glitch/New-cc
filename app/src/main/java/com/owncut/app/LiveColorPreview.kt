@@ -1,0 +1,123 @@
+package com.owncut.app
+
+import android.app.Activity
+import android.app.AlertDialog
+import android.os.Handler
+import android.os.Looper
+import android.view.Gravity
+import android.widget.*
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
+
+/** Explicit experimental playback of ONE saved clip snapshot. No draft/session writes.
+ * Main player stays paused. Close/background/surface teardown belongs to ExoPlayer.
+ * Worker preflight never starts a stale player after dialog dismissal.
+ */
+@UnstableApi
+internal object LiveColorPreview {
+    fun show(activity: Activity, clip: ClipSnapshot, sourcePositionMs: Long): AlertDialog {
+        require(clip.sourceInMs>=0 && clip.sourceOutMs>clip.sourceInMs)
+        val handler=Handler(Looper.getMainLooper())
+        val closed=AtomicBoolean(false)
+        val worker=Executors.newSingleThreadExecutor()
+        val root=LinearLayout(activity).apply { orientation=LinearLayout.VERTICAL;setPadding(20,16,20,16) }
+        val viewport=android.widget.FrameLayout(activity)
+        val texture=AspectRatioTextureView(activity)
+        viewport.addView(texture,android.widget.FrameLayout.LayoutParams(-1,-1,Gravity.CENTER))
+        root.addView(viewport,LinearLayout.LayoutParams(-1,(240*activity.resources.displayMetrics.density).toInt()))
+        val status=TextView(activity).apply { text=AppLanguage.text(R.string.color_live_loading) }
+        root.addView(status)
+        val play=Button(activity).apply { text=AppLanguage.text(R.string.action_pause);isEnabled=false }
+        val before=CheckBox(activity).apply { text=AppLanguage.text(R.string.color_live_before);isEnabled=false }
+        val position=SeekBar(activity).apply { isEnabled=false;max=1000 }
+        root.addView(position);root.addView(play);root.addView(before)
+        val dialog=AlertDialog.Builder(activity).setTitle(AppLanguage.text(R.string.color_live_title)).setView(root)
+            .setNegativeButton(AppLanguage.text(R.string.color_cancel),null).create()
+        var player: ExoPlayer?=null
+        var failed=false
+        val ticker=object: Runnable {
+            override fun run() {
+                if(closed.get()) return
+                player?.let { p ->
+                    val duration=p.duration
+                    if(duration>0 && !position.isPressed) position.progress=PreviewProgress.progress(p.currentPosition,duration)
+                    play.text=AppLanguage.text(if(p.playWhenReady) R.string.action_pause else R.string.message_b5cdf40ef5)
+                }
+                handler.postDelayed(this,200)
+            }
+        }
+        fun fail(error: Exception) {
+            failed=true;player?.pause();play.isEnabled=false;before.isEnabled=false;position.isEnabled=false
+            status.text=AppLanguage.text(R.string.color_error,error.message ?: error.javaClass.simpleName)
+        }
+        play.setOnClickListener { player?.let { it.playWhenReady=!it.playWhenReady } }
+        position.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(bar: SeekBar?,progress: Int,fromUser: Boolean) {}
+            override fun onStartTrackingTouch(bar: SeekBar?) { player?.pause() }
+            override fun onStopTrackingTouch(bar: SeekBar?) {
+                player?.let { p -> if(p.duration>0) p.seekTo(PreviewProgress.position(p.duration,position.progress)) }
+            }
+        })
+        dialog.setOnDismissListener {
+            closed.set(true);handler.removeCallbacks(ticker);worker.shutdownNow()
+            val old=player;player=null
+            try { old?.release() } catch(error: Exception) {
+                android.util.Log.e("OwncutColorPreview","Experimental preview release failed",error)
+            } // SDK owns surface detachment; never crash Activity destruction on release failure
+        }
+        dialog.show()
+        worker.execute {
+            try {
+                val plan=ColorRenderPlan.prepare("clip-preview-${clip.id}",listOf(clip),{ check(!closed.get()) }) {
+                    VideoSourceProbe.read(activity.applicationContext,it) { check(!closed.get()) }
+                }
+                val snapshot=plan.clips.single()
+                val prepared=GradedFramePipeline.prepare(snapshot)
+                handler.post {
+                    if(!closed.get()) try {
+                        val p=ExoPlayer.Builder(activity.applicationContext,
+                            GradedPreviewRenderers(activity.applicationContext,prepared,snapshot.source)).build()
+                        player=p
+                        p.setAudioAttributes(AudioAttributes.DEFAULT,true)
+                        p.addListener(object: Player.Listener {
+                            override fun onPlayerError(error: PlaybackException) { if(!closed.get()) fail(error) }
+                            override fun onPlaybackStateChanged(state: Int) {
+                                if(!closed.get() && !failed && state==Player.STATE_READY) {
+                                    play.isEnabled=true;before.isEnabled=p.playWhenReady;position.isEnabled=true
+                                }
+                            }
+                            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                                if(!closed.get() && !failed) before.isEnabled=playWhenReady && p.playbackState==Player.STATE_READY
+                            }
+                            override fun onRenderedFirstFrame() { if(!closed.get() && !failed) status.text=AppLanguage.text(R.string.color_live_notice) }
+                            override fun onVideoSizeChanged(size: VideoSize) {
+                                if(closed.get()) return
+                                texture.setVideoSize((size.width*size.pixelWidthHeightRatio).toInt().coerceAtLeast(1),size.height)
+                            }
+                        })
+                        p.setVideoTextureView(texture)
+                        p.setVideoEffects(listOf(prepared.effect)) // force renderer-owned graph with explicit factory
+                        p.repeatMode=Player.REPEAT_MODE_ONE
+                        p.setMediaItem(MediaItem.Builder().setUri(clip.mediaId).setClippingConfiguration(
+                            MediaItem.ClippingConfiguration.Builder().setStartPositionMs(clip.sourceInMs)
+                                .setEndPositionMs(clip.sourceOutMs).build()).build())
+                        before.setOnCheckedChangeListener { _,original ->
+                            try { p.setVideoEffects(if(original) emptyList() else listOf(prepared.effect)) }
+                            catch(error: Exception) { fail(error) }
+                        }
+                        p.seekTo((sourcePositionMs-clip.sourceInMs).coerceIn(0,(clip.sourceOutMs-clip.sourceInMs-1).coerceAtLeast(0)))
+                        p.prepare();p.playWhenReady=true;handler.post(ticker)
+                    } catch(error: Exception) { fail(error) }
+                }
+            } catch(error: Exception) { handler.post { if(!closed.get()) fail(error) } }
+        }
+        return dialog
+    }
+}

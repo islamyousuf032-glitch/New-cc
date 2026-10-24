@@ -1,5 +1,18 @@
 # Build and test
 
+## Experimental clip preview checks (2026-10-24)
+
+Make6/Release CTest6/6, strict JNI/real JVM, production pure Kotlin2.3.21 -Werror tests
+pass. PreviewProgress additionally tests all1001 positions at Long.MAX_VALUE against
+BigInteger, invalid bounds and clipping-relative progress.298bilingual strings/3themes,
+17labels,7metadata/3install-over checks pass. No Android stubs were used for host passes.
+
+LiveColorPreviewTest raw output-format/gate source added, Android UNCOMPILED/UNRUN.
+Build/lint + actual opt-in decoder/GL/audio/graph/texture/seek/loop/cancel/release/pixel tests
+are required, not replaced by host checks. ExoPlayer is explicitly pinned1.8.1; no new GPU
+result/APK/install-over acceptance. Before disabled while paused (no replay cache); see ADR0022.
+
+
 ## Color editing batch checks (2026-10-23)
 
 Release CTest6/6 passed. Production pure Kotlin2.3.21 -Werror with actual JNI additionally

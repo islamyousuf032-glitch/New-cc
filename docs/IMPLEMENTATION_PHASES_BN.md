@@ -56,6 +56,8 @@ refuse করে, preview স্পষ্টভাবে ungraded বলে; And
 - [x] Candidate composition-এ clip grade → global720p Presentation এবং explicit factory binding source।
 - [x] Native expected/decoder-output verifier ও per-render terminal gate; candidate decoder hook source।
   Host/JNI/Kotlin tests পাস; actual Android codec/thread/pixel পরীক্ষা নয়।
+- [x] Opt-in live clip preview source: shared GPU factory, raw decoder gate, clip loop/seek/audio/Before।
+  এটি isolated experimental player; সাধারণ timeline নয়, Android build/runtime প্রমাণ হয়নি।
 - [ ] Probe/candidate-এর Android compilation ও actual decoder/codec validation; live route এখনো যুক্ত নয়।
 
 

@@ -13,7 +13,8 @@ import androidx.media3.effect.DefaultVideoFrameProcessor
 import androidx.media3.effect.GlEffect
 import androidx.media3.effect.GlShaderProgram
 
-/** Candidate shared preview/export adapter. NOT installed in either shipping route yet.
+/** Shared adapter for isolated experimental preview and candidate export.
+ * NOT enabled in normal timeline playback or user delivery yet.
  * Always use the returned effect WITH its explicit processor factory. Media3 1.8.1
  * DEFAULT intermediate SDR is encoded SMPTE 170M, not the interface doc's linear RGB.
  * Input metadata must be explicit BT709 SDR; no unknown/HDR/other-primary fallback.

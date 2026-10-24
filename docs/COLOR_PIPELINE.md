@@ -1,5 +1,16 @@
 # Color grading reference pipeline v1
 
+## Isolated experimental GPU clip preview (2026-10-24)
+
+Color action captures saved clip in shared ColorRenderPlan, then renderer-owned video graph
+uses the same native shader and DEFAULT SDR factory as candidate export. Native raw-format
+checks run at output changes and before rendered buffers; unknown/changed output refuses.
+Before removes only the grade effect during playback. Loop stays in trims, no timestamp/
+model edits. Native gate/host tests pass; Android decode/GL/color/audio/thread/crop/rotation
+and exported pixels remain unverified. Existing still proxy is not a parity oracle; normal
+playback/export unchanged, no full1C claim (ADR0022).
+
+
 ## Actual still preview / candidate encoder entry (2026-10-23)
 
 ClipColorEditor probes admitted source, retrieves source-time sRGB ARGB8888 bitmap, scales

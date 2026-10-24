@@ -46,6 +46,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     private var projectTitle: TextView? = null
     private var projectToolsScroll: HorizontalScrollView? = null
     private var detailsPanel: ScrollView? = null
+    private var liveColorDialog: AlertDialog? = null
     private var colorDialog: AlertDialog? = null
     private var mediaSourcesDialog: AlertDialog? = null
     private var checkpointRepairDialog: AlertDialog? = null
@@ -505,6 +506,15 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
         val colorPanel=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
         colorPanel.addView(TextView(this).apply { text=AppLanguage.text(R.string.color_still_notice);setTextColor(StudioUi.muted) })
         colorPanel.addView(actionButton(AppLanguage.text(R.string.color_editor_title),StudioIcon.COLOR) { showClipColorEditor() },matchWrap())
+        colorPanel.addView(actionButton(AppLanguage.text(R.string.color_live_title),StudioIcon.PLAY) {
+            if(!blockWhileMediaLoads() && liveColorDialog?.isShowing != true) {
+                try {
+                    val clip=currentSelectedClip() ?: error(AppLanguage.text(R.string.message_f4e00f9522))
+                    pauseForTimelineScrub()
+                    liveColorDialog=LiveColorPreview.show(this,clip,previewPositionMs)
+                } catch(error: Exception) { showError(error) }
+            }
+        },matchWrap())
         root.addView(colorPanel,matchWrap())
         workspacePanels.getOrPut("Color") { mutableListOf() }.add(colorPanel)
         val flow = TextView(this).apply {
@@ -1875,6 +1885,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     }
 
     override fun onStop() {
+        liveColorDialog?.dismiss();liveColorDialog=null
         releasePlayer()
         super.onStop()
     }
@@ -1907,6 +1918,7 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
     }
 
     override fun onDestroy() {
+        liveColorDialog?.dismiss();liveColorDialog=null
         colorDialog?.dismiss();colorDialog=null
         mediaSourcesDialog?.dismiss(); mediaSourcesDialog=null
         checkpointRepairDialog?.dismiss(); checkpointRepairDialog=null

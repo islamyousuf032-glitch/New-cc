@@ -7,6 +7,18 @@ private fun rejected(block: () -> Unit) {
     error("expected invalid color plan rejection")
 }
 fun main() {
+    check(PreviewProgress.position(Long.MAX_VALUE,1000)==Long.MAX_VALUE)
+    check(PreviewProgress.position(12345,500)==6172L)
+    check(PreviewProgress.position(12345,0)==0L)
+    check(PreviewProgress.progress(-1,100)==0 && PreviewProgress.progress(999,100)==1000)
+    rejected { PreviewProgress.position(-1,500) }
+    rejected { PreviewProgress.position(1000,1001) }
+    for(p in 0..1000) {
+        val exact=java.math.BigInteger.valueOf(Long.MAX_VALUE).multiply(java.math.BigInteger.valueOf(p.toLong()))
+            .divide(java.math.BigInteger.valueOf(1000)).longValueExact()
+        check(PreviewProgress.position(Long.MAX_VALUE,p)==exact)
+    }
+    println("Experimental preview seek transport: clip-relative progress and overflow-safe duration mapping passed")
     val supported=ColorEngine.VideoColorMetadata(ColorEngine.VideoPrimaries.REC709,
         ColorEngine.VideoTransfer.SDR_VIDEO,ColorEngine.VideoRange.LIMITED)
     for(p in ColorEngine.VideoPrimaries.entries) for(t in ColorEngine.VideoTransfer.entries)

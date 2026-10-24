@@ -1,5 +1,17 @@
 # Device test matrix
 
+## Experimental live clip player (2026-10-24)
+
+- Host native6/6, strict JNI/actual JVM/pinned Kotlin regressions and1001 overflow-safe
+  progress mappings passed;298resources/3themes/17labels pass.
+- LiveColorPreviewTest raw MediaFormat/missing/HDR gate source added; uncompiled/unrun.
+- Must build/run actual default-renderer specialization and shared video graph; compare
+  normal/graded/Before pixels, trimmed loop boundaries/audio sync, seek/pause/resume,
+  rotation/PAR/crop, texture detach/background/reopen/close races, invalid source/format/
+  GL capability, decoder reporting and memory/performance. No proof from source APIs alone.
+- Legacy timeline and export guards stay; no APK/device/update acceptance (ADR0022).
+
+
 ## Color controls / still proxy / candidate runner (2026-10-23)
 
 - Host native6/6, actual Kotlin/JNI pixel packing/grade/bypass/alpha/source and bilingual

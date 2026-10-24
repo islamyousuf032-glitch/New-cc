@@ -183,3 +183,11 @@ platform Android dialog/widgets/MediaMetadataRetriever/Bitmap/Executor (min26) p
 native/Media3 adapters. No external images/fonts/LUTs or proprietary UI/source copied.
 Host tools unchanged. Actual Android/lint/codec/memory/ABI/install-over checks are pending;
 no new APK/security/performance or full grading claim (ADR0021).
+
+## Experimental live clip preview (2026-10-24)
+Explicit app dependency media3-exoplayer1.8.1 aligns with existing Media3 effect/transformer;
+Apache2.0, same pin (not a latest-maintenance claim). ExoPlayer was already used transitively
+by Transformer; actual APK-size/ABI/min26/runtime effect is not measured. Official pinned
+public/protected renderer/graph/ExoPlayer APIs inspected, not copied; no proprietary source,
+assets or internal replay reflection. Existing host tool licenses/pins unchanged and caches
+excluded. Android build/lint/performance/device acceptance pending; no binary vendored/APK.

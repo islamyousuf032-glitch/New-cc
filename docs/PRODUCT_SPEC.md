@@ -1,5 +1,14 @@
 # Product specification
 
+## Experimental live clip preview source (2026-10-24)
+
+Color can explicitly open one saved clip snapshot in a graded video player, trim-bounded
+loop/seek/pause/audio, Before while playing. It is experimental and Android-unverified,
+not normal timeline integration or user graded export. Fail closed on unsupported raw
+output; close/background release. No unsaved draft, model edits, full grading/APK/parity
+claim. Keep shipping export guards until actual acceptance (ADR0022).
+
+
 ## Color editor source implementation (2026-10-23)
 
 Color workspace:17parameter draft, native still Render, Before/After, enable/reset, explicit

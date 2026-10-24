@@ -1,5 +1,15 @@
 # Architecture index and execution history
 
+## Experimental clip playback graph (2026-10-24)
+
+Color opt-in uses LiveColorPreview/GradedPreviewRenderers; it is NOT the timeline player.
+Worker captures shared plan/recipe; renderer-owned graph uses SingleInputVideoGraph with
+explicit DEFAULT processor factory. Native gate checks input/actual output on format
+changes and actual output before non-decode-only buffer processing. Legacy MediaPlayer
+stays paused/unchanged; ExoPlayer owns clip audio/surface/graph release. No model writes.
+Close/background suppresses stale startup. Actual Android behavior unverified; ADR0022.
+
+
 ## Color editing surface and still-processing route (2026-10-23)
 
 ClipColorEditor owns a worker/draft, metadata/frame extraction and explicit native-processed

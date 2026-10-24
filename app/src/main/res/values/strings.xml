@@ -279,9 +279,9 @@
     <string name="checkpoint_repaired">Damaged checkpoint record archived. Project and recovery were not changed; saving can be retried.</string>
     <string name="checkpoint_no_repair">No damaged checkpoint record needs repair.</string>
     <string name="color_grade_export_pending">This project contains color grades. Graded video export is not enabled yet; export was stopped to avoid losing the look.</string>
-    <string name="color_grade_preview_pending">Clip has a color grade. Preview currently shows the ungraded source; graded preview integration is pending.</string>
+    <string name="color_grade_preview_pending">Clip has a color grade. Normal timeline preview shows the ungraded source. Color offers a separate experimental live clip preview; Android validation is pending.</string>
     <string name="color_editor_title">Clip color grade</string>
-    <string name="color_still_notice">Still-frame preview only. Playback is ungraded; graded export is not enabled. Render the draft before Apply. Cancel leaves the saved grade unchanged.</string>
+    <string name="color_still_notice">Still-frame editor preview only. Normal timeline playback is ungraded; normal graded export is not enabled. Render the draft before Apply. Cancel leaves the saved grade unchanged.</string>
     <string name="color_enabled">Enable saved grade</string>
     <string name="color_render_still">Render draft</string>
     <string name="color_before">Before</string>
@@ -312,4 +312,8 @@
         <item>Blue gain (0…4)</item>
     </string-array>
     <string name="color_source_changed">Clip changed while editing. Close and reopen Color.</string>
+    <string name="color_live_title">Live grade preview (experimental)</string>
+    <string name="color_live_loading">Checking source metadata and preparing graded playback…</string>
+    <string name="color_live_notice">Experimental playback of the saved clip grade. Before compares without the grade. Loop stays inside clip trims. Normal timeline playback and graded export remain unchanged; Android/device validation is pending.</string>
+    <string name="color_live_before">Before (during playback)</string>
 </resources>

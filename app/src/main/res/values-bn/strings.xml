@@ -279,9 +279,9 @@
     <string name="checkpoint_repaired">নষ্ট চেকপয়েন্ট রেকর্ড archive হয়েছে। Project ও recovery বদলায়নি; আবার সেভ করা যাবে।</string>
     <string name="checkpoint_no_repair">মেরামতের প্রয়োজন এমন নষ্ট চেকপয়েন্ট রেকর্ড নেই।</string>
     <string name="color_grade_export_pending">এই প্রজেক্টে কালার গ্রেড আছে। গ্রেডসহ ভিডিও এক্সপোর্ট এখনো চালু হয়নি; লুক হারানো ঠেকাতে এক্সপোর্ট বন্ধ রাখা হয়েছে।</string>
-    <string name="color_grade_preview_pending">এই ক্লিপে কালার গ্রেড আছে। প্রিভিউ এখন মূল আনগ্রেডেড ভিডিও দেখাচ্ছে; গ্রেডেড প্রিভিউ সংযোগের কাজ বাকি।</string>
+    <string name="color_grade_preview_pending">এই ক্লিপে কালার গ্রেড আছে। সাধারণ timeline preview আনগ্রেডেড সোর্স দেখায়। Color-এ আলাদা পরীক্ষামূলক live clip preview আছে; Android validation বাকি।</string>
     <string name="color_editor_title">ক্লিপের কালার গ্রেড</string>
-    <string name="color_still_notice">শুধু স্থির ফ্রেমের প্রিভিউ। Playback ungraded; graded export এখনো চালু নয়। Apply করার আগে draft render করুন। Cancel করলে সংরক্ষিত grade বদলাবে না।</string>
+    <string name="color_still_notice">শুধু স্থির ফ্রেমের editor preview। সাধারণ timeline playback ungraded; সাধারণ graded export এখনো চালু নয়। Apply করার আগে draft render করুন। Cancel করলে সংরক্ষিত grade বদলাবে না।</string>
     <string name="color_enabled">সংরক্ষিত গ্রেড সক্রিয়</string>
     <string name="color_render_still">ড্রাফট রেন্ডার</string>
     <string name="color_before">আগে</string>
@@ -312,4 +312,8 @@
         <item>নীল গেইন (০…৪)</item>
     </string-array>
     <string name="color_source_changed">সম্পাদনার সময়ে ক্লিপ বদলেছে। Color বন্ধ করে আবার খুলুন।</string>
+    <string name="color_live_title">লাইভ গ্রেড প্রিভিউ (পরীক্ষামূলক)</string>
+    <string name="color_live_loading">সোর্স metadata যাচাই ও graded playback প্রস্তুত হচ্ছে…</string>
+    <string name="color_live_notice">সংরক্ষিত clip grade-এর পরীক্ষামূলক playback। Before-এ grade ছাড়া তুলনা করুন। Loop clip trim-এর মধ্যেই থাকে। সাধারণ timeline playback/export অপরিবর্তিত; Android/device validation বাকি।</string>
+    <string name="color_live_before">আগে (playback চলার সময়ে)</string>
 </resources>

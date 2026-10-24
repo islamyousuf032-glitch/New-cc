@@ -33,7 +33,8 @@ internal data class ColorGrade(
         gamma.red,gamma.green,gamma.blue,gain.red,gain.green,gain.blue)
 }
 
-/** Stateless worker-only frame adapter, NOT wired into live preview/export yet.
+/** Stateless native frame/shader bridge. Used by the still editor and isolated experimental
+ * preview/candidate export; normal timeline playback/delivery remain unchanged.
  * Buffers must be nonoverlapping, direct, full-capacity slices at position zero.
  * Explicit sRGB straight-alpha RGBA8 only: do not pass YUV, HDR or premultiplied pixels.
  */

@@ -12,6 +12,14 @@ Owncut is an original, offline-first Android video-editing project. Its product 
 
 ## Current checkpoint
 
+**Experimental live grade preview (source added, Android unverified):** Color can now
+open an isolated ExoPlayer clip preview using the same native grade/explicit SDR factory
+as candidate export, with trim-bounded loop, seek/pause and Before during playback. Raw
+decoder format gates refuse unsupported output; close/background releases the player.
+Normal timeline playback and user delivery stay unchanged/guarded. Native/host tests pass;
+Android build, codec/GL/audio and pixel parity are pending, no new APK. [ADR0022](docs/DECISIONS/0022-isolated-live-clip-grade-preview.md).
+
+
 **Color editor now has a real processing route in source:** a contextual workspace with
 17 editable parameters, native-processed scaled still preview, Before/After, reset/bypass
 and atomic Apply/history/autosave. English/Bengali labels and numeric entry are supported.

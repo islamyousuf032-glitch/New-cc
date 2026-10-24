@@ -1,5 +1,27 @@
 # Progress
 
+## Isolated experimental live clip grade preview (2026-10-24)
+
+Added opt-in Color action, worker preflight/shared immutable native recipe, ExoPlayer1.8.1
+with specialized default video renderer and explicit SingleInputVideoGraph factory, per-
+output-buffer raw format gate, clipped loop, seek/play/pause, Before during playback.
+Audio delegates to default ExoPlayer renderers/focus. Close/onStop destroys the isolated
+player; stale preflight cannot restart it. Legacy timeline player stays paused/unchanged,
+normal graded export guards stay. Preview uses saved clip values, not unsaved drafts.
+
+Passed: Make6/Release CTest6/6, strict JNI/actual JVM and pinned Kotlin2.3.21 -Werror
+plan/gate/pixel/draft/projection checks; new overflow-safe progress tests against BigInteger
+for1001 extreme-duration positions;298strings/3themes/17labels,7metadata/3patch checks.
+Shader math unchanged; no new GPU/codec run. Pinned public/protected API source inspected.
+LiveColorPreviewTest raw-format/missing/HDR gate assertions added, not compiled/run.
+
+NOT verified: Android build/test/lint, actual specialized renderer/graph support, decode/
+GL/audio, source byte identity, crop/rotation, paused/loop/seek/surface/close/thread races,
+memory/performance, actual encoded-output parity, phone/update-install. No APK/full1C
+completion claim. Explicit media3-exoplayer pin stays aligned1.8.1/Apache2.0. See ADR0022;
+verified weighted credit stays25% complete/75% remaining.
+
+
 ## Color controls + actual CPU still preview + candidate encoder runner (2026-10-23)
 
 Implemented original Color workspace/icon and17 parameter fields, enable/bypass, Reset,
