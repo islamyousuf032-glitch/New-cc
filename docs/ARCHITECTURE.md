@@ -1,5 +1,13 @@
 # Architecture index and execution history
 
+## Build/signing ownership (2026-10-24)
+
+Manual trusted alternate runner is infrastructure transport, not application behavior.
+Push/PR cannot route to it. Preflight compares only public certificate identity against
+approved baseline/pin using existing private keystore locally; final APK verifier remains
+authoritative. No source-level billing bypass or original-key regeneration (ADR0026).
+
+
 ## Draft preview ownership (2026-10-24)
 
 ColorGradeDraft.validatedPreview parses immutable values and calls the native shared GPU

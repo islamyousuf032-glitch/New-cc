@@ -1,5 +1,13 @@
 # Dependencies and licensing
 
+## Build recovery tooling (2026-10-24)
+
+No new runtime/library dependency or pinned version. Preflight uses Python stdlib, existing
+JDK keytool and SDK apksigner/aapt2. Existing setup actions reused on optional owner-hosted
+runner. Nine mock tests need no key/SDK. Real tool/signing execution remains pending;
+no key, proprietary code or binary redistributed (ADR0026).
+
+
 ## Draft preview dependency impact (2026-10-24)
 
 No new library/tool/source/asset or license change. Reuses platform dialog ownership,

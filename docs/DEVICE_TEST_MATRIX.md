@@ -1,5 +1,13 @@
 # Device test matrix
 
+## Infrastructure recovery is not phone evidence (2026-10-24)
+
+Alternate-runner/signing preflight changes require no user phone test now: no new APK
+exists. Once build/signing succeeds, default candidate records device checks not-run;
+phone testing remains user-owned. Signer/package/version verification is necessary but
+not actual install-over/data-retention proof (ADR0026).
+
+
 ## Draft playback handoff — UNRUN (2026-10-24)
 
 When a new update-compatible APK exists, user-owned phone acceptance includes draft

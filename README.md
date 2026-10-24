@@ -1,5 +1,12 @@
 > **Latest verified debug APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
 
+## APK build recovery (2026-10-24)
+
+[বাংলা সমাধান নির্দেশিকা](docs/APK_BUILD_RECOVERY_BN.md): owner billing correction or an
+explicit trusted self-hosted runner, plus original signing identity. Manual runner choice
+and pre-build key/pin/approved-APK checks are implemented, not executed. No new APK.
+
+
 ## Unsaved draft playback (2026-10-24)
 
 Color editor now offers experimental live playback of the current draft without applying

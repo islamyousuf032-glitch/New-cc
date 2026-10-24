@@ -1,5 +1,20 @@
 # Progress
 
+## Build recovery implementation (2026-10-24)
+
+Added explicit manual self-hosted runner selection restricted to the session branch;
+push/PR stays GitHub-hosted. Added original key/pin/approved-APK preflight before building
+signed candidates. No credentials generated/read back or billing changes. Existing final
+APK checks retained. Wrote owner-facing Bengali recovery steps (ADR0026).
+
+Passed9mocked signing-policy tests,7metadata/3install-over refusal tests and diff whitespace.
+Actual self-hosted provisioning/workflow/Android/signing remains unrun; no APK. Latest
+Android40085082942 has zero steps with billing/spending annotation. Secrets/variable listing
+403, configuration unknown. Attempted approved release download failed on asset-host access;
+no certificate inspection or key recovery claimed. SDK/dependency network restrictions
+prevent local Android build here.25%/75%; user owns phone tests after a real APK exists.
+
+
 ## Unsaved color draft connection (2026-10-24)
 
 Connected Color editor draft playback to the isolated shared native shader pipeline.

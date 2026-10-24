@@ -4,6 +4,13 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      runner:
+        description: 'Build host: GitHub-hosted, or a trusted dedicated Linux x64 runner (no hosted-minute dependency)'
+        type: choice
+        options:
+          - github-hosted
+          - self-hosted
+        default: github-hosted
       run_device_tests:
         description: 'Optional emulator/render/install-over checks (phone testing is owned by the user)'
         type: boolean
@@ -15,7 +22,10 @@ permissions:
   contents: write
 jobs:
   android-debug:
-    runs-on: ubuntu-24.04
+    # Never route pull-request/push code to a machine holding signing credentials.
+    # Self-hosted is explicit manual dispatch on the tracked branch only.
+    if: github.event_name != 'workflow_dispatch' || inputs.runner != 'self-hosted' || github.ref == 'refs/heads/arena/6e511b63-new-cc'
+    runs-on: ${{ github.event_name == 'workflow_dispatch' && inputs.runner == 'self-hosted' && fromJSON('["self-hosted","linux","x64","owncut-build"]') || fromJSON('["ubuntu-24.04"]') }}
     env:
       OWNCUT_KEYSTORE_PASSWORD: ${{ secrets.OWNCUT_KEYSTORE_PASSWORD }}
       OWNCUT_KEY_ALIAS: ${{ secrets.OWNCUT_KEY_ALIAS }}
@@ -26,6 +36,7 @@ jobs:
         run: |
           python3 tests/check_ui_resources.py
           python3 tests/test_patch_metadata.py
+          python3 tests/test_signing_preflight.py
           python3 tests/test_install_over_guard.py
           python3 scripts/progress.py
       - name: Portable engine regression before packaging
@@ -60,6 +71,15 @@ jobs:
           fi
       - name: Install pinned Android SDK components
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;3.22.1"
+      - name: Check original signing identity before building a candidate
+        if: steps.signing.outputs.ready == 'true'
+        env:
+          CERT_SHA256: ${{ vars.OWNCUT_SIGNING_CERT_SHA256 }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/upgrade-reference"
+          gh release download phone-test-39777165014 --repo "$GITHUB_REPOSITORY" --pattern app-debug.apk --dir "$RUNNER_TEMP/upgrade-reference"
+          python3 scripts/verify_signing_identity.py "$RUNNER_TEMP/upgrade-reference/app-debug.apk" "$ANDROID_HOME/build-tools/36.0.0/apksigner" "$CERT_SHA256" "$OWNCUT_VERSION_CODE"
       - name: Install optional device-test image
         if: github.event_name == 'workflow_dispatch' && inputs.run_device_tests == true
         run: sdkmanager "platforms;android-35" "system-images;android-35;google_apis;x86_64"
@@ -179,8 +199,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ./gradlew --no-daemon :app:assembleRelease -PrequireStableSigning=true
-          mkdir -p "$RUNNER_TEMP/upgrade-reference"
-          gh release download phone-test-39777165014 --repo "$GITHUB_REPOSITORY" --pattern app-debug.apk --dir "$RUNNER_TEMP/upgrade-reference"
           python3 scripts/verify_patch.py app/build/outputs/apk/release/app-release.apk "$ANDROID_HOME/build-tools/36.0.0/apksigner" "$CERT_SHA256" "$OWNCUT_VERSION_CODE" "$RUNNER_TEMP/upgrade-reference/app-debug.apk"
           "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 app/build/outputs/apk/release/app-release.apk
       - name: Verify release install-over on requested emulator

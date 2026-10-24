@@ -1,5 +1,12 @@
 # Roadmap and acceptance gates
 
+## APK infrastructure recovery (2026-10-24)
+
+Manual alternate-runner and pre-build signer checks implemented. Owner provisioning or
+billing correction, usable original key, Android compile/package and user phone acceptance
+remain open. No phase/readiness credit or new APK (ADR0026; recovery guide available).
+
+
 ## Phase1C draft iteration (2026-10-24)
 
 Unsaved draft-to-live preview is wired without repeated Apply/history commands; stale

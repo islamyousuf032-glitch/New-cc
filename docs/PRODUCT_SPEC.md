@@ -1,5 +1,13 @@
 # Product specification
 
+## APK delivery recovery (2026-10-24)
+
+Owner billing correction or trusted alternate runner is needed to start blocked builds.
+Original signing identity remains mandatory; alternate compute does not fix key loss.
+No uninstall/data-clear fallback. New runner/preflight source is not delivered APK or
+phone acceptance; actual build/signing still pending (ADR0026).
+
+
 ## Experimental draft playback (2026-10-24)
 
 Color editor can open experimental playback of its current draft without saving.

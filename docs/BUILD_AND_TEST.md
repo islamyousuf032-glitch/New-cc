@@ -1,5 +1,15 @@
 # Build and test
 
+## Alternate build host / signing preflight (2026-10-24)
+
+Manual android.yml runner=self-hosted selects self-hosted/linux/x64/owncut-build only on
+the tracked branch; default/push/PR stays hosted. Owner setup: APK_BUILD_RECOVERY_BN.md.
+python3 tests/test_signing_preflight.py passes9mock-based tests (both CI workflows include
+it). Existing7metadata/3install-over gates pass. New public-cert check is not final APK
+signing or device validation. Workflow/runner/Android execution pending; billing is not
+fixed by source. Key configuration inaccessible/unknown, not asserted missing (ADR0026).
+
+
 ## Draft preview host checks (2026-10-24)
 
 Existing optional JNI tests/run_host_kotlin.py command covers production draft capture,

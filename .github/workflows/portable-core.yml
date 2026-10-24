@@ -14,6 +14,7 @@ jobs:
         run: |
           python3 tests/check_ui_resources.py
           python3 tests/test_patch_metadata.py
+          python3 tests/test_signing_preflight.py
           python3 tests/test_install_over_guard.py
           python3 scripts/progress.py
       - name: Install CMake and Ninja

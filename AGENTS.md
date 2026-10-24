@@ -55,3 +55,8 @@
   budget, capture immutable values and reject stale session/clip. Parent dismissal closes
   the child player; activity backgrounding releases it. Dirty still feedback must not
   imply the current draft rendered. See ADR0025.
+
+- Self-hosted APK builds must be explicit manual dispatch on the tracked branch and use
+  dedicated trusted labels; never route PR/push to signing machines. Original key/pin/
+  approved-baseline preflight does not replace final APK verification. Billing and lost
+  original keys cannot be fixed by application code. See ADR0026 and recovery guide.

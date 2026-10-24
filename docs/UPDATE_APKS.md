@@ -1,5 +1,16 @@
 # Install-over APK patches: signing and verification
 
+## Build recovery route (2026-10-24)
+
+See [বাংলা নির্দেশিকা](APK_BUILD_RECOVERY_BN.md). Manual dispatch now permits a dedicated
+trusted Linux x64 self-hosted runner on the tracked branch only; pushes/PRs remain hosted.
+Account-wide Actions suspension may still require owner intervention. Before candidate
+build, verify_signing_identity.py compares existing key certificate/pin/approved baseline;
+final APK verification still required. Nine mocked policy tests pass, not real signing.
+Secrets/variables listing403 means configuration unknown. No original-key replacement,
+new APK or install-over success asserted (ADR0026).
+
+
 ## Current candidate policy — 2026-10-23 (supersedes mandatory-emulator wording)
 
 Phone testing belongs to the user. Default CI builds/lints/compiles test sources and
