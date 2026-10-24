@@ -1,6 +1,6 @@
 # ADR0029: Restore Color panel in final workspace hierarchy
 
-Date: 2026-10-24. Status: source fixed; APK compilation pending.
+Date: 2026-10-24. Status: source fixed; corrected test APK published, phone acceptance pending.
 
 User phone screenshot shows Color selected, but only generic status in its context pane.
 Root cause: buildWorkspace creates Color panel in the temporary hierarchy, calls
@@ -18,3 +18,11 @@ switching to Color across all3themes and hidden on Edit. This instrumentation so
 compile but is not executed by default; user owns phone testing. Resource checks pass301
 strings/3themes/17labels, whitespace check passes. New fresh-install candidate uses existing
 explicit consent route; temporary signer still may require uninstall after backup.
+
+## Publication evidence
+
+Source d454c0b: Android40097805457 and Portable40097805462 pass. Release
+fresh-install-40097805457 contains APK/checksum/metadata. APK8,004,471bytes; SHA256
+ db6ca7507a6688bc7633f362b569a93650c0b7203aef728734651ec895164fec.
+Regression instrumentation source compiles, not executed; screenshot fix awaits user
+phone confirmation. No new grading algorithm or export enablement claimed.

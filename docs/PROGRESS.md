@@ -1,5 +1,17 @@
 ## Mesa sampler precision correction under verification (2026-10-24)
 
+## Color panel fix APK published (2026-10-24)
+
+[Download corrected fresh-install test APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/fresh-install-40097805457/owncut-fresh-install-debug.apk) (8,004,471bytes, source d454c0b).
+Android40097805457 and Portable40097805462 PASS; actual compile/lint/test-source compile/
+alignment/APK identity checks and release publication complete. Color final-layout
+attachment and labelled actions implemented; regression source compiled, not executed
+on phone. Prior pending-build notes below are historical. User owns phone acceptance.
+Temporary debug signer/update continuity not guaranteed: back up before any uninstall.
+SHA256 db6ca7507a6688bc7633f362b569a93650c0b7203aef728734651ec895164fec.
+Graded-export guards remain; readiness25%/75%.
+
+
 ## Color panel discoverability fix (2026-10-24)
 
 User screenshot exposed Color panel detached during final layout assembly. Reattach to
