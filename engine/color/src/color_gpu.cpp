@@ -84,7 +84,7 @@ std::string grade_fragment_shader(const Grade& g,TextureEncoding e) {
     validate(g); validate(e);
     std::string shader=R"glsl(#version 100
 precision highp float;
-uniform sampler2D uSource;
+uniform highp sampler2D uSource;
 varying highp vec2 vTexCoord;
 )glsl";
     if (Pipeline(g).identity()) return shader+"void main() { gl_FragColor=texture2D(uSource,vTexCoord); }\n";

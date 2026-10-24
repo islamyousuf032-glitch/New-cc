@@ -1,3 +1,12 @@
+## Mesa sampler precision correction under verification (2026-10-24)
+
+Portable40095527236 now passes configure/build/native CTest; annotated software-GLES failure
+is sRGB case29, byte1444 actual3/reference6 (3-code difference, existing gate2). Production
+shader declared highp floats but left sampler precision at GLSL default lowp. Explicitly
+request highp sampler to avoid lower-precision texture-result transport; rerun unchanged
+96-case threshold, exact alpha/identity checks. This is a candidate fix until actual Mesa
+rerun passes, not a relaxed tolerance or Android display-parity claim.
+
 ## Android compilation now passes (2026-10-24)
 
 Android40095260838 at47005f5 PASSED actual APK assembly, lintDebug, Android instrumentation
