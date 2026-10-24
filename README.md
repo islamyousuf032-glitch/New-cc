@@ -1,5 +1,20 @@
 > **Historical user-approved phone-tested APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
 
+## Slider color-editor rework (2026-10-24)
+
+Original3-group/17slider controls replace typing-only fields; debounced automatic still
+preview bounds worker work and rejects stale revisions. Apply now saves native-validated
+current settings independently of still decoder availability; exact session/clip/history
+checks retained. Success does NOT imply graded timeline/export. This supersedes earlier
+successful-still-required UI policy. Source/render color safety remains unchanged.
+
+Fix input-only/null raw-format premature live failure; per-render raw gate remains strict.
+Show bounded nested/selectable diagnostics, not generic error alone. Exact user-phone cause
+and UI behavior remain unverified.308resources/3themes/17labels pass; new pure/UI regression
+sources authored, not executed. Build/candidate pending. No proprietary UI/code copied,
+no new dependency;25%/75% (ADR0030).
+
+
 ## Color panel fix APK published (2026-10-24)
 
 [Download corrected fresh-install test APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/fresh-install-40097805457/owncut-fresh-install-debug.apk) (8,004,471bytes, source d454c0b).

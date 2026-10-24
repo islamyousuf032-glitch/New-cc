@@ -32,7 +32,7 @@ internal object LiveColorPreview {
         val texture=AspectRatioTextureView(activity)
         viewport.addView(texture,android.widget.FrameLayout.LayoutParams(-1,-1,Gravity.CENTER))
         root.addView(viewport,LinearLayout.LayoutParams(-1,(240*activity.resources.displayMetrics.density).toInt()))
-        val status=TextView(activity).apply { text=AppLanguage.text(R.string.color_live_loading) }
+        val status=TextView(activity).apply { setTextIsSelectable(true);text=AppLanguage.text(R.string.color_live_loading) }
         root.addView(status)
         val play=Button(activity).apply { text=AppLanguage.text(R.string.action_pause);isEnabled=false }
         val before=CheckBox(activity).apply { text=AppLanguage.text(R.string.color_live_before);isEnabled=false }
@@ -71,7 +71,7 @@ internal object LiveColorPreview {
             if(closed.get() || !playback.fail()) return
             handler.removeCallbacks(ticker);worker.shutdownNow();scrubbing=false
             controls();releasePlayer() // don't retain decoder/GL/audio focus until the user closes
-            status.text=AppLanguage.text(R.string.color_error,error.message ?: error.javaClass.simpleName)
+            status.text=AppLanguage.text(R.string.color_error,ColorPreviewFailure.describe(error))
         }
         play.setOnClickListener {
             if(playback.canTransport) try { player?.let { it.playWhenReady=!it.playWhenReady } }

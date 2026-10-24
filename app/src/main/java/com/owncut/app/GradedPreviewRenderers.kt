@@ -43,7 +43,10 @@ internal class GradedPreviewRenderers(context: Context, private val prepared: Gr
                 try {
                     // Reject changed/HDR input even if a platform decoder could tone-map its output.
                     ColorEngine.validateDecodedFormat(expected,GuardedDecoderFactory.descriptor(format))
-                    gate.beforeRender(mediaFormat?.let { VideoSourceProbe.decoded(it) })
+                    // Media3 may notify an input-only change before codec output exists.
+                    // Only actual rendered buffers must have raw metadata; processOutputBuffer
+                    // below still rejects null/unknown/changed formats on every render.
+                    if(mediaFormat!=null) gate.beforeRender(VideoSourceProbe.decoded(mediaFormat))
                 } catch(error: Exception) {
                     gate.invalidate()
                     throw createRendererException(error,format,PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED)

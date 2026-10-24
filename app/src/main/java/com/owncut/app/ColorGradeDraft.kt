@@ -1,7 +1,7 @@
 package com.owncut.app
 
 /** Text transport for exactly English/Bengali entry; native engine owns value validity.
- * A draft is not a history mutation and must successfully render before UI Apply.
+ * A draft is not a history mutation; native validation precedes saving or preview.
  */
 internal object ColorGradeDraft {
     /** Immutable preview only; native shared GPU budget, no session/history mutation. */

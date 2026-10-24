@@ -318,5 +318,12 @@
     <string name="color_live_before">Before (during playback)</string>
     <string name="color_scaled_preview_requires_27">Large still previews need Android 8.1 or newer. This Android 8.0 preview refuses a full-resolution bitmap allocation; your clip and grade are unchanged.</string>
     <string name="color_preview_draft">Play draft (experimental)</string>
-    <string name="color_draft_changed">Draft changed. Render a still to enable Apply; playing the draft does not save changes.</string>
+    <string name="color_draft_changed">Settings changed. Updating still preview automatically…</string>
+    <string name="color_group_primary">Primary</string>
+    <string name="color_group_balance">RGB balance</string>
+    <string name="color_group_tonal">Lift / Gamma / Gain</string>
+    <string name="color_slider_help">Drag a slider to adjust. The still preview updates automatically. Apply saves the grade; it does not enable graded timeline playback or export.</string>
+    <string name="color_preview_unavailable">Preview unavailable. You can still save valid settings. Details: %1$s</string>
+    <string name="color_auto_preview_ready">Still preview updated. Apply saves these settings. This is not graded timeline playback.</string>
+    <string name="color_saved_notice">Grade saved to the clip. Normal timeline playback and graded export are not yet enabled.</string>
 </resources>

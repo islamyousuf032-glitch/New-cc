@@ -76,3 +76,9 @@
 - Final workspace assembly must reattach every contextual panel after root.removeAllViews.
   Color actions need visible labels, not icon-only StudioButton; test final attached/shown
   hierarchy across tabs/themes (ADR0029). Compile-only is not phone acceptance.
+
+- ADR0030 supersedes render-before-Apply: native-validated settings may be saved without
+  available decoder, but cannot authorize unsafe rendering or claim graded timeline/export.
+  Slider ranges are transport only; preserve saved extremes and exact reset identity.
+  Bound/debounce preview, discard stale results, expose nested live errors. Null input-only
+  output-format callback is not permission to skip raw validation of rendered buffers.

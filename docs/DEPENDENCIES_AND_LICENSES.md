@@ -1,5 +1,20 @@
 # Dependencies and licensing
 
+## Slider color-editor rework (2026-10-24)
+
+Original3-group/17slider controls replace typing-only fields; debounced automatic still
+preview bounds worker work and rejects stale revisions. Apply now saves native-validated
+current settings independently of still decoder availability; exact session/clip/history
+checks retained. Success does NOT imply graded timeline/export. This supersedes earlier
+successful-still-required UI policy. Source/render color safety remains unchanged.
+
+Fix input-only/null raw-format premature live failure; per-render raw gate remains strict.
+Show bounded nested/selectable diagnostics, not generic error alone. Exact user-phone cause
+and UI behavior remain unverified.308resources/3themes/17labels pass; new pure/UI regression
+sources authored, not executed. Build/candidate pending. No proprietary UI/code copied,
+no new dependency;25%/75% (ADR0030).
+
+
 ## Color panel discoverability fix (2026-10-24)
 
 User screenshot exposed Color panel detached during final layout assembly. Reattach to

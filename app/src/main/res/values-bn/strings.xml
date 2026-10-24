@@ -318,5 +318,12 @@
     <string name="color_live_before">আগে (playback চলার সময়ে)</string>
     <string name="color_scaled_preview_requires_27">বড় স্থির প্রিভিউর জন্য Android 8.1 বা নতুন দরকার। Android 8.0-এ পুরো resolution-এর bitmap allocation বন্ধ রাখা হয়েছে; clip ও grade অপরিবর্তিত।</string>
     <string name="color_preview_draft">ড্রাফট চালিয়ে দেখুন (পরীক্ষামূলক)</string>
-    <string name="color_draft_changed">ড্রাফট বদলেছে। প্রয়োগ করতে স্থির প্রিভিউ তৈরি করুন; ড্রাফট চালিয়ে দেখলে পরিবর্তন সেভ হয় না।</string>
+    <string name="color_draft_changed">সেটিংস বদলেছে। স্থির প্রিভিউ নিজে আপডেট হচ্ছে…</string>
+    <string name="color_group_primary">প্রাইমারি</string>
+    <string name="color_group_balance">RGB ব্যালান্স</string>
+    <string name="color_group_tonal">লিফট / গামা / গেইন</string>
+    <string name="color_slider_help">স্লাইডার টেনে মান বদলান। স্থির প্রিভিউ নিজে আপডেট হবে। প্রয়োগ করলে গ্রেড সেভ হবে; গ্রেডসহ টাইমলাইন প্লেব্যাক বা এক্সপোর্ট চালু হবে না।</string>
+    <string name="color_preview_unavailable">প্রিভিউ পাওয়া যায়নি। বৈধ সেটিংস তবুও সেভ করতে পারবেন। বিস্তারিত: %1$s</string>
+    <string name="color_auto_preview_ready">স্থির প্রিভিউ আপডেট হয়েছে। প্রয়োগ করলে এই সেটিংস সেভ হবে। এটি গ্রেডসহ টাইমলাইন প্লেব্যাক নয়।</string>
+    <string name="color_saved_notice">ক্লিপে গ্রেড সেভ হয়েছে। সাধারণ টাইমলাইন প্লেব্যাক ও এক্সপোর্টে গ্রেড দেখানো এখনো চালু হয়নি।</string>
 </resources>
