@@ -60,3 +60,7 @@
   dedicated trusted labels; never route PR/push to signing machines. Original key/pin/
   approved-baseline preflight does not replace final APK verification. Billing and lost
   original keys cannot be fixed by application code. See ADR0026 and recovery guide.
+
+- Shared grade shaders must explicitly declare highp sampler2D as well as highp floats.
+  Mesa default lowp sampling caused a measured parity failure; do not relax gates to hide
+  it. Android compilation now passes, but device/encoder/parity remains unrun (ADR0027).

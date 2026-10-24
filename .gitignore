@@ -23,3 +23,7 @@ local.properties
 *.p12
 *.pem
 signing.properties
+
+# Host Python check caches
+__pycache__/
+*.pyc

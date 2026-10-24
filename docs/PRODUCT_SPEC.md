@@ -1,5 +1,12 @@
 # Product specification
 
+## Current build checkpoint (2026-10-24)
+
+Actual Android assembly/lint/test-source compilation/alignment passes; this is not phone
+acceptance or a downloadable compatible update. Stable signing remains required before
+candidate publication; shipping grade-export guards remain intact. See ADR0027.
+
+
 ## APK delivery recovery (2026-10-24)
 
 Owner billing correction or trusted alternate runner is needed to start blocked builds.

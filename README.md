@@ -1,5 +1,19 @@
 > **Latest verified debug APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
 
+## Verified Android build and sampler fix (2026-10-24)
+
+Production code atb802517 passes Android40095688463: APK assembly, lint, Android test-source
+compilation and ZIP alignment. Portable40095688482 passes native CTest and96×512production
+GLSL/CPU cases on Mesa llvmpipe with unchanged2/255 RGB gate and exact alpha/identity/bypass.
+Fixes: Format.NO_VALUE API and unavailable optional annotation; explicit highp sampler
+instead of default lowp precision. Regression assertions added (ADR0027).
+
+Historical UNCOMPILED/billing-startup statements below are superseded for this code; real
+phone/live/encoder/export tests remain UNRUN. Stable signing not configured in these runs:
+no downloadable update-compatible APK published. No guard removal/readiness credit;
+25% complete/75% remaining. Phone testing remains user-owned.
+
+
 ## Android build checkpoint (2026-10-24)
 
 Run40095260838 at47005f5 passed actual APK assembly, lint, Android test-source compilation

@@ -1,5 +1,12 @@
 # Architecture index and execution history
 
+## Current build checkpoint (2026-10-24)
+
+Explicit highp sampler precision is part of the shared native shader contract, not just
+float variables. Mesa host parity now passes unchanged gates. Android graph/test sources
+compile; codec/live/display parity remains unrun. See ADR0027.
+
+
 ## Build/signing ownership (2026-10-24)
 
 Manual trusted alternate runner is infrastructure transport, not application behavior.

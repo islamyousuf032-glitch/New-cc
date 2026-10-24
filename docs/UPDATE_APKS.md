@@ -1,5 +1,13 @@
 # Install-over APK patches: signing and verification
 
+## Current build checkpoint (2026-10-24)
+
+Public repository jobs now execute and Android40095688463 passes assembly/lint/test-source
+compilation/alignment. Workflow explicitly lacks stable signing configuration; no candidate
+published. Billing startup is no longer the observed blocker; original signing continuity
+is still mandatory. No new debug signer may bypass approved baseline. See ADR0027.
+
+
 ## Build recovery route (2026-10-24)
 
 See [বাংলা নির্দেশিকা](APK_BUILD_RECOVERY_BN.md). Manual dispatch now permits a dedicated

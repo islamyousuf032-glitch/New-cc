@@ -1,5 +1,12 @@
 # Dependencies and licensing
 
+## Current build checkpoint (2026-10-24)
+
+No new dependency/tool version/assets. Fix uses existing Media3 Format.NO_VALUE and
+GLSL ES100 highp sampler qualifier; removes optional documentation annotation. Pinned
+Android dependencies now actually resolve/build. No signing/release redistribution. ADR0027.
+
+
 ## Build recovery tooling (2026-10-24)
 
 No new runtime/library dependency or pinned version. Preflight uses Python stdlib, existing

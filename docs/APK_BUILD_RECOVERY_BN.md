@@ -1,5 +1,13 @@
 # নতুন APK তৈরির বাধা: কী হয়েছে এবং সমাধানের পথ
 
+## Current build checkpoint (2026-10-24)
+
+Repository public করার পর Android40095688463-এ assembly/lint/test-source compilation/ZIP
+alignment পাস করেছে। নিচের billing-startup বাধার বর্ণনা ঐতিহাসিক; বর্তমান run শুরু হচ্ছে।
+এখন workflow stable signing configuration পায়নি বলে candidate প্রকাশ করেনি। নতুন key
+দিয়ে আগের অ্যাপের update নিশ্চিত করা যাবে না; original compatible key লাগবে। ADR0027।
+
+
 তারিখ: 2026-10-24। এটি recovery guide; নতুন APK বা সফল build-এর ঘোষণা নয়।
 
 ## ১. Billing সমস্যা কোডের error নয়

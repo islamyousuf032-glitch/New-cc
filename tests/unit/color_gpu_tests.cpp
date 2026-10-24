@@ -29,12 +29,14 @@ void tests() {
     const Rgb input{0.5,0.25,0.75};
     for(auto e : {TextureEncoding::srgb,TextureEncoding::linear709,TextureEncoding::media3_sdr709}) {
         check(texture_reference(input,{},e)==input);
+        check(grade_fragment_shader({},e).find("uniform highp sampler2D uSource;")!=std::string::npos);
         check(grade_fragment_shader({},e).find("toLight")==std::string::npos);
         Grade g;g.exposure_stops=1;
         const auto ref=texture_reference(input,g,e);
         check(ref.r>input.r);
         if(e==TextureEncoding::linear709) check(ref==Rgb{1.0,0.5,1.5});
         check(grade_fragment_shader(g,e).find("sampleColor.a")!=std::string::npos);
+        check(grade_fragment_shader(g,e).find("uniform highp sampler2D uSource;")!=std::string::npos);
     }
     Grade g;g.exposure_stops=0.75;
     const auto before=grade_fragment_shader(g,TextureEncoding::srgb);

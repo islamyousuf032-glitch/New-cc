@@ -1,5 +1,19 @@
 ## Mesa sampler precision correction under verification (2026-10-24)
 
+## Verified Android build and sampler fix (2026-10-24)
+
+Production code atb802517 passes Android40095688463: APK assembly, lint, Android test-source
+compilation and ZIP alignment. Portable40095688482 passes native CTest and96×512production
+GLSL/CPU cases on Mesa llvmpipe with unchanged2/255 RGB gate and exact alpha/identity/bypass.
+Fixes: Format.NO_VALUE API and unavailable optional annotation; explicit highp sampler
+instead of default lowp precision. Regression assertions added (ADR0027).
+
+Historical UNCOMPILED/billing-startup statements below are superseded for this code; real
+phone/live/encoder/export tests remain UNRUN. Stable signing not configured in these runs:
+no downloadable update-compatible APK published. No guard removal/readiness credit;
+25% complete/75% remaining. Phone testing remains user-owned.
+
+
 Portable40095527236 now passes configure/build/native CTest; annotated software-GLES failure
 is sRGB case29, byte1444 actual3/reference6 (3-code difference, existing gate2). Production
 shader declared highp floats but left sampler precision at GLSL default lowp. Explicitly
