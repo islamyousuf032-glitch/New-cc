@@ -1,5 +1,18 @@
 # Color grading reference pipeline v1
 
+## Frame diagnostics / encoded-test source (2026-10-24)
+
+Native compare_rgba8 measures byte-domain per-channel maximum, overall mean absolute/
+signed RGB(actual−expected) error and alpha mismatch. It validates equal size/strides/
+spans, permits readonly/alias and ignores padding, without conversion/alignment/mutation.
+These are not perceptual/HDR/calibration/timestamp metrics. Host/JNI/Kotlin checks pass.
+
+Device test source authors constant gray SDR, encodes neutral/graded/bypass candidate
+clips, decodes sRGB sample regions and compares against native grade of neutral output.
+This diagnostic oracle is lossy/constant-region, not an independent all-color or live
+preview calibration. Android execution and proposed gates remain unverified (ADR0023).
+
+
 ## Isolated experimental GPU clip preview (2026-10-24)
 
 Color action captures saved clip in shared ColorRenderPlan, then renderer-owned video graph

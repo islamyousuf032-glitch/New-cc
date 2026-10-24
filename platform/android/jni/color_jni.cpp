@@ -109,3 +109,25 @@ Java_com_owncut_app_ColorEngine_nativeValidateDecodedFormatV1(JNIEnv* env, jobje
     } catch (const std::bad_alloc&) { fail(env,"java/lang/OutOfMemoryError","decoded format validation allocation failed"); }
       catch (const std::exception& error) { fail(env,"java/lang/IllegalArgumentException",error.what()); }
 }
+
+extern "C" JNIEXPORT jdoubleArray JNICALL
+Java_com_owncut_app_ColorEngine_nativeCompareRgba8V1(JNIEnv* env, jobject,
+    jobject expected, jobject actual, jint width, jint height, jint expected_stride, jint actual_stride) {
+    try {
+        if(width<=0 || height<=0 || expected_stride<=0 || actual_stride<=0)
+            throw std::invalid_argument("invalid comparison dimensions/stride");
+        const auto e=buffer(env,expected,false),a=buffer(env,actual,false);
+        const auto result=editor::color::compare_rgba8({{e.data,e.size},static_cast<std::size_t>(width),
+            static_cast<std::size_t>(height),static_cast<std::size_t>(expected_stride)},
+            {{a.data,a.size},static_cast<std::size_t>(width),static_cast<std::size_t>(height),static_cast<std::size_t>(actual_stride)});
+        const std::array<jdouble,7> fields{static_cast<double>(result.pixels),
+            static_cast<double>(result.maximum_rgb_error[0]),static_cast<double>(result.maximum_rgb_error[1]),
+            static_cast<double>(result.maximum_rgb_error[2]),result.mean_absolute_rgb_error,
+            result.mean_signed_rgb_error,static_cast<double>(result.alpha_mismatches)};
+        auto out=env->NewDoubleArray(static_cast<jsize>(fields.size()));
+        if(out) env->SetDoubleArrayRegion(out,0,static_cast<jsize>(fields.size()),fields.data());
+        return out;
+    } catch(const std::bad_alloc&) { fail(env,"java/lang/OutOfMemoryError","comparison allocation failed"); }
+      catch(const std::exception& error) { fail(env,"java/lang/IllegalArgumentException",error.what()); }
+    return nullptr;
+}

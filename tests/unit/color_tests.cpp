@@ -16,6 +16,23 @@ void check(bool ok, std::source_location at = std::source_location::current()) {
 }
 void near(double actual,double expected,double tolerance=1e-12) { check(std::abs(actual-expected) <= tolerance); }
 template<class F> void fails(F f) { bool caught=false; try { f(); } catch(const std::exception&) { caught=true; } check(caught); }
+void comparisons() {
+    const std::vector<std::uint8_t> expected{10,20,30,40,100,110,120,130,77,77,77,77};
+    const std::vector<std::uint8_t> actual{15,18,30,41,90,110,125,130,99,99,99,99};
+    const auto result=compare_rgba8({expected,2,1,12},{actual,2,1,12});
+    check(result.pixels==2 && result.alpha_mismatches==1);
+    check(result.maximum_rgb_error==std::array<std::uint8_t,3>{10,2,5});
+    near(result.mean_absolute_rgb_error,22.0/6);near(result.mean_signed_rgb_error,-2.0/6);
+    const auto alias=compare_rgba8({expected,2,1,12},{expected,2,1,8});
+    near(alias.mean_absolute_rgb_error,0);check(alias.alpha_mismatches==0);
+    fails([&]{(void)compare_rgba8({expected,2,1,8},{actual,1,2,4});});
+    fails([&]{(void)compare_rgba8({expected,2,2,12},{actual,2,2,12});});
+    fails([&]{(void)compare_rgba8({expected,2,1,7},{actual,2,1,8});});
+    fails([&]{(void)compare_rgba8({expected,0,1,8},{actual,0,1,8});});
+    std::vector<std::uint8_t> padded(24,77),packed(16,99);
+    for(std::size_t y=0;y<2;++y) for(std::size_t c=0;c<8;++c) padded[y*12+c]=packed[y*8+c]=static_cast<std::uint8_t>(c+y);
+    near(compare_rgba8({padded,2,2,12},{packed,2,2,8}).mean_absolute_rgb_error,0);
+}
 void transfer_and_controls() {
     near(decode_srgb(0.5),0.21404114048223255);
     near(encode_srgb(0.21404114048223255),0.5);
@@ -161,6 +178,6 @@ void presets_and_random_images() {
 }
 } // namespace
 int main() {
-    transfer_and_controls(); parameter_boundaries(); image_layout_and_pixels(); histograms(); presets_and_random_images();
+    comparisons(); transfer_and_controls(); parameter_boundaries(); image_layout_and_pixels(); histograms(); presets_and_random_images();
     std::cout << "C++ grading: transfer, controls, RGBA pixels/alpha/stride, cancellation, histogram, presets and randomized extremes passed\n";
 }

@@ -1,5 +1,17 @@
 # Device test matrix
 
+## Encoded grade comparison tests (2026-10-24)
+
+- Host native metrics/JNI/Kotlin exact max/mean/bias/alpha and readonly/alias/stride tests
+  passed;6native suites/ASan+UBSan. No new hardware/software GPU test here.
+- GrayVideoFixture/GradedExportParityTest Android sources added, UNCOMPILED/UNRUN.
+  Actual EGL surface/encoder, explicit metadata,3candidate outputs, duration and six
+  decoded times across cut must be run; log OwncutColorParity diagnostics on failure.
+- Proposed lossy gates are not phone measurements. Constant center gray does not verify
+  full color/chroma/HDR, geometry, live display, timing/A-V, driver metadata or memory.
+- Preserve strict failure, not skip/fallback. No guard removal/APK/install-over credit.
+
+
 ## Experimental live clip player (2026-10-24)
 
 - Host native6/6, strict JNI/actual JVM/pinned Kotlin regressions and1001 overflow-safe

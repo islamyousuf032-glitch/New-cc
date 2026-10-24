@@ -191,3 +191,10 @@ by Transformer; actual APK-size/ABI/min26/runtime effect is not measured. Offici
 public/protected renderer/graph/ExoPlayer APIs inspected, not copied; no proprietary source,
 assets or internal replay reflection. Existing host tool licenses/pins unchanged and caches
 excluded. Android build/lint/performance/device acceptance pending; no binary vendored/APK.
+
+## Native diagnostics / encoded test source (2026-10-24)
+No new dependency/pin or persisted format. Original standard C++ counters and JNI/Kotlin
+transport; Android test fixture authors frames with platform EGL/GLES/MediaCodec/MediaMuxer
+(min26). No downloaded media, LUT, copyrighted assets or vendor YUV-layout assumptions.
+Existing cache-only host compiler/JVM tools/licensing unchanged. Android fixture/encoder/
+codec/profile/performance acceptance remains unverified; no binary asset or APK added.

@@ -1,5 +1,25 @@
 # Progress
 
+## Native diagnostics + encoded grade test source (2026-10-24)
+
+Added original C++ read-only/alias-safe frame comparison: per-channel max, RGB mean
+absolute/signed error, alpha mismatch and bounded counts. Narrow direct-buffer JNI and
+immutable Kotlin metrics; ARGB transport reused without grade math changes.
+
+Added Android GrayVideoFixture (authored Rec709 SDR encoder/EGL surface, no imported-tag
+inference) and GradedExportParityTest: actual candidate encodes neutral,+1/−1stop clips,
+bypass; verifies duration and six decoded samples including both sides of cut against
+native CPU oracle plus signed brightness and bypass checks. Proposed codec thresholds
+are unmeasured; test source is NOT an encoded result. See ADR0023 for scope/limitations.
+
+Passed locally: Make6, Release CTest6/6, color/comparison ASan+UBSan, strict JNI/real JVM
+comparison buffers, production Kotlin2.3.21 -Werror exact max/mean/bias/alpha and prior
+pixel/draft/plan/gate/progress/projection tests;298resources/3themes/17labels,7metadata/
+3install-over gates. Android tests/app build/actual fixture/codec/GL/output/live-display/
+phone and proposed tolerance validation remain unrun. No new GPU run/APK/readiness credit;
+shipping guards stay; verified total25% complete/75% remaining.
+
+
 ## Isolated experimental live clip grade preview (2026-10-24)
 
 Added opt-in Color action, worker preflight/shared immutable native recipe, ExoPlayer1.8.1

@@ -1,5 +1,14 @@
 # Architecture index and execution history
 
+## Native parity diagnostics (2026-10-24)
+
+color::compare_rgba8 owns bounded read-only RGBA code-value diagnostics; narrow JNI/Kotlin
+transports immutable metrics, no UI math duplication. Device-generated gray fixture and
+actual candidate encode/decode test source check per-clip look/bypass across a cut using
+a native CPU oracle. Host diagnostics pass; Android encoder/fixture tests uncompiled/unrun,
+not calibrated/live-display parity. No runtime path/guard/schema change (ADR0023).
+
+
 ## Experimental clip playback graph (2026-10-24)
 
 Color opt-in uses LiveColorPreview/GradedPreviewRenderers; it is NOT the timeline player.

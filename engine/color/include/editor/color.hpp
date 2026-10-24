@@ -71,6 +71,15 @@ inline constexpr std::size_t max_pixels = 64 * 1024 * 1024;
 [[nodiscard]] bool apply_rgba8(Rgba8View source, Rgba8Buffer output, const Grade& grade,
                                const std::atomic_bool* cancelled = nullptr);
 
+struct FrameComparison final {
+    std::uint64_t pixels{}, alpha_mismatches{};
+    std::array<std::uint8_t,3> maximum_rgb_error{};
+    double mean_absolute_rgb_error{}, mean_signed_rgb_error{}; // actual minus expected
+};
+// Byte/code-value diagnostics only: no transfer, alignment, timing or color conversion.
+// Same size required; strides/padding may differ. Alias is safe; input never changes.
+[[nodiscard]] FrameComparison compare_rgba8(Rgba8View expected, Rgba8View actual);
+
 struct Histogram final {
     std::array<std::uint64_t,256> red{}, green{}, blue{}, luminance{};
     std::uint64_t pixels{0};

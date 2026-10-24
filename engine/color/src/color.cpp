@@ -154,6 +154,31 @@ bool apply_rgba8(Rgba8View source, Rgba8Buffer output, const Grade& grade, const
     }
     return true;
 }
+FrameComparison compare_rgba8(Rgba8View expected, Rgba8View actual) {
+    (void)checked_extent(expected.bytes.size(),expected.width,expected.height,expected.stride);
+    (void)checked_extent(actual.bytes.size(),actual.width,actual.height,actual.stride);
+    if (expected.width != actual.width || expected.height != actual.height)
+        throw std::invalid_argument("frame comparison dimensions differ");
+    FrameComparison result;
+    result.pixels=static_cast<std::uint64_t>(expected.width*expected.height);
+    std::uint64_t absolute_sum=0;
+    std::int64_t signed_sum=0;
+    for (std::size_t y=0;y<expected.height;++y) for (std::size_t x=0;x<expected.width;++x) {
+        const auto e=y*expected.stride+x*4, a=y*actual.stride+x*4;
+        for (std::size_t c=0;c<3;++c) {
+            const auto delta=static_cast<int>(actual.bytes[a+c])-static_cast<int>(expected.bytes[e+c]);
+            const auto magnitude=static_cast<std::uint8_t>(std::abs(delta));
+            result.maximum_rgb_error[c]=std::max(result.maximum_rgb_error[c],magnitude);
+            absolute_sum+=magnitude;signed_sum+=delta;
+        }
+        if(expected.bytes[e+3] != actual.bytes[a+3]) ++result.alpha_mismatches;
+    }
+    const auto channels=static_cast<double>(result.pixels)*3;
+    result.mean_absolute_rgb_error=static_cast<double>(absolute_sum)/channels;
+    result.mean_signed_rgb_error=static_cast<double>(signed_sum)/channels;
+    return result;
+}
+
 Histogram histogram(Rgba8View source, bool skip_transparent) {
     (void)checked_extent(source.bytes.size(),source.width,source.height,source.stride);
     Histogram result;

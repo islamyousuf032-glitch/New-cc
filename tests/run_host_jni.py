@@ -78,7 +78,8 @@ def main():
             'nativeRenderV1':'(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;IIII[DZ)V',
             'nativeShaderV1':'([DZIZ)Ljava/lang/String;',
             'nativeValidateVideoSourceV1':'(IIIZ)V',
-            'nativeValidateDecodedFormatV1':'([I)V'}))
+            'nativeValidateDecodedFormatV1':'([I)V',
+            'nativeCompareRgba8V1':'(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;IIII)[D'}))
         jpype.startJVM(str(java_home/'lib/server/libjvm.so'), '-Xcheck:jni',
                       '--enable-native-access=ALL-UNNAMED', classpath=[str(root)], convertStrings=True)
         try:
@@ -227,6 +228,11 @@ def main():
                 failure(lambda: shader(excessive))
                 check('toLight' not in shader(excessive,enabled=False))
                 print('Production JNI GPU recipes: 3 encodings, shapes/NaN/unknown/unsafe-grade rejection and bypass passed')
+                stats=list(color.nativeCompareRgba8V1(source,source.asReadOnlyBuffer(),2,1,8,8))
+                check(stats==[2,0,0,0,0,0,0])
+                failure(lambda: color.nativeCompareRgba8V1(source,dest,2,1,7,8))
+                failure(lambda: color.nativeCompareRgba8V1(ByteBuffer.allocate(8),dest,2,1,8,8))
+                print('Production JNI frame comparison: readonly/alias/exact metrics and invalid buffers passed')
                 print('Native C++ color JNI: actual graded pixels, alpha, buffers, alias/readonly/range validation passed')
                 print('Host JVM JNI: Unicode, revision pages, stale/invalid handles, concurrent destroy, catalog and recovery passed')
             finally:

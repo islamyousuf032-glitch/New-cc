@@ -1,5 +1,20 @@
 # Build and test
 
+## Native frame metrics and Android encoded test (2026-10-24)
+
+Make6/Release CTest6/6, color+comparison ASan+UBSan, strict JNI and actual JVM/Kotlin2.3.21
+-Werror metrics tests passed. compare_rgba8 tests equal/different strides, padding, alias,
+max/mean/signed/alpha counts and invalid extents; no new compile sources needed. Existing
+host runner commands apply.298resources/3themes/17labels,7metadata/3patch checks pass.
+
+Android GrayVideoFixture and GradedExportParityTest sources are UNCOMPILED/UNRUN. Run on
+a device through the existing opt-in instrumentation environment (phone testing remains
+user-owned), not host stubs. Test invokes actual candidate encoder3times, samples six
+output times, logs OwncutColorParity metrics. Proposed lossy gates mean8/max16 and bypass
+mean3/max8 are NOT measured tolerances. Strict source/decoder metadata guards may refuse
+first; don't silently skip or relax to make green. No APK/parity pass implied (ADR0023).
+
+
 ## Experimental clip preview checks (2026-10-24)
 
 Make6/Release CTest6/6, strict JNI/real JVM, production pure Kotlin2.3.21 -Werror tests

@@ -23,6 +23,13 @@ fun main() {
     rejected { ColorFrameBuffers.render(argb,3,1,ColorGrade()) }
     rejected { ColorFrameBuffers.render(argb,0,1,ColorGrade()) }
     println("Actual ARGB sRGB still-frame transport/native pixels: channels, alpha, bypass, source and shape passed")
+    val stats=ColorFrameBuffers.compare(intArrayOf(0x280a141e,0x82646e78.toInt()),
+        intArrayOf(0x290f121e,0x825a6e7d.toInt()),2,1)
+    check(stats.pixels==2L && stats.maximumRed==10 && stats.maximumGreen==2 && stats.maximumBlue==5)
+    check(kotlin.math.abs(stats.meanAbsoluteRgbError-22.0/6)<1e-12 && stats.alphaMismatches==1L)
+    check(kotlin.math.abs(stats.meanSignedRgbError+2.0/6)<1e-12)
+    rejected { ColorFrameBuffers.compare(argb,intArrayOf(0),2,1) }
+    println("Native comparison diagnostics: exact per-channel max/mean/bias/alpha metrics passed")
     val source=ByteBuffer.allocateDirect(8)
     listOf(128,128,128,37,255,0,0,0).forEachIndexed { i,value -> source.put(i,value.toByte()) }
     val out=ByteBuffer.allocateDirect(8)

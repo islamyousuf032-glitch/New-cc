@@ -1,5 +1,13 @@
 # Roadmap and acceptance gates
 
+## Phase1C output-verification groundwork (2026-10-24)
+
+Native frame-comparison metrics pass native/JNI/Kotlin checks. Actual fixture/candidate
+encode/decode test sources now target clip-specific exposure, bypass and cut margins;
+Android compilation/execution/tolerance validation remain open. No encoded-output/live
+parity or release claim, no guard removal; readiness stays25%/75% (ADR0023).
+
+
 ## Phase1C experimental playback connection (2026-10-24)
 
 Opt-in clip player source now connects native recipe + explicit shared GPU factory +

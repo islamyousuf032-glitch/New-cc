@@ -1,5 +1,13 @@
 # Product specification
 
+## Encoded grade acceptance test source (2026-10-24)
+
+Native frame diagnostics are implemented/host-tested. Device test source now compares
+actual neutral/graded/bypass candidate encodes at clip interiors and cut margins. Lossy
+thresholds are proposed, not measured results; gray sampling is not full-color or live
+preview acceptance. Android/phone/APK tests remain open; guards unchanged (ADR0023).
+
+
 ## Experimental live clip preview source (2026-10-24)
 
 Color can explicitly open one saved clip snapshot in a graded video player, trim-bounded

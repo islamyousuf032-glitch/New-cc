@@ -66,6 +66,17 @@ internal object ColorEngine {
     private external fun nativeValidateDecodedFormatV1(parameters: IntArray)
     private external fun nativeValidateVideoSourceV1(primaries: Int, transfer: Int, range: Int, hdrStatic: Boolean)
     private external fun nativeShaderV1(parameters: DoubleArray, enabled: Boolean, encoding: Int, vertex: Boolean): String
+    data class FrameComparison(val pixels: Long, val maximumRed: Int, val maximumGreen: Int, val maximumBlue: Int,
+        val meanAbsoluteRgbError: Double, val meanSignedRgbError: Double, val alphaMismatches: Long)
+    fun compareRgba8(expected: ByteBuffer, actual: ByteBuffer, width: Int, height: Int,
+        expectedStride: Int, actualStride: Int): FrameComparison {
+        val fields=nativeCompareRgba8V1(expected,actual,width,height,expectedStride,actualStride)
+        check(fields.size==7)
+        return FrameComparison(fields[0].toLong(),fields[1].toInt(),fields[2].toInt(),fields[3].toInt(),
+            fields[4],fields[5],fields[6].toLong())
+    }
+    private external fun nativeCompareRgba8V1(expected: ByteBuffer, actual: ByteBuffer, width: Int, height: Int,
+        expectedStride: Int, actualStride: Int): DoubleArray
     private external fun nativeRenderV1(source: ByteBuffer, output: ByteBuffer, width: Int,
         height: Int, sourceStride: Int, outputStride: Int, parameters: DoubleArray, enabled: Boolean)
 }

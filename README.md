@@ -12,6 +12,13 @@ Owncut is an original, offline-first Android video-editing project. Its product 
 
 ## Current checkpoint
 
+**Encoded-grade validation groundwork:** native frame error metrics and a real candidate
+encode/decode test source now cover neutral, opposite per-clip exposure and bypass around
+a cut. Diagnostics passed native/JNI/Kotlin tests; **Android fixture/encoder tests are
+uncompiled/unrun**, proposed codec tolerances are not measured results. No guard removal,
+new APK or completed color-parity claim. [ADR0023](docs/DECISIONS/0023-native-comparison-and-encoded-grade-test.md).
+
+
 **Experimental live grade preview (source added, Android unverified):** Color can now
 open an isolated ExoPlayer clip preview using the same native grade/explicit SDR factory
 as candidate export, with trim-bounded loop, seek/pause and Before during playback. Raw
