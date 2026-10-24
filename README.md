@@ -1,4 +1,16 @@
-> **Latest verified debug APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
+> **Historical user-approved phone-tested APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
+
+## Fresh-install candidate PUBLISHED (2026-10-24)
+
+[Download test APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/fresh-install-40096664665/owncut-fresh-install-debug.apk) — 8,004,475bytes; [release/checksum/metadata](https://github.com/islamyousuf032-glitch/New-cc/releases/tag/fresh-install-40096664665).
+Source f9f7464; Android40096664665 and Portable40096664742 PASS. Actual APK assembly,
+lint, Android test-source compilation, alignment, signature/package/version verification
+and separate fresh-install publication passed. This supersedes earlier publication-pending
+notes. Phone/device/codec acceptance remains UNRUN/user-owned; graded-export guards stay.
+Back up projects/media before uninstalling. Temporary debug signer, NOT an update-compatible
+patch. APK SHA256:965754bc673c8a1f034432982460d334ac94a16e4fbb66f1e6bc8abd195d45e7.
+No readiness credit for phone validation;25%/75%.
+
 
 ## Explicit fresh-install test APK exception (2026-10-24)
 

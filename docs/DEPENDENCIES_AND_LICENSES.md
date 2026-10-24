@@ -1,5 +1,13 @@
 # Dependencies and licensing
 
+## Fresh-install publication result (2026-10-24)
+
+ADR0028 candidate fresh-install-40096664665 atf9f7464 is published: Android/native/GLES
+checks and actual APK identity/alignment pass. No new dependency or runtime change.
+User-owned phone/codec acceptance remains pending; stable update continuity not asserted.
+25%/75%; shipping graded-export guards unchanged. See PROGRESS.md for exact artifact.
+
+
 ## Fresh-install exception (2026-10-24)
 
 No new dependency/tool version/key asset. Fresh-install metadata verifier uses Python

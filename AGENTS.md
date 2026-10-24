@@ -68,3 +68,7 @@
 - ADR0028 explicitly permits the current user-authorized fresh-install debug candidate.
   Only publish through separate commit-marker opt-in route; never call it update-compatible.
   Warn of uninstall data loss, do not clear a phone, and preserve stable patch signer gates.
+
+- Fresh-install candidate fresh-install-40096664665 is actually published (source f9f7464),
+  not phone-accepted. Keep its source/digest and uninstall data-loss warning distinct from
+  stable update compatibility. Documentation-only follow-ups do not rebuild that artifact.
