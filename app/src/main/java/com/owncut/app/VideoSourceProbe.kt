@@ -66,10 +66,10 @@ internal object VideoSourceProbe {
             else -> ColorEngine.VideoRange.UNKNOWN })
 
     internal fun color(info: ColorInfo?)=ColorEngine.VideoColorMetadata(
-        when(info?.colorSpace) { null,C.NO_VALUE -> ColorEngine.VideoPrimaries.UNKNOWN
+        when(info?.colorSpace) { null,androidx.media3.common.Format.NO_VALUE -> ColorEngine.VideoPrimaries.UNKNOWN
             C.COLOR_SPACE_BT709 -> ColorEngine.VideoPrimaries.REC709
             else -> ColorEngine.VideoPrimaries.OTHER },
-        when(info?.colorTransfer) { null,C.NO_VALUE -> ColorEngine.VideoTransfer.UNKNOWN
+        when(info?.colorTransfer) { null,androidx.media3.common.Format.NO_VALUE -> ColorEngine.VideoTransfer.UNKNOWN
             C.COLOR_TRANSFER_SDR -> ColorEngine.VideoTransfer.SDR_VIDEO
             C.COLOR_TRANSFER_SRGB -> ColorEngine.VideoTransfer.SRGB
             C.COLOR_TRANSFER_ST2084 -> ColorEngine.VideoTransfer.PQ

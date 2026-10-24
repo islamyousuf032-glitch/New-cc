@@ -1,3 +1,12 @@
+## First Android compilation after public switch (2026-10-24)
+
+Android40094980849 now executes real build steps: billing startup obstruction cleared for
+this run. Actual compileDebugKotlin found nonexistent C.NO_VALUE and unavailable optional
+VisibleForTesting annotation. Use Media3 Format.NO_VALUE and remove documentation-only
+annotation without widening internal candidate visibility. Retrying actual build.
+Workflow explicitly reports stable signing not configured; no downloadable candidate
+can be published without original compatible signer. No phone/APK acceptance claimed.
+
 ## Public repository build retry (2026-10-24)
 
 GitHub now reports isPrivate=false. Manual workflow dispatch through this integration
