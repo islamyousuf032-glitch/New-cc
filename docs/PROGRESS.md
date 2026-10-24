@@ -1,3 +1,11 @@
+## Public repository build retry (2026-10-24)
+
+GitHub now reports isPrivate=false. Manual workflow dispatch through this integration
+returns403 (permission restriction, not compilation evidence). Retrying Android through
+this branch's normal push trigger; public status alone is not a successful build or
+resolution of any account-wide restriction. Signing continuity/final verification remain
+mandatory and device tests remain user-owned. Build result pending at this checkpoint.
+
 # Progress
 
 ## Build recovery implementation (2026-10-24)
