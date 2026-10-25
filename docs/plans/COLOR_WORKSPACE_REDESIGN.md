@@ -35,3 +35,9 @@ enters native render input. Compile interaction/layout regression source. Native
 checks and Android assembly/lint/identity/alignment before APK publication. Device visual,
 touch/scroll/keyboard/TalkBack, landscape/insets and source behavior remain user acceptance.
 No readiness/export/phone-parity credit until those gates pass.
+
+## Implementation checkpoint
+
+Implemented at57879db. Android40165432408 and Portable40165432394 PASS; fresh-install
+candidate40165432408 published. Tests compile, device execution pending. See ADR0031 and
+PROGRESS.md for artifact/source/digest and explicit reference/graded-state limitations.

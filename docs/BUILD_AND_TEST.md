@@ -1,5 +1,18 @@
 # Build and test
 
+## Precision workspace APK PUBLISHED (2026-10-25)
+
+[Download new Color workspace test APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/fresh-install-40165432408/owncut-fresh-install-debug.apk).
+Source57879db; Android40165432408 and Portable40165432394 PASS. Actual assembly/lint/
+regression-source compilation/identity/alignment/publication complete. APK8,034,423bytes;
+SHA256 fec88f23d08b9465e5fbe8f382be6c496486445d100e232fa5d2e5b705ae0fa7.
+Reference/hierarchy/fine-step instrumentation source compiles; actual UI/device execution
+is UNRUN/user-owned. Fixed-viewer layout, original ruler controls and explicit reference/
+empty states implemented, not phone-accepted. Platform reference does not establish source
+color or permit grading unknown/HDR. Native/export gates unchanged. Backup before uninstall;
+temporary debug signer/update compatibility not guaranteed.25%/75% (ADR0031).
+
+
 ## Planned fixed-viewer precision redesign (2026-10-25)
 
 Implemented original full-window Color workspace: fixed viewer/footer, separately scrollable

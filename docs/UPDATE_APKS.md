@@ -1,5 +1,12 @@
 # Install-over APK patches: signing and verification
 
+## Current precision-workspace test candidate (2026-10-25)
+
+fresh-install-40165432408 at57879db published after build/identity/alignment checks.
+This remains a temporary debug-signed fresh install, not an update-compatible patch.
+Back up projects/media before uninstalling. User owns phone acceptance; see ADR0031.
+
+
 ## Current slider-editor fresh-install candidate (2026-10-24)
 
 fresh-install-40101757559 at1f1bd21 is published with verified identity/alignment and

@@ -1,6 +1,6 @@
 # ADR0031: Fixed viewer and original precision workspace
 
-Date: 2026-10-25. Status: implemented source; APK/phone validation pending.
+Date: 2026-10-25. Status: APK published; phone visual/interaction acceptance pending.
 Plan: docs/plans/COLOR_WORKSPACE_REDESIGN.md. New request has no attached screenshot yet;
 phone report of blank frame and inconsistent controls is not independent device evidence.
 
@@ -37,3 +37,13 @@ through actual Android job; not executed on phone/emulator. No dependency/assets
 no proprietary UI/code. Single in-flight/revision/cancellation/native/export guards remain.
 No claim source mismatch/codec/GPU problems universally solved; actual phone visual,
 landscape/font/insets/reference/drag/TalkBack acceptance pending. Readiness25%/75%.
+
+## Executed checkpoint
+
+Android40165432408 and Portable40165432394 at57879db PASS. APK fresh-install-40165432408
+published,8,034,423bytes; SHA256
+fec88f23d08b9465e5fbe8f382be6c496486445d100e232fa5d2e5b705ae0fa7.
+325bilingual strings/3themes/17labels pass; new regression source compiled. Android build
+success does not execute layout/touch/reference behavior. Official AOSP alert_dialog_material
+layout inspected to check custom-panel integration; no proprietary resources copied.
+No phone/emulator run or universal source compatibility claim. Documentation-only follow-up.

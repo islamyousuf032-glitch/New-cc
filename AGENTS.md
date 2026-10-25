@@ -91,3 +91,7 @@
   is explicitly UNGRADED, never native render input before source/bitmap admission. Preserve
   metadata errors across adjustment; no empty black rectangle or giant diagnostics viewport.
   Custom scrubber retains SeekBar accessibility/keyboard semantics; fine step is transport.
+
+- Precision workspace fresh-install-40165432408 is published at57879db; regressions compile
+  but visual/touch/reference acceptance remains user-owned. Do not label reference-only
+  display as native graded success or promise decoded frames when retrieval fails.
