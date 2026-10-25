@@ -34,6 +34,15 @@ fun main() {
     check(PreviewProgress.clipRelative(Long.MAX_VALUE,100,200)==99L)
     check(PreviewProgress.clipRelative(150,100,200)==50L)
     refused { PreviewProgress.seekPosition(0,0) };refused { PreviewProgress.clipRelative(100,100,100) }
+    for(duration in listOf(1L,2L,1000L,Long.MAX_VALUE)) for(anchor in listOf(0L,duration/2,duration-1)) {
+        val before=PreviewProgress.freshFramePosition(anchor,duration,false)
+        val after=PreviewProgress.freshFramePosition(anchor,duration,true)
+        check(before in 0 until duration && after in 0 until duration)
+        check(anchor-before in 0..1 && after-anchor in 0..1)
+        repeat(100) { check(PreviewProgress.freshFramePosition(anchor,duration,it%2==0)==if(it%2==0) after else before) }
+    }
+    refused { PreviewProgress.freshFramePosition(0,0,true) }
+    refused { PreviewProgress.freshFramePosition(100,100,true) }
     check(PreviewFrameSize.fit(3840,2160)==PreviewFrameSize.Size(1280,720))
     check(PreviewFrameSize.fit(1920,1080,90)==PreviewFrameSize.Size(405,720))
     check(PreviewFrameSize.fit(640,480)==PreviewFrameSize.Size(640,480))

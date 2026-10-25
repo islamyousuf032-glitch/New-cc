@@ -48,7 +48,7 @@ internal class InlineGradePreview(
                 if(!current.playWhenReady) {
                     seekForward=!seekForward
                     val duration=clip.sourceOutMs-clip.sourceInMs
-                    current.seekTo((anchor+if(seekForward) 1 else -1).coerceIn(0,duration-1))
+                    current.seekTo(PreviewProgress.freshFramePosition(anchor,duration,seekForward))
                 }
                 return
             }
@@ -80,7 +80,11 @@ internal class InlineGradePreview(
     }
     private fun failed(error: Exception) { release();if(!closed) onFailure(error) }
     fun close() { if(closed) return;closed=true;release();activity.application.unregisterActivityLifecycleCallbacks(this) }
-    override fun onActivityStopped(value: Activity) { if(value===activity) { stopped=true;release() } }
+    override fun onActivityStopped(value: Activity) { if(value===activity && !closed) {
+        stopped=true
+        player?.let { anchor=it.currentPosition.coerceIn(0,clip.sourceOutMs-clip.sourceInMs-1) }
+        release()
+    } }
     override fun onActivityStarted(value: Activity) { if(value===activity && stopped && !closed) { stopped=false;update(grade,before) } }
     override fun onActivityCreated(value: Activity,state: Bundle?) {}
     override fun onActivityResumed(value: Activity) {}

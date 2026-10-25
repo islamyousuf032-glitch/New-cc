@@ -17,6 +17,11 @@ internal object PreviewProgress {
         require(sourceInMs>=0 && sourceOutMs>sourceInMs)
         return sourcePositionMs.coerceIn(sourceInMs,sourceOutMs-1)-sourceInMs
     }
+    /** Fresh decode request around a stable anchor; no accumulating drift or EOS seek. */
+    fun freshFramePosition(anchorMs: Long, durationMs: Long, forward: Boolean): Long {
+        require(durationMs>0 && anchorMs in 0 until durationMs)
+        return if(forward) (anchorMs+1).coerceAtMost(durationMs-1) else (anchorMs-1).coerceAtLeast(0)
+    }
     fun progress(positionMs: Long, durationMs: Long): Int =
         if(durationMs<=0) 0 else (positionMs.coerceIn(0,durationMs).toDouble()/durationMs*1000).toInt().coerceIn(0,1000)
 }

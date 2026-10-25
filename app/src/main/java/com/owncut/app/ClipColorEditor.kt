@@ -201,6 +201,7 @@ internal object ClipColorEditor {
         }
         var inline: InlineGradePreview?=null
         var inlineSource: VideoSourceMetadata?=null
+        var inlineFrameReady=false
         var original: Bitmap?=null
         var graded: Bitmap?=null
         var source: IntArray?=null // extraction/render worker only
@@ -217,10 +218,12 @@ internal object ClipColorEditor {
         fun updateButtons() { render.isEnabled=(original!=null || inlineSource!=null) && !busy }
         fun startInline(metadata: VideoSourceMetadata) {
             if(closed.get()) return
-            inlineSource=metadata
+            inlineSource=metadata;inlineFrameReady=false
+            compare.isEnabled=false
             inline?.close()
             val controller=InlineGradePreview(activity,videoTexture,clip,metadata,positionMs,{
                 if(!closed.get()) {
+                    inlineFrameReady=true
                     preview.visibility=android.view.View.INVISIBLE;empty.visibility=android.view.View.GONE
                     compare.isEnabled=true;hasReference=true;lastFailure=null;details.visibility=android.view.View.GONE
                     caption.text=AppLanguage.text(if(compare.isChecked) R.string.color_frame_before else R.string.color_inline_frame)
@@ -229,7 +232,7 @@ internal object ClipColorEditor {
                     updateButtons()
                 }
             },{ error ->
-                inline?.close();inline=null
+                inline?.close();inline=null;inlineFrameReady=false
                 preview.visibility=android.view.View.VISIBLE;compare.isEnabled=false
                 if(!closed.get()) { showFailure(error);updateButtons() }
             })
@@ -244,7 +247,7 @@ internal object ClipColorEditor {
             inline?.let { video ->
                 try {
                     video.update(validatedDraft(),compare.isChecked)
-                    if(inline===video && hasReference) {
+                    if(inline===video && inlineFrameReady) {
                         caption.text=AppLanguage.text(if(compare.isChecked) R.string.color_frame_before else R.string.color_inline_frame)
                         status.text=AppLanguage.text(R.string.color_inline_ready)
                     }
