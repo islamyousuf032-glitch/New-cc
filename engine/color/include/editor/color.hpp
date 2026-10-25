@@ -30,6 +30,13 @@ struct Grade final {
     bool operator==(const Grade&) const = default;
 };
 void validate(const Grade& grade);
+// Original wheel input mapping (zero-mean RGB plane), not a proprietary grading model.
+// Groups: balance=0, lift=1, gamma=2, gain=3. Existing scalar/master is retained.
+[[nodiscard]] Grade wheel_adjust(const Grade& base, int group, double x, double y);
+[[nodiscard]] std::array<double,2> wheel_position(const Grade& grade, int group);
+// Only absent or exact all-zero CTA type-1 (25-byte) padding is treated as unset.
+// Any nonzero/unknown/malformed payload remains present and fails SDR admission.
+[[nodiscard]] bool hdr_static_info_present(std::span<const std::uint8_t> bytes) noexcept;
 inline constexpr std::size_t parameter_count = 17;
 using ParameterBlock = std::array<double,parameter_count>;
 // v1 narrow bridge/preset field order: five scalars, balance, lift, gamma, gain.

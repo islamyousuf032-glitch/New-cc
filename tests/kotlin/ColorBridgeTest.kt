@@ -23,6 +23,19 @@ fun main() {
     rejected { ColorGradeDraft.validatedPreview(values.toMutableList().apply { set(0,"999999") },true) }
     check(!ColorGradeDraft.validatedPreview(values,false).enabled)
     println("Draft preview: bilingual immutable snapshot, native GPU budget and invalid-value rejection passed")
+    check(!ColorEngine.hdrStaticPresent(null))
+    check(!ColorEngine.hdrStaticPresent(ByteArray(0)))
+    check(!ColorEngine.hdrStaticPresent(ByteArray(25)))
+    check(ColorEngine.hdrStaticPresent(ByteArray(24)))
+    for(index in 0..24) check(ColorEngine.hdrStaticPresent(ByteArray(25).apply { this[index]=1 }))
+    for(group in 0..3) {
+        check(ColorEngine.wheel(ColorGrade(),group,0.0,0.0)==ColorGrade())
+        val adjusted=ColorEngine.wheel(ColorGrade(),group,0.1,0.0)
+        check(kotlin.math.abs(ColorEngine.wheelPosition(adjusted,group)[0]-0.1)<1e-12)
+    }
+    rejected { ColorEngine.wheel(ColorGrade(),4,0.0,0.0) }
+    rejected { ColorEngine.wheel(ColorGrade(),0,Double.NaN,0.0) }
+    println("Native wheels and conservative HDR-placeholder classification through JNI passed")
     val argb=intArrayOf(0x25808080,0x00ff0000)
     val unchanged=argb.copyOf()
     check(ColorFrameBuffers.render(argb,2,1,ColorGrade(exposureStops=1.0)).contentEquals(intArrayOf(0x25b0b0b0,0x00ff0000)))

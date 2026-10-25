@@ -16,6 +16,37 @@ void check(bool ok, std::source_location at = std::source_location::current()) {
 }
 void near(double actual,double expected,double tolerance=1e-12) { check(std::abs(actual-expected) <= tolerance); }
 template<class F> void fails(F f) { bool caught=false; try { f(); } catch(const std::exception&) { caught=true; } check(caught); }
+void wheel_and_hdr_metadata() {
+    check(!hdr_static_info_present({}));
+    std::array<std::uint8_t,25> empty{};
+    check(!hdr_static_info_present(empty));
+    for(std::size_t i=0;i<empty.size();++i) {
+        auto changed=empty;changed[i]=1;check(hdr_static_info_present(changed));
+    }
+    for(std::size_t size=1;size<100;++size) {
+        std::vector<std::uint8_t> bytes(size,0);
+        check(hdr_static_info_present(bytes)==(size!=25));
+    }
+    for(int group=0;group<4;++group) {
+        const Grade identity{};
+        check(wheel_adjust(identity,group,0,0)==identity);
+        const auto neutral=wheel_position(identity,group);near(neutral[0],0);near(neutral[1],0);
+        const auto red=wheel_adjust(identity,group,0.1,0);
+        const auto point=wheel_position(red,group);near(point[0],0.1);near(point[1],0);
+        for(int x=-10;x<=10;++x) for(int y=-10;y<=10;++y) {
+            auto grade=wheel_adjust(identity,group,x/10.0,y/10.0);validate(grade);
+            const auto position=wheel_position(grade,group);
+            check(std::hypot(position[0],position[1])<=1.0000000001);
+            check(grade.enabled==identity.enabled && grade.exposure_stops==identity.exposure_stops);
+        }
+    }
+    Grade custom;custom.enabled=false;custom.exposure_stops=2;
+    check(!wheel_adjust(custom,0,0.5,0.5).enabled);
+    check(wheel_adjust(custom,1,0.5,0.5).exposure_stops==2);
+    fails([]{(void)wheel_adjust({},4,0,0);});
+    fails([]{(void)wheel_adjust({},0,std::numeric_limits<double>::quiet_NaN(),0);});
+    fails([]{(void)wheel_adjust({},0,2,0);});
+}
 void comparisons() {
     const std::vector<std::uint8_t> expected{10,20,30,40,100,110,120,130,77,77,77,77};
     const std::vector<std::uint8_t> actual{15,18,30,41,90,110,125,130,99,99,99,99};
@@ -178,6 +209,6 @@ void presets_and_random_images() {
 }
 } // namespace
 int main() {
-    comparisons(); transfer_and_controls(); parameter_boundaries(); image_layout_and_pixels(); histograms(); presets_and_random_images();
+    wheel_and_hdr_metadata(); comparisons(); transfer_and_controls(); parameter_boundaries(); image_layout_and_pixels(); histograms(); presets_and_random_images();
     std::cout << "C++ grading: transfer, controls, RGBA pixels/alpha/stride, cancellation, histogram, presets and randomized extremes passed\n";
 }

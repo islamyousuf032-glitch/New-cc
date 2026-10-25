@@ -27,9 +27,11 @@ class ColorEditorInteractionTest {
                 try {
                     val views=children(requireNotNull(dialog.window).decorView)
                     assertTrue(views.none { it is EditText })
-                    val sliders=views.filterIsInstance<SeekBar>()
+                    assertTrue(views.none { it is SeekBar })
+                    assertEquals(4,views.filterIsInstance<GradeColorWheel>().size)
+                    val sliders=views.filterIsInstance<GradeDragValue>()
                     assertEquals(17,sliders.size)
-                    val argument=Bundle().apply { putFloat(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE,1500f) }
+                    val argument=Bundle().apply { putFloat(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE,2f) }
                     assertTrue(sliders.first().performAccessibilityAction(
                         AccessibilityNodeInfo.AccessibilityAction.ACTION_SET_PROGRESS.id,argument))
                     assertTrue(dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled)
@@ -59,11 +61,10 @@ class ColorEditorInteractionTest {
                         assertFalse("Viewer must not scroll with controls",parent is android.widget.ScrollView)
                         parent=parent.parent
                     }
-                    val sliders=views.filterIsInstance<GradePrecisionSlider>()
+                    assertTrue(views.none { it is SeekBar })
+                    val sliders=views.filterIsInstance<GradeDragValue>()
                     assertEquals(17,sliders.size)
-                    val initial=sliders.first().progress
                     sliders.first().step(1)
-                    assertEquals(initial+1,sliders.first().progress)
                     dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
                     assertEquals(0.004,requireNotNull(saved).exposureStops,0.000001)
                 } finally { dialog.dismiss() }

@@ -13,7 +13,7 @@ import androidx.media3.common.util.UnstableApi
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** Original slider-based grade editor. C++ validates/grades; UI only transports values.
+/** Original wheel and drag-value grade editor. C++ validates/grades; UI only transports values.
  * A single in-flight still render plus one latest pending revision bounds work. Saving
  * validated settings is independent of decoder availability; never claim unavailable preview.
  */
@@ -89,12 +89,12 @@ internal object ClipColorEditor {
         val enabled=Switch(activity).apply { text=AppLanguage.text(R.string.color_enabled);isChecked=clip.grade.enabled;setTextColor(StudioUi.text);minHeight=dp(48) }
         controlBody.addView(enabled)
         val values=clip.grade.parametersV1()
-        val defaults=ColorGrade().parametersV1()
         val names=activity.resources.getStringArray(R.array.color_parameter_names)
         check(names.size==values.size)
         val scales=values.mapIndexed { index,value -> ColorSliderScale.forParameter(index,value) }
-        val bars=mutableListOf<GradePrecisionSlider>()
-        val readouts=mutableListOf<TextView>()
+        val inputs=mutableListOf<GradeDragValue>()
+        val wheels=mutableListOf<GradeColorWheel>()
+        val wheelReadouts=mutableListOf<TextView>()
         val groups=List(3) { LinearLayout(activity).apply { orientation=LinearLayout.VERTICAL } }
         val tabButtons=mutableListOf<Button>()
         fun showGroup(group: Int) {
@@ -106,44 +106,61 @@ internal object ClipColorEditor {
             }
             controlScroll.scrollTo(0,0)
         }
-        listOf(R.string.color_group_primary,R.string.color_group_balance,R.string.color_group_tonal).forEachIndexed { index,label ->
+        listOf(R.string.color_group_primary,R.string.color_group_wheels,R.string.color_group_channels).forEachIndexed { index,label ->
             val button=action(label).apply { setOnClickListener { showGroup(index) } }
             tabButtons.add(button);tabs.addView(button,LinearLayout.LayoutParams(0,dp(48),1f).apply { setMargins(dp(2),dp(6),dp(2),0) })
         }
-        val channels=intArrayOf(0xfff28b82.toInt(),0xff81c995.toInt(),0xff8ab4f8.toInt())
+        // Original two-column wheel deck. Explicit RGB controls remain accessible in Channels.
+        for(rowIndex in 0..1) {
+            val deck=LinearLayout(activity)
+            groups[1].addView(deck)
+            for(column in 0..1) {
+                val index=rowIndex*2+column
+                val card=LinearLayout(activity).apply {
+                    orientation=LinearLayout.VERTICAL;background=StudioUi.shape(activity,StudioUi.surface,14)
+                    setPadding(dp(8),dp(8),dp(8),dp(8))
+                }
+                val title=listOf(R.string.color_wheel_balance,R.string.color_wheel_lift,R.string.color_wheel_gamma,R.string.color_wheel_gain)[index]
+                card.addView(StudioUi.label(activity,AppLanguage.text(title),14f))
+                val wheel=GradeColorWheel(activity);wheels.add(wheel)
+                card.addView(wheel,LinearLayout.LayoutParams(-1,dp(148)))
+                val readout=StudioUi.label(activity,"",10f,true).apply { typeface=android.graphics.Typeface.MONOSPACE;gravity=android.view.Gravity.CENTER }
+                wheelReadouts.add(readout);card.addView(readout)
+                val channelsButton=action(R.string.color_group_channels).apply { setOnClickListener { showGroup(2) } }
+                card.addView(channelsButton,LinearLayout.LayoutParams(-1,dp(48)))
+                deck.addView(card,LinearLayout.LayoutParams(0,-2,1f).apply { setMargins(dp(3),dp(4),dp(3),dp(4)) })
+            }
+        }
         values.forEachIndexed { index,value ->
             val row=LinearLayout(activity).apply {
-                orientation=LinearLayout.VERTICAL;background=StudioUi.shape(activity,StudioUi.surface,12)
-                setPadding(dp(8),dp(2),dp(8),dp(2))
+                gravity=android.view.Gravity.CENTER_VERTICAL;background=StudioUi.shape(activity,StudioUi.surface,12)
+                setPadding(dp(10),dp(8),dp(8),dp(8))
             }
-            val rowHeader=LinearLayout(activity).apply { gravity=android.view.Gravity.CENTER_VERTICAL }
-            rowHeader.addView(StudioUi.label(activity,names[index],13f),LinearLayout.LayoutParams(0,-2,1f))
-            val readout=TextView(activity).apply { typeface=android.graphics.Typeface.MONOSPACE;setTextColor(StudioUi.accent);textSize=13f;gravity=android.view.Gravity.CENTER }
-            readouts.add(readout);rowHeader.addView(readout,LinearLayout.LayoutParams(dp(64),dp(44)))
-            val bar=GradePrecisionSlider(activity).apply {
-                progress=scales[index].progress(value);neutralProgress=scales[index].progress(defaults[index])
-                railColor=if(index>=5) channels[(index-5)%3] else StudioUi.accent
-                contentDescription=names[index]
-            }
+            row.addView(StudioUi.label(activity,names[index],13f),LinearLayout.LayoutParams(0,-2,1f))
+            val input=GradeDragValue(activity,scales[index]).apply { parameterName=names[index];bind(value) }
+            inputs.add(input)
+            row.addView(input,LinearLayout.LayoutParams(dp(90),dp(48)))
             val minus=action(R.string.color_fine_minus).apply {
                 text="−";contentDescription=AppLanguage.text(R.string.color_step_down,names[index])
-                setOnClickListener { bar.step(-1) }
+                setOnClickListener { input.step(-1) }
             }
             val plus=action(R.string.color_fine_plus).apply {
                 text="+";contentDescription=AppLanguage.text(R.string.color_step_up,names[index])
-                setOnClickListener { bar.step(1) }
+                setOnClickListener { input.step(1) }
             }
-            rowHeader.addView(minus,LinearLayout.LayoutParams(dp(48),dp(48)))
-            rowHeader.addView(plus,LinearLayout.LayoutParams(dp(48),dp(48)))
-            row.addView(rowHeader);bars.add(bar);row.addView(bar,LinearLayout.LayoutParams(-1,dp(48)))
-            groups[when(index) { in 0..4 -> 0; in 5..7 -> 1; else -> 2 }].addView(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(8) })
+            row.addView(minus,LinearLayout.LayoutParams(dp(48),dp(48)))
+            row.addView(plus,LinearLayout.LayoutParams(dp(48),dp(48)))
+            groups[if(index<5) 0 else 2].addView(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(8) })
         }
         groups.forEach { controlBody.addView(it) };showGroup(0)
         controlBody.addView(StudioUi.label(activity,AppLanguage.text(R.string.color_precision_hint),12f,true))
         fun labels() {
-            readouts.forEachIndexed { index,label ->
-                label.text=String.format(java.util.Locale.ROOT,"%.3f",values[index])
-                bars[index].contentDescription=names[index]+" "+label.text
+            inputs.forEachIndexed { index,input -> input.bind(values[index]) }
+            val settings=ColorGrade.fromParametersV1(values.copyOf(),enabled.isChecked)
+            wheels.forEachIndexed { group,wheel ->
+                wheel.bind(ColorEngine.wheelPosition(settings,group))
+                val offset=5+group*3
+                wheelReadouts[group].text=String.format(java.util.Locale.ROOT,"R %.2f  G %.2f  B %.2f",values[offset],values[offset+1],values[offset+2])
             }
         }
         labels()
@@ -232,19 +249,20 @@ internal object ClipColorEditor {
             if(original!=null) caption.text=AppLanguage.text(R.string.color_frame_updating)
             requestRender()
         }
-        bars.forEachIndexed { index,bar ->
-            bar.onStep={ progress -> values[index]=scales[index].value(progress);labels();changed() }
-            bar.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(view: SeekBar,progress: Int,fromUser: Boolean) {
-                if(fromUser) { values[index]=scales[index].value(progress);labels();changed() }
+        inputs.forEachIndexed { index,input -> input.onValue={ value -> values[index]=value;labels();changed() } }
+        wheels.forEachIndexed { group,wheel ->
+            var base=draft()
+            wheel.onBegin={ base=draft() }
+            wheel.onPoint={ x,y ->
+                try {
+                    ColorEngine.wheel(base,group,x,y).parametersV1().copyInto(values)
+                    labels();changed()
+                } catch(error: Exception) { showFailure(error,false) }
             }
-            override fun onStartTrackingTouch(view: SeekBar) {}
-            override fun onStopTrackingTouch(view: SeekBar) { requestRender() }
-        }) }
+        }
         enabled.setOnCheckedChangeListener { _,_ -> changed() }
         reset.setOnClickListener {
             ColorGrade().parametersV1().copyInto(values)
-            bars.forEachIndexed { index,bar -> bar.progress=scales[index].progress(values[index]) }
             enabled.isChecked=true;labels();changed()
         }
         compare.setOnCheckedChangeListener { _,before ->

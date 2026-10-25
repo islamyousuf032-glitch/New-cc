@@ -1,5 +1,18 @@
 # Architecture index and execution history
 
+## Original wheels and HDR-placeholder mitigation (2026-10-25)
+
+Color editor now uses four native-mapped wheels plus Primary/Channels drag values; no visual
+sliders/SeekBars. C++ owns RGB-plane mapping/bounds/master preservation, Kotlin pointer/artwork.
+Absent/exact25-byte zero HDR padding is unset; nonzero/malformed data remains blocked, with
+PQ/HLG/unknown source checks intact. Possible false-presence fix, not confirmed phone cause.
+User reports4K10-bit; still preview remains8-bit bounded proxy, not10-bit pipeline/export proof.
+No decompiled/proprietary material, new dependency, export guard or readiness change (ADR0032).
+
+Actual local native color tests and331resource/3theme/17label checks pass. Added JNI/UI test
+source pending execution/build. New APK and user-phone acceptance pending;25%/75%.
+
+
 ## Planned fixed-viewer precision redesign (2026-10-25)
 
 Implemented original full-window Color workspace: fixed viewer/footer, separately scrollable

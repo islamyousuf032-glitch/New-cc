@@ -34,8 +34,7 @@ internal object VideoSourceProbe {
                     integer(MediaFormat.KEY_HEIGHT) ?: 0,integer(MediaFormat.KEY_ROTATION) ?: 0,
                     color(integer(MediaFormat.KEY_COLOR_STANDARD),integer(MediaFormat.KEY_COLOR_TRANSFER),
                         integer(MediaFormat.KEY_COLOR_RANGE)).copy(hasHdrStaticMetadata=
-                            format.containsKey(MediaFormat.KEY_HDR_STATIC_INFO) &&
-                                format.getByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO)?.let { it.limit() > 0 } == true))
+                            hdrStatic(format)))
             }
             checkCancelled()
             return requireNotNull(found) { "No video track in source" }
@@ -46,8 +45,17 @@ internal object VideoSourceProbe {
         fun integer(key: String): Int? = if(format.containsKey(key)) format.getInteger(key) else null
         return ColorEngine.DecodedVideoFormat(integer(MediaFormat.KEY_WIDTH) ?: 0,integer(MediaFormat.KEY_HEIGHT) ?: 0,
             color(integer(MediaFormat.KEY_COLOR_STANDARD),integer(MediaFormat.KEY_COLOR_TRANSFER),integer(MediaFormat.KEY_COLOR_RANGE))
-                .copy(hasHdrStaticMetadata=format.containsKey(MediaFormat.KEY_HDR_STATIC_INFO) &&
-                    format.getByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO)?.let { it.limit()>0 } == true))
+                .copy(hasHdrStaticMetadata=hdrStatic(format)))
+    }
+
+    private fun hdrStatic(format: MediaFormat): Boolean {
+        if(!format.containsKey(MediaFormat.KEY_HDR_STATIC_INFO)) return false
+        val data=format.getByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO) ?: return false
+        if(data.limit()==0) return false
+        if(data.limit()!=25) return true // preserve unknown/malformed presence, don't infer SDR
+        val bytes=ByteArray(25)
+        data.duplicate().apply { position(0);get(bytes) }
+        return ColorEngine.hdrStaticPresent(bytes)
     }
 
     // Android MediaFormat and Media3 constants are mapped independently, not assumed equal.
@@ -77,5 +85,5 @@ internal object VideoSourceProbe {
             else -> ColorEngine.VideoTransfer.OTHER },
         when(info?.colorRange) { C.COLOR_RANGE_FULL -> ColorEngine.VideoRange.FULL
             C.COLOR_RANGE_LIMITED -> ColorEngine.VideoRange.LIMITED
-            else -> ColorEngine.VideoRange.UNKNOWN },info?.hdrStaticInfo?.isNotEmpty() == true)
+            else -> ColorEngine.VideoRange.UNKNOWN },ColorEngine.hdrStaticPresent(info?.hdrStaticInfo))
 }

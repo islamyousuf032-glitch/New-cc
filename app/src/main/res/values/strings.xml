@@ -322,7 +322,7 @@
     <string name="color_group_primary">Primary</string>
     <string name="color_group_balance">RGB balance</string>
     <string name="color_group_tonal">Tone · LGG</string>
-    <string name="color_slider_help">Drag a slider to adjust. The still preview updates automatically. Apply saves the grade; it does not enable graded timeline playback or export.</string>
+    <string name="color_slider_help">Adjust with wheels or drag numeric values; no sliders or typing required. Apply saves settings; normal graded timeline playback and export remain unavailable.</string>
     <string name="color_preview_unavailable">Preview unavailable. You can still save valid settings. Details: %1$s</string>
     <string name="color_auto_preview_ready">Still preview updated. Apply saves these settings. This is not graded timeline playback.</string>
     <string name="color_saved_notice">Grade saved to the clip. Normal timeline playback and graded export are not yet enabled.</string>
@@ -340,7 +340,13 @@
     <string name="color_fine_plus">Fine increase</string>
     <string name="color_step_down">Decrease %1$s one step</string>
     <string name="color_step_up">Increase %1$s one step</string>
-    <string name="color_precision_hint">Drag the ruler to adjust; use − / + for fine steps. The viewer stays in place while controls scroll. A reference frame is not proof of a rendered grade. Apply saves settings; graded timeline/export remain unavailable.</string>
+    <string name="color_precision_hint">Drag a wheel for color balance, or drag numeric values sideways. Use − / + for a fine step. Channels provides keyboard and TalkBack alternatives to every wheel. Preview is an 8-bit proxy; 4K/10-bit/HDR end-to-end output is not verified. Source media stays unchanged.</string>
     <string name="color_source_time">SOURCE · %1$s</string>
     <string name="color_details_close">Close details</string>
+    <string name="color_group_wheels">Wheels</string>
+    <string name="color_group_channels">Channels</string>
+    <string name="color_wheel_balance">Balance</string>
+    <string name="color_wheel_lift">Lift</string>
+    <string name="color_wheel_gamma">Gamma</string>
+    <string name="color_wheel_gain">Gain</string>
 </resources>

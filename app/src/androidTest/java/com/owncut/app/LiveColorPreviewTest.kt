@@ -20,6 +20,19 @@ class LiveColorPreviewTest {
         format.setInteger(MediaFormat.KEY_COLOR_RANGE,MediaFormat.COLOR_RANGE_LIMITED)
         val known=VideoSourceProbe.decoded(format)
         ColorEngine.validateDecodedFormat(known,known)
+        // Some codecs attach an unset CTA payload to SDR output. Nonzero or malformed
+        // metadata must still fail. Buffer cursor is not the metadata's presence flag.
+        val placeholder=java.nio.ByteBuffer.wrap(ByteArray(25)).apply { position(25) }
+        format.setByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO,placeholder)
+        assertFalse(VideoSourceProbe.decoded(format).color.hasHdrStaticMetadata)
+        assertEquals(25,placeholder.position())
+        ColorEngine.validateDecodedFormat(known,VideoSourceProbe.decoded(format))
+        format.setByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO,java.nio.ByteBuffer.wrap(ByteArray(24)))
+        assertTrue(VideoSourceProbe.decoded(format).color.hasHdrStaticMetadata)
+        assertThrows(IllegalArgumentException::class.java) { ColorEngine.validateDecodedFormat(known,VideoSourceProbe.decoded(format)) }
+        format.setByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO,java.nio.ByteBuffer.wrap(ByteArray(25).apply { this[1]=1 }))
+        assertTrue(VideoSourceProbe.decoded(format).color.hasHdrStaticMetadata)
+        format.setByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO,java.nio.ByteBuffer.wrap(ByteArray(25)))
         val gate=DecoderColorGate(known)
         gate.beforeRender(known)
         format.setInteger(MediaFormat.KEY_COLOR_TRANSFER,MediaFormat.COLOR_TRANSFER_HLG)

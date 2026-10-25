@@ -51,6 +51,13 @@ internal object ColorEngine {
     fun shaderSources(grade: ColorGrade, encoding: TextureEncoding): ShaderSources =
         ShaderSources(nativeShaderV1(grade.parametersV1(),grade.enabled,encoding.nativeCode,true),
             nativeShaderV1(grade.parametersV1(),grade.enabled,encoding.nativeCode,false))
+    fun wheel(grade: ColorGrade, group: Int, x: Double, y: Double): ColorGrade =
+        ColorGrade.fromParametersV1(nativeWheelV1(grade.parametersV1(),grade.enabled,group,x,y,false),grade.enabled)
+    fun wheelPosition(grade: ColorGrade, group: Int): DoubleArray =
+        nativeWheelV1(grade.parametersV1(),grade.enabled,group,0.0,0.0,true)
+    fun hdrStaticPresent(bytes: ByteArray?): Boolean = nativeHdrStaticPresentV1(bytes)
+    private external fun nativeWheelV1(parameters: DoubleArray,enabled: Boolean,group: Int,x: Double,y: Double,positionOnly: Boolean): DoubleArray
+    private external fun nativeHdrStaticPresentV1(bytes: ByteArray?): Boolean
     enum class VideoPrimaries(val nativeCode: Int) { UNKNOWN(0), REC709(1), OTHER(2) }
     enum class VideoTransfer(val nativeCode: Int) { UNKNOWN(0), SDR_VIDEO(1), SRGB(2), PQ(3), HLG(4), OTHER(5) }
     enum class VideoRange(val nativeCode: Int) { UNKNOWN(0), FULL(1), LIMITED(2) }

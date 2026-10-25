@@ -131,3 +131,33 @@ Java_com_owncut_app_ColorEngine_nativeCompareRgba8V1(JNIEnv* env, jobject,
       catch(const std::exception& error) { fail(env,"java/lang/IllegalArgumentException",error.what()); }
     return nullptr;
 }
+
+extern "C" JNIEXPORT jdoubleArray JNICALL
+Java_com_owncut_app_ColorEngine_nativeWheelV1(JNIEnv* env,jobject,jdoubleArray values,jboolean enabled,
+    jint group,jdouble x,jdouble y,jboolean position_only) {
+    try {
+        if(!values || env->GetArrayLength(values)!=17) throw std::invalid_argument("wheel requires 17 parameters");
+        editor::color::ParameterBlock block;
+        env->GetDoubleArrayRegion(values,0,17,block.data());
+        if(env->ExceptionCheck()) return nullptr;
+        const auto grade=editor::color::from_parameters(block,enabled!=JNI_FALSE);
+        if(position_only) {
+            const auto point=editor::color::wheel_position(grade,group);
+            auto out=env->NewDoubleArray(2);if(out) env->SetDoubleArrayRegion(out,0,2,point.data());return out;
+        }
+        const auto adjusted=editor::color::parameters(editor::color::wheel_adjust(grade,group,x,y));
+        auto out=env->NewDoubleArray(17);if(out) env->SetDoubleArrayRegion(out,0,17,adjusted.data());return out;
+    } catch(const std::bad_alloc&) { fail(env,"java/lang/OutOfMemoryError","wheel allocation failed"); }
+      catch(const std::exception& error) { fail(env,"java/lang/IllegalArgumentException",error.what()); }
+    return nullptr;
+}
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_owncut_app_ColorEngine_nativeHdrStaticPresentV1(JNIEnv* env,jobject,jbyteArray value) {
+    if(!value) return JNI_FALSE;
+    const auto size=env->GetArrayLength(value);
+    if(size==0) return JNI_FALSE;
+    if(size!=25) return JNI_TRUE; // unknown shape remains blocked, no unbounded allocation
+    std::array<jbyte,25> bytes{};env->GetByteArrayRegion(value,0,25,bytes.data());
+    if(env->ExceptionCheck()) return JNI_TRUE;
+    return editor::color::hdr_static_info_present({reinterpret_cast<const std::uint8_t*>(bytes.data()),bytes.size()}) ? JNI_TRUE:JNI_FALSE;
+}

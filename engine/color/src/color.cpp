@@ -71,6 +71,52 @@ void validate(const Grade& g) {
     for (auto x : g.gamma) range(x,0.1,4);
     for (auto x : g.gain) range(x,0,4);
 }
+namespace {
+struct WheelSpec { double low, high, radius; };
+WheelSpec wheel_spec(int group) {
+    switch(group) {
+        case 0:return {-2,2,1.5};
+        case 1:return {-1,1,0.25};
+        case 2:return {0.1,4,0.75};
+        case 3:return {0,4,0.75};
+        default:throw std::invalid_argument("unknown wheel group");
+    }
+}
+std::array<double,3>& wheel_values(Grade& g,int group) {
+    switch(group) {
+        case 0:return g.balance_stops;
+        case 1:return g.lift;
+        case 2:return g.gamma;
+        case 3:return g.gain;
+        default:throw std::invalid_argument("unknown wheel group");
+    }
+}
+}
+Grade wheel_adjust(const Grade& base,int group,double x,double y) {
+    validate(base);const auto spec=wheel_spec(group);
+    if(!std::isfinite(x) || !std::isfinite(y) || std::abs(x)>1 || std::abs(y)>1)
+        throw std::invalid_argument("wheel coordinates must be finite within [-1,1]");
+    const auto length=std::hypot(x,y);
+    if(length>1) { x/=length;y/=length; }
+    auto output=base;auto& channels=wheel_values(output,group);
+    const auto master=(channels[0]+channels[1]+channels[2])/3;
+    const std::array<double,3> delta{x,-0.5*x-std::sqrt(3.0)*0.5*y,-0.5*x+std::sqrt(3.0)*0.5*y};
+    for(std::size_t i=0;i<3;++i) channels[i]=std::clamp(master+spec.radius*delta[i],spec.low,spec.high);
+    validate(output);return output;
+}
+std::array<double,2> wheel_position(const Grade& grade,int group) {
+    validate(grade);const auto spec=wheel_spec(group);auto copy=grade;
+    const auto& c=wheel_values(copy,group);
+    double x=(2*c[0]-c[1]-c[2])/(3*spec.radius);
+    double y=(c[2]-c[1])/(std::sqrt(3.0)*spec.radius);
+    const auto length=std::hypot(x,y);
+    if(length>1) { x/=length;y/=length; }
+    return {x,y};
+}
+bool hdr_static_info_present(std::span<const std::uint8_t> bytes) noexcept {
+    if(bytes.empty()) return false;
+    return bytes.size()!=25 || std::any_of(bytes.begin(),bytes.end(),[](auto byte){return byte!=0;});
+}
 ParameterBlock parameters(const Grade& grade) {
     validate(grade);
     ParameterBlock values{};

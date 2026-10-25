@@ -95,3 +95,8 @@
 - Precision workspace fresh-install-40165432408 is published at57879db; regressions compile
   but visual/touch/reference acceptance remains user-owned. Do not label reference-only
   display as native graded success or promise decoded frames when retrieval fails.
+
+- ADR0032: no slider UI in Color; C++ owns wheel mapping. Do not call UI discs proprietary
+  grading algorithms. HDR presence ignores only absent/exact25-byte all-zero padding;
+  malformed/nonzero still blocks. Never infer HDR from bit depth or claim10-bit output
+  from8-bit proxy tests. User's exact HDR payload is still unmeasured.
