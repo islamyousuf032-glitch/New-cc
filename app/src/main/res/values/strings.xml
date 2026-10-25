@@ -350,4 +350,7 @@
     <string name="color_wheel_gamma">Gamma</string>
     <string name="color_wheel_gain">Gain</string>
     <string name="color_live_stopped">Playback stopped. Open Details to see the source, decoder or processing error. 10-bit alone does not mean HDR.</string>
+    <string name="color_inline_loading">Still retriever unavailable. Preparing guarded video preview…</string>
+    <string name="color_inline_frame">GRADED VIDEO · platform decoder</string>
+    <string name="color_inline_ready">Video preview active. Adjust controls here; Play draft toggles playback. Paused adjustments request a fresh frame.</string>
 </resources>

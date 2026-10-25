@@ -507,3 +507,11 @@ No graph evaluation, UI-memory virtualization, Android ABI/device verification o
 install-over success is claimed. Readiness stays 25% credited / 75% remaining.
 APK publication remains gated by UPDATE_APKS; earlier delivery blockers are not fixed
 by this native refactor.
+
+
+### Inline viewer candidate (2026-10-25)
+
+See ADR0033: source-probed guarded video fallback, relative no-jump wheels, lifecycle
+release/recreate-paused and compact feedback. No dependencies or safety-gate relaxation.
+User confirms previous Play draft works, not this new inline path. Local geometry/JNI
+checks pass; Android/phone acceptance pending. Readiness25%/75%; no10-bit export proof.

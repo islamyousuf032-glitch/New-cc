@@ -350,4 +350,7 @@
     <string name="color_wheel_gamma">গামা</string>
     <string name="color_wheel_gain">গেইন</string>
     <string name="color_live_stopped">প্লেব্যাক বন্ধ হয়েছে। সোর্স, ডিকোডার বা প্রসেসিংয়ের ত্রুটি জানতে বিস্তারিত খুলুন। শুধু ১০-বিট হলেই HDR নয়।</string>
+    <string name="color_inline_loading">স্থির ফ্রেম পাওয়া যায়নি। সুরক্ষিত ভিডিও প্রিভিউ তৈরি হচ্ছে…</string>
+    <string name="color_inline_frame">গ্রেডেড ভিডিও · প্ল্যাটফর্ম ডিকোডার</string>
+    <string name="color_inline_ready">ভিডিও প্রিভিউ চালু। এখানেই মান বদলান; ড্রাফট চালান দিয়ে প্লে/পজ করুন। পজ অবস্থায় পরিবর্তনে নতুন ফ্রেম চাওয়া হবে।</string>
 </resources>

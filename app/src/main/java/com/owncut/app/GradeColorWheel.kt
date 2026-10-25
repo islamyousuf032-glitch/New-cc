@@ -18,6 +18,9 @@ internal class GradeColorWheel(context: Context) : View(context) {
     private var px=0f
     private var py=0f
     private var captured=false
+    private var drag: WheelDragSession?=null
+    private var pressure=0f
+    private var pulse: android.animation.ValueAnimator?=null
     private var hue: Shader?=null
     private var neutral: Shader?=null
     init { isFocusable=false;minimumHeight=StudioUi.dp(context,140);importantForAccessibility=IMPORTANT_FOR_ACCESSIBILITY_NO }
@@ -45,6 +48,11 @@ internal class GradeColorWheel(context: Context) : View(context) {
         ink.color=StudioUi.muted;ink.strokeWidth=resources.displayMetrics.density
         canvas.drawLine(x-5,y,x+5,y,ink);canvas.drawLine(x,y-5,x,y+5,ink)
         ink.style=Paint.Style.STROKE;ink.color=StudioUi.border;canvas.drawCircle(x,y,r,ink)
+        if(pressure>0) {
+            ink.style=Paint.Style.FILL;ink.color=(StudioUi.accent and 0x00ffffff) or ((pressure*42).toInt() shl 24)
+            canvas.drawCircle(x+px*r,y+py*r,resources.displayMetrics.density*(12+pressure*4),ink)
+            ink.style=Paint.Style.STROKE
+        }
         ink.strokeWidth=resources.displayMetrics.density*2;ink.color=Color.WHITE
         canvas.drawCircle(x+px*r,y+py*r,resources.displayMetrics.density*6,ink)
         ink.style=Paint.Style.FILL
@@ -54,23 +62,33 @@ internal class GradeColorWheel(context: Context) : View(context) {
         if(event.actionMasked==MotionEvent.ACTION_DOWN) {
             val dx=event.x-width/2f;val dy=event.y-height/2f
             if(dx*dx+dy*dy>radius()*radius()) return false
-            captured=true;parent?.requestDisallowInterceptTouchEvent(true);onBegin?.invoke()
+            captured=true;drag=WheelDragSession(px.toDouble(),py.toDouble(),event.x.toDouble(),event.y.toDouble(),radius().toDouble())
+            parent?.requestDisallowInterceptTouchEvent(true);onBegin?.invoke();animatePressure(1f)
         }
         if(!captured) return false
         when(event.actionMasked) {
-            MotionEvent.ACTION_DOWN,MotionEvent.ACTION_MOVE -> {
-                var x=((event.x-width/2f)/radius()).coerceIn(-1f,1f)
-                var y=((event.y-height/2f)/radius()).coerceIn(-1f,1f)
-                val length=kotlin.math.hypot(x,y)
-                if(length>1) { x/=length;y/=length }
-                onPoint?.invoke(x.toDouble(),y.toDouble())
+            MotionEvent.ACTION_POINTER_DOWN,MotionEvent.ACTION_POINTER_UP -> {
+                captured=false;drag=null;animatePressure(0f);parent?.requestDisallowInterceptTouchEvent(false)
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val point=drag?.point(event.x.toDouble(),event.y.toDouble()) ?: return true
+                onPoint?.invoke(point[0],point[1])
             }
             MotionEvent.ACTION_UP,MotionEvent.ACTION_CANCEL -> {
-                captured=false;parent?.requestDisallowInterceptTouchEvent(false)
+                captured=false;drag=null;animatePressure(0f);parent?.requestDisallowInterceptTouchEvent(false)
                 if(event.actionMasked==MotionEvent.ACTION_UP) performClick()
             }
         }
         return true
     }
+    private fun animatePressure(target: Float) {
+        pulse?.cancel()
+        if(!android.animation.ValueAnimator.areAnimatorsEnabled()) { pressure=target;invalidate();return }
+        pulse=android.animation.ValueAnimator.ofFloat(pressure,target).apply {
+            duration=if(target>0) 70L else 120L
+            addUpdateListener { pressure=it.animatedValue as Float;invalidate() };start()
+        }
+    }
+    override fun onDetachedFromWindow() { pulse?.cancel();drag=null;captured=false;super.onDetachedFromWindow() }
     override fun performClick(): Boolean { super.performClick();return true }
 }

@@ -295,3 +295,11 @@ transport; Android test fixture authors frames with platform EGL/GLES/MediaCodec
 (min26). No downloaded media, LUT, copyrighted assets or vendor YUV-layout assumptions.
 Existing cache-only host compiler/JVM tools/licensing unchanged. Android fixture/encoder/
 codec/profile/performance acceptance remains unverified; no binary asset or APK added.
+
+
+### Inline viewer candidate (2026-10-25)
+
+See ADR0033: source-probed guarded video fallback, relative no-jump wheels, lifecycle
+release/recreate-paused and compact feedback. No dependencies or safety-gate relaxation.
+User confirms previous Play draft works, not this new inline path. Local geometry/JNI
+checks pass; Android/phone acceptance pending. Readiness25%/75%; no10-bit export proof.

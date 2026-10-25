@@ -19,7 +19,7 @@ class ColorEditorInteractionTest {
         (0 until view.childCount).flatMap { children(view.getChildAt(it)) } else emptyList()
     private val missing=ClipSnapshot("test","v1","file:///owncut-nonexistent-test-source.mp4",0,30,0,1000)
 
-    @Test fun slidersAndApplyDoNotRequireAWorkingStillDecoder() {
+    @Test fun dragControlsAndApplyDoNotRequireAWorkingStillDecoder() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 var saved: ColorGrade?=null
@@ -68,6 +68,32 @@ class ColorEditorInteractionTest {
                     dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
                     assertEquals(0.004,requireNotNull(saved).exposureStops,0.000001)
                 } finally { dialog.dismiss() }
+            }
+        }
+    }
+
+
+    @Test fun wheelTapDoesNotChangeGradeAndCancelStopsTransport() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val wheel=GradeColorWheel(activity)
+                wheel.layout(0,0,240,240)
+                wheel.bind(doubleArrayOf(0.2,-0.1))
+                var changes=0
+                wheel.onPoint={ _,_ -> changes++ }
+                fun event(action: Int,x: Float,y: Float) {
+                    val value=android.view.MotionEvent.obtain(0,0,action,x,y,0)
+                    try { wheel.onTouchEvent(value) } finally { value.recycle() }
+                }
+                event(android.view.MotionEvent.ACTION_DOWN,150f,120f)
+                event(android.view.MotionEvent.ACTION_UP,150f,120f)
+                assertEquals(0,changes)
+                event(android.view.MotionEvent.ACTION_DOWN,120f,120f)
+                event(android.view.MotionEvent.ACTION_MOVE,130f,120f)
+                assertEquals(1,changes)
+                event(android.view.MotionEvent.ACTION_CANCEL,130f,120f)
+                event(android.view.MotionEvent.ACTION_MOVE,160f,120f)
+                assertEquals(1,changes)
             }
         }
     }

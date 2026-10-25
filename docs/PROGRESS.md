@@ -1,3 +1,13 @@
+## Inline viewer / relative wheel candidate (2026-10-25)
+
+User phone evidence: previous Play draft works and UI improved; editor still remains
+reference-only with truncated error. ADR0033 adds guarded inline video fallback after
+still failure, Before/Play/Refresh integration, paused recreation after background,
+relative no-jump wheels, cancel-safe gestures and restrained feedback/compact chrome.
+Actual local JVM/JNI + pinned Kotlin -Werror and335 bilingual/3theme/17label checks PASS.
+Candidate Android build/UI execution and phone acceptance pending; no end-to-end10-bit,
+normal graded timeline/export or premium-feel proof. Readiness unchanged25%/75%.
+
 ## Wheel/native host verification and compact live errors (2026-10-25)
 
 ## Native wheel workspace APK PUBLISHED (2026-10-25)

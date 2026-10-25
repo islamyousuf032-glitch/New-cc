@@ -21,7 +21,7 @@ internal class GradeDragValue(context: Context, private val scale: ColorSliderSc
     private var dragging=false
     init {
         gravity=android.view.Gravity.CENTER;typeface=android.graphics.Typeface.MONOSPACE
-        textSize=15f;setTextColor(StudioUi.accent);background=StudioUi.shape(context,StudioUi.raised,10)
+        textSize=15f;setTextColor(StudioUi.accent);background=android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT)
         isFocusable=true;isClickable=true
         minimumHeight=StudioUi.dp(context,48)
     }

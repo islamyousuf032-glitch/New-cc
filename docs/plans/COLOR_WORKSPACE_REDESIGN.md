@@ -47,3 +47,11 @@ PROGRESS.md for artifact/source/digest and explicit reference/graded-state limit
 User explicitly rejects sliders. ADR0032 supersedes ruler design with four original
 native-mapped wheels and relative drag-number controls. Candidate40199335976 is published;
 UI regression compiles, phone acceptance pending. No third-party decompiled material used.
+
+
+### Inline viewer candidate (2026-10-25)
+
+See ADR0033: source-probed guarded video fallback, relative no-jump wheels, lifecycle
+release/recreate-paused and compact feedback. No dependencies or safety-gate relaxation.
+User confirms previous Play draft works, not this new inline path. Local geometry/JNI
+checks pass; Android/phone acceptance pending. Readiness25%/75%; no10-bit export proof.

@@ -1,6 +1,12 @@
 package com.owncut.app
 
 fun main() {
+    val drag=WheelDragSession(0.2,-0.3,100.0,100.0,100.0)
+    check(drag.point(100.0,100.0).contentEquals(doubleArrayOf(0.2,-0.3)))
+    check(kotlin.math.abs(drag.point(120.0,100.0)[0]-0.31)<1e-12)
+    val edge=drag.point(10000.0,10000.0)
+    check(kotlin.math.abs(kotlin.math.hypot(edge[0],edge[1])-1.0)<1e-12)
+    check(runCatching { WheelDragSession(0.0,0.0,0.0,0.0,0.0) }.isFailure)
     val defaults=doubleArrayOf(0.0,1.0,1.0,0.18,1.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0)
     defaults.forEachIndexed { index,saved ->
         val scale=ColorSliderScale.forParameter(index,saved)
@@ -31,5 +37,5 @@ fun main() {
     check(ColorPreviewFailure.describe(long).length<=300)
     val a=RuntimeException("A");val b=RuntimeException("B",a);a.initCause(b)
     check(ColorPreviewFailure.describe(a).length<100)
-    println("Production color controls: 34017 slider steps, saved-range preservation, bounded nested/cyclic diagnostics passed")
+    println("Production color controls: relative no-jump wheel transport, 34017 numeric range steps, saved-range preservation, bounded nested/cyclic diagnostics passed")
 }
