@@ -349,4 +349,5 @@
     <string name="color_wheel_lift">লিফট</string>
     <string name="color_wheel_gamma">গামা</string>
     <string name="color_wheel_gain">গেইন</string>
+    <string name="color_live_stopped">প্লেব্যাক বন্ধ হয়েছে। সোর্স, ডিকোডার বা প্রসেসিংয়ের ত্রুটি জানতে বিস্তারিত খুলুন। শুধু ১০-বিট হলেই HDR নয়।</string>
 </resources>

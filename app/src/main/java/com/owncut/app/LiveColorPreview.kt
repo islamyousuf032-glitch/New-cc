@@ -32,8 +32,23 @@ internal object LiveColorPreview {
         val texture=AspectRatioTextureView(activity)
         viewport.addView(texture,android.widget.FrameLayout.LayoutParams(-1,-1,Gravity.CENTER))
         root.addView(viewport,LinearLayout.LayoutParams(-1,(240*activity.resources.displayMetrics.density).toInt()))
-        val status=TextView(activity).apply { setTextIsSelectable(true);text=AppLanguage.text(R.string.color_live_loading) }
+        val status=TextView(activity).apply {
+            text=AppLanguage.text(R.string.color_live_loading);maxLines=3
+            ellipsize=android.text.TextUtils.TruncateAt.END;textSize=12f;setTextColor(StudioUi.muted)
+        }
         root.addView(status)
+        var failureDetails=""
+        var detailDialog: AlertDialog?=null
+        val details=Button(activity).apply {
+            text=AppLanguage.text(R.string.color_error_details);isAllCaps=false;visibility=android.view.View.GONE
+            setOnClickListener {
+                detailDialog?.dismiss()
+                detailDialog=AlertDialog.Builder(activity).setTitle(AppLanguage.text(R.string.color_error_details))
+                    .setMessage(failureDetails).setPositiveButton(AppLanguage.text(R.string.color_details_close),null).show()
+                detailDialog?.findViewById<TextView>(android.R.id.message)?.setTextIsSelectable(true)
+            }
+        }
+        root.addView(details)
         val play=Button(activity).apply { text=AppLanguage.text(R.string.action_pause);isEnabled=false }
         val before=CheckBox(activity).apply { text=AppLanguage.text(R.string.color_live_before);isEnabled=false }
         val position=SeekBar(activity).apply { isEnabled=false;max=1000 }
@@ -71,7 +86,9 @@ internal object LiveColorPreview {
             if(closed.get() || !playback.fail()) return
             handler.removeCallbacks(ticker);worker.shutdownNow();scrubbing=false
             controls();releasePlayer() // don't retain decoder/GL/audio focus until the user closes
-            status.text=AppLanguage.text(R.string.color_error,ColorPreviewFailure.describe(error))
+            failureDetails=ColorPreviewFailure.describe(error)
+            status.text=AppLanguage.text(R.string.color_live_stopped)
+            details.visibility=android.view.View.VISIBLE
         }
         play.setOnClickListener {
             if(playback.canTransport) try { player?.let { it.playWhenReady=!it.playWhenReady } }
@@ -102,6 +119,7 @@ internal object LiveColorPreview {
         })
         dialog.setOnDismissListener {
             closed.set(true);playback.close();handler.removeCallbacks(ticker);worker.shutdownNow();scrubbing=false
+            detailDialog?.dismiss();detailDialog=null
             releasePlayer()
         }
         dialog.show()

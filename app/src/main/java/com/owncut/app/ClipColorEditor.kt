@@ -160,7 +160,8 @@ internal object ClipColorEditor {
             wheels.forEachIndexed { group,wheel ->
                 wheel.bind(ColorEngine.wheelPosition(settings,group))
                 val offset=5+group*3
-                wheelReadouts[group].text=String.format(java.util.Locale.ROOT,"R %.2f  G %.2f  B %.2f",values[offset],values[offset+1],values[offset+2])
+                val text=String.format(java.util.Locale.ROOT,"R %.2f  G %.2f  B %.2f",values[offset],values[offset+1],values[offset+2])
+                if(wheelReadouts[group].text.toString()!=text) wheelReadouts[group].text=text
             }
         }
         labels()

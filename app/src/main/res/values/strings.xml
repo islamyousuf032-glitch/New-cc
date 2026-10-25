@@ -349,4 +349,5 @@
     <string name="color_wheel_lift">Lift</string>
     <string name="color_wheel_gamma">Gamma</string>
     <string name="color_wheel_gain">Gain</string>
+    <string name="color_live_stopped">Playback stopped. Open Details to see the source, decoder or processing error. 10-bit alone does not mean HDR.</string>
 </resources>

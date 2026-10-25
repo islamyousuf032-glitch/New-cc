@@ -1,3 +1,12 @@
+## Wheel/native host verification and compact live errors (2026-10-25)
+
+Strict g++ production JNI build (-Wconversion/-Wsign-conversion) and actual JVM/JNI +
+pinned Kotlin2.3.21 -Werror adapters pass new wheel/HDR padding cases and prior regressions.
+Host tools restored from reviewed versions; compiler archive SHA512 verified. No phone/GPU
+or actual user payload evidence. Live error text now bounded with selectable Details dialog;
+close cleans diagnostic child. Cached wheel shaders/unchanged values avoid extra UI redraw
+allocation, not a measured FPS claim. Android/source compilation retry pending;332strings.
+
 ## Mesa sampler precision correction under verification (2026-10-24)
 
 ## Original wheels and HDR-placeholder mitigation (2026-10-25)

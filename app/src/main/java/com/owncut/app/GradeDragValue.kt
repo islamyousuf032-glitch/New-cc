@@ -26,6 +26,7 @@ internal class GradeDragValue(context: Context, private val scale: ColorSliderSc
         minimumHeight=StudioUi.dp(context,48)
     }
     fun bind(value: Double) {
+        if(text.isNotEmpty() && value==current) return
         current=value;text=String.format(java.util.Locale.ROOT,"%.3f",value)
         contentDescription="$parameterName $text"
     }
