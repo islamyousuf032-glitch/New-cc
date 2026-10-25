@@ -1,5 +1,20 @@
 # Roadmap and acceptance gates
 
+## Planned fixed-viewer precision redesign (2026-10-25)
+
+Implemented original full-window Color workspace: fixed viewer/footer, separately scrollable
+controls, landscape columns, compact status/details, ruler scrubbers/neutral markers/48dp
+fine-step controls. Design plan in plans/COLOR_WORKSPACE_REDESIGN.md; no copied assets/UI.
+Source/reference display is separate from grading admission: show bounded ungraded reference
+when available, explicit empty/error otherwise; only admitted source+bitmap enters grading.
+Timeline capture never enters native input. No silent HDR/unknown grading or live/export
+fallback. Source failure persists across control changes (ADR0031).
+
+325strings/3themes/17labels and whitespace pass. New hierarchy/reference/fine-step UI regression
+source authored; actual Android build and phone behavior pending. No dependency, native
+math/export guard or readiness change;25%/75%. Reference is a still, NOT live playback.
+
+
 ## Slider color-editor rework (2026-10-24)
 
 Original3-group/17slider controls replace typing-only fields; debounced automatic still

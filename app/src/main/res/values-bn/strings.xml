@@ -321,9 +321,26 @@
     <string name="color_draft_changed">সেটিংস বদলেছে। স্থির প্রিভিউ নিজে আপডেট হচ্ছে…</string>
     <string name="color_group_primary">প্রাইমারি</string>
     <string name="color_group_balance">RGB ব্যালান্স</string>
-    <string name="color_group_tonal">লিফট / গামা / গেইন</string>
+    <string name="color_group_tonal">টোন · LGG</string>
     <string name="color_slider_help">স্লাইডার টেনে মান বদলান। স্থির প্রিভিউ নিজে আপডেট হবে। প্রয়োগ করলে গ্রেড সেভ হবে; গ্রেডসহ টাইমলাইন প্লেব্যাক বা এক্সপোর্ট চালু হবে না।</string>
     <string name="color_preview_unavailable">প্রিভিউ পাওয়া যায়নি। বৈধ সেটিংস তবুও সেভ করতে পারবেন। বিস্তারিত: %1$s</string>
     <string name="color_auto_preview_ready">স্থির প্রিভিউ আপডেট হয়েছে। প্রয়োগ করলে এই সেটিংস সেভ হবে। এটি গ্রেডসহ টাইমলাইন প্লেব্যাক নয়।</string>
     <string name="color_saved_notice">ক্লিপে গ্রেড সেভ হয়েছে। সাধারণ টাইমলাইন প্লেব্যাক ও এক্সপোর্টে গ্রেড দেখানো এখনো চালু হয়নি।</string>
+    <string name="color_frame_viewer">ক্লিপ ফ্রেম ভিউয়ার</string>
+    <string name="color_frame_loading">ক্লিপের ফ্রেম লোড হচ্ছে…</string>
+    <string name="color_frame_reference">শুধু রেফারেন্স · গ্রেড ছাড়া</string>
+    <string name="color_frame_empty">ফ্রেম পাওয়া যায়নি। কারণ জানতে বিস্তারিত খুলুন। বৈধ সেটিংস তবুও সেভ করা যাবে।</string>
+    <string name="color_frame_before">আগে · সোর্সের স্থির ফ্রেম</string>
+    <string name="color_frame_graded">গ্রেডেড স্থির ফ্রেম · টাইমলাইন প্লেব্যাক নয়</string>
+    <string name="color_frame_updating">আগের ফ্রেম · গ্রেড আপডেট হচ্ছে…</string>
+    <string name="color_error_details">বিস্তারিত</string>
+    <string name="color_refresh_frame">রিফ্রেশ</string>
+    <string name="color_live_short">ড্রাফট চালান</string>
+    <string name="color_fine_minus">সূক্ষ্মভাবে কমান</string>
+    <string name="color_fine_plus">সূক্ষ্মভাবে বাড়ান</string>
+    <string name="color_step_down">%1$s এক ধাপ কমান</string>
+    <string name="color_step_up">%1$s এক ধাপ বাড়ান</string>
+    <string name="color_precision_hint">রুলার টেনে মান বদলান; সূক্ষ্ম পরিবর্তনে − / + চাপুন। কন্ট্রোল স্ক্রল করলেও ভিউয়ার একই জায়গায় থাকবে। রেফারেন্স ফ্রেম গ্রেড রেন্ডার হওয়ার প্রমাণ নয়। প্রয়োগে সেটিংস সেভ হবে; গ্রেডেড টাইমলাইন/এক্সপোর্ট এখনো চালু নয়।</string>
+    <string name="color_source_time">সোর্স · %1$s</string>
+    <string name="color_details_close">বিস্তারিত বন্ধ করুন</string>
 </resources>

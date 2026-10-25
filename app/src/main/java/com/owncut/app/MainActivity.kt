@@ -705,7 +705,14 @@ class MainActivity : LocalizedActivity(), TextureView.SurfaceTextureListener {
             pauseForTimelineScrub()
             val colorPosition=previewPositionMs.coerceIn(clip.sourceInMs,
                 (clip.sourceOutMs-1).coerceAtLeast(clip.sourceInMs))
-            colorDialog=ClipColorEditor.show(this,clip,colorPosition,previewDraft={ grade ->
+            val reference=if(playerPrepared && !previewSeeking && preview.isAvailable &&
+                selectedUri?.toString()==clip.mediaId && previewPositionMs==colorPosition && preview.width>0 && preview.height>0) {
+                runCatching {
+                    val size=PreviewFrameSize.fit(preview.width,preview.height)
+                    preview.getBitmap(size.width,size.height)
+                }.getOrNull()
+            } else null
+            colorDialog=ClipColorEditor.show(this,clip,colorPosition,referenceFrame=reference,previewDraft={ grade ->
                 check(engine === session && !projectIoBusy && !isDestroyed) { AppLanguage.text(R.string.message_ccdca32722) }
                 check(session.clips().firstOrNull { it.id==clip.id }==clip) { AppLanguage.text(R.string.color_source_changed) }
                 liveColorDialog?.dismiss()

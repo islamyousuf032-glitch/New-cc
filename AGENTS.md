@@ -86,3 +86,8 @@
 - Slider candidate fresh-install-40101757559 is actually built/published at1f1bd21;
   pure controls/diagnostic tests pass. Interaction regression is compile-only. Do not
   infer user's live failure root cause or universal source/GPU support from this build.
+
+- ADR0031 keeps viewer/footer outside controls scroller. Timeline/decoded platform reference
+  is explicitly UNGRADED, never native render input before source/bitmap admission. Preserve
+  metadata errors across adjustment; no empty black rectangle or giant diagnostics viewport.
+  Custom scrubber retains SeekBar accessibility/keyboard semantics; fine step is transport.

@@ -41,6 +41,36 @@ class ColorEditorInteractionTest {
         }
     }
 
+    @Test fun referenceIsImmediatelyVisibleOutsideControlsScrollerAndFineStepsSave() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val reference=android.graphics.Bitmap.createBitmap(64,36,android.graphics.Bitmap.Config.ARGB_8888)
+                reference.eraseColor(android.graphics.Color.DKGRAY)
+                var saved: ColorGrade?=null
+                val dialog=ClipColorEditor.show(activity,missing,0,referenceFrame=reference) { saved=it }
+                try {
+                    val views=children(requireNotNull(dialog.window).decorView)
+                    val image=views.filterIsInstance<android.widget.ImageView>().single {
+                        it.contentDescription==AppLanguage.text(R.string.color_frame_viewer)
+                    }
+                    assertSame(reference,(image.drawable as android.graphics.drawable.BitmapDrawable).bitmap)
+                    var parent=image.parent
+                    while(parent is View) {
+                        assertFalse("Viewer must not scroll with controls",parent is android.widget.ScrollView)
+                        parent=parent.parent
+                    }
+                    val sliders=views.filterIsInstance<GradePrecisionSlider>()
+                    assertEquals(17,sliders.size)
+                    val initial=sliders.first().progress
+                    sliders.first().step(1)
+                    assertEquals(initial+1,sliders.first().progress)
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+                    assertEquals(0.004,requireNotNull(saved).exposureStops,0.000001)
+                } finally { dialog.dismiss() }
+            }
+        }
+    }
+
     @Test fun failedCommitDoesNotPretendToSaveOrDismiss() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->

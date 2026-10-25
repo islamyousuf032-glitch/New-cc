@@ -321,9 +321,26 @@
     <string name="color_draft_changed">Settings changed. Updating still preview automatically…</string>
     <string name="color_group_primary">Primary</string>
     <string name="color_group_balance">RGB balance</string>
-    <string name="color_group_tonal">Lift / Gamma / Gain</string>
+    <string name="color_group_tonal">Tone · LGG</string>
     <string name="color_slider_help">Drag a slider to adjust. The still preview updates automatically. Apply saves the grade; it does not enable graded timeline playback or export.</string>
     <string name="color_preview_unavailable">Preview unavailable. You can still save valid settings. Details: %1$s</string>
     <string name="color_auto_preview_ready">Still preview updated. Apply saves these settings. This is not graded timeline playback.</string>
     <string name="color_saved_notice">Grade saved to the clip. Normal timeline playback and graded export are not yet enabled.</string>
+    <string name="color_frame_viewer">Clip frame viewer</string>
+    <string name="color_frame_loading">Loading clip frame…</string>
+    <string name="color_frame_reference">REFERENCE ONLY · not graded</string>
+    <string name="color_frame_empty">No frame available. Open Details for the reason. Valid settings can still be saved.</string>
+    <string name="color_frame_before">BEFORE · source still</string>
+    <string name="color_frame_graded">GRADED STILL · not timeline playback</string>
+    <string name="color_frame_updating">LAST FRAME · updating grade…</string>
+    <string name="color_error_details">Details</string>
+    <string name="color_refresh_frame">Refresh</string>
+    <string name="color_live_short">Play draft</string>
+    <string name="color_fine_minus">Fine decrease</string>
+    <string name="color_fine_plus">Fine increase</string>
+    <string name="color_step_down">Decrease %1$s one step</string>
+    <string name="color_step_up">Increase %1$s one step</string>
+    <string name="color_precision_hint">Drag the ruler to adjust; use − / + for fine steps. The viewer stays in place while controls scroll. A reference frame is not proof of a rendered grade. Apply saves settings; graded timeline/export remain unavailable.</string>
+    <string name="color_source_time">SOURCE · %1$s</string>
+    <string name="color_details_close">Close details</string>
 </resources>
