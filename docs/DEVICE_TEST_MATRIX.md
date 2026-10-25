@@ -1,3 +1,18 @@
+## Inline grading viewer APK PUBLISHED (2026-10-25)
+
+[Download inline viewer + relative wheel APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/fresh-install-40202669644/owncut-fresh-install-debug.apk).
+Source168a1069e4f0722aa854f87d6726fe5ebbbdb46b; Android40202669644 and Portable40202669634 PASS.
+APK assembly, lint, device-test source compilation, identity/alignment and publication PASS.
+Release API reports8,063,583bytes and SHA256
+`fc78dbf91618939af1f0bcb65a427c8678f97a7a8d67c59fecab2b4c58bb933b`.
+Local Make6, actual JVM/JNI + pinned Kotlin -Werror (including fresh-frame/no-drift bounds),
+335 bilingual/3theme/17label checks and27 Python policy tests PASS. No local binary rehash:
+release-asset download is restricted in this workspace; size/digest above are GitHub release API evidence.
+UI regressions compile but were not executed; phone/emulator/10-bit output acceptance remains pending.
+User confirms previous de4bad3 Play draft works; this new inline fallback is not yet phone-proven.
+Back up before any required uninstall; temporary debug signer, no update-continuity promise.
+ADR0033; normal graded timeline/export still guarded. Readiness25%/75% unchanged.
+
 ## Inline viewer / relative wheel candidate (2026-10-25)
 
 User phone evidence: previous Play draft works and UI improved; editor still remains
@@ -580,3 +595,19 @@ No graph evaluation, UI-memory virtualization, Android ABI/device verification o
 install-over success is claimed. Readiness stays 25% credited / 75% remaining.
 APK publication remains gated by UPDATE_APKS; earlier delivery blockers are not fixed
 by this native refactor.
+
+### ADR0033 inline viewer acceptance matrix (candidate 168a106)
+
+| Scenario | Required observation | Evidence |
+| --- | --- | --- |
+| Previous draft dialog | Playback works on user's source | User report on de4bad3, not independent measurement |
+| Still retrieval fails | Guarded video first frame replaces reference; no fake graded bitmap | Phone pending |
+| Paused exposure/contrast | Actual image changes, no Apply needed, no cumulative seek drift | Phone pending; pure seek bounds/no-drift host tests PASS |
+| Playing adjustments / Before | Visible changes and genuine bypass in same viewer | Phone pending |
+| Initial loading + adjustment | Must not call image graded until video first-frame callback | Implemented gate; phone pending |
+| Background / return | Codec/audio released; last observed position restored paused | Implemented; phone pending |
+| Decoder failure / Refresh / close | Details and retry; no crash/leaked playback after dismissal | Phone pending |
+| Wheel tap / move / cancel / extra finger | No tap jump, relative fine movement, no post-release drift | Pure geometry PASS; UI regression source added, execution pending |
+| Small landscape / animation off | Viewer separate from scrolling controls; disabled animation honored | Phone pending |
+
+Source original4K10-bit and HDR payload still unmeasured. No output-depth or export parity claim.

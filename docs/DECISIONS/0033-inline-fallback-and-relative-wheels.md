@@ -1,6 +1,6 @@
 # ADR 0033 — Inline guarded video fallback and relative wheel interaction
 
-Date: 2026-10-25. Status: implemented candidate; Android/device verification pending.
+Date: 2026-10-25. Status: Android candidate built/published; device verification pending.
 
 ## Evidence and problem
 The user reports Play draft now works and the UI improved on de4bad3. Their screenshot
@@ -43,3 +43,28 @@ Refresh after decoder failure, background/resume paused, dismiss during prepare,
 small landscape, system animation-off, multi-touch cancellation and error Details.
 Premium feel remains user acceptance, not a test assertion. Readiness stays25%/75%.
 No new dependency or license change; Media3 remains pinned1.8.1. See existing dependency review.
+
+### Follow-up review
+
+Candidate168a106 explicitly separates reference availability from an actual inline video
+first-frame event; adjustments while preparing cannot set a graded-ready caption early.
+Background snapshots the observed playhead before codec release; resume stays paused.
+Pure production PreviewProgress tests cover +/-1ms bounds, 1ms clips, Long.MAX_VALUE,
+exclusive clip out and repeated requests without accumulating drift. Actual JVM/JNI
+suite rerun PASS. make test6 suites PASS. Android/phone acceptance remains pending.
+
+Public Media3 1.8.1 ExoPlayer.setVideoEffects documentation rechecked through the official
+androidx/media repository: call before prepare at least once; subsequent effect updates
+are permitted during playback. No DRM/timestamp-changing effects are introduced. The
+custom guarded renderer retains the base renderer's effect/video-sink implementation;
+this code inspection is not device certification.
+
+
+### Published evidence
+
+Final source168a106: Android40202669644 and Portable40202669634 PASS. Assembly/lint/UI-test
+source compilation/alignment/publication complete. Device/emulator execution and install-over
+were skipped, not passed. Fresh-install-40202669644 APK8,063,583bytes; GitHub release API digest
+fc78dbf91618939af1f0bcb65a427c8678f97a7a8d67c59fecab2b4c58bb933b. Workspace release-asset
+download was restricted, so no independent local binary rehash is claimed. 27 Python policy
+tests PASS. Phone acceptance matrix remains pending; previous Play draft success is user report.

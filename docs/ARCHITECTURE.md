@@ -505,3 +505,8 @@ See ADR0033: source-probed guarded video fallback, relative no-jump wheels, life
 release/recreate-paused and compact feedback. No dependencies or safety-gate relaxation.
 User confirms previous Play draft works, not this new inline path. Local geometry/JNI
 checks pass; Android/phone acceptance pending. Readiness25%/75%; no10-bit export proof.
+
+Final ADR0033 source168a106 built/published as fresh-install-40202669644; Android40202669644
+and Portable40202669634 PASS. UI regression sources compile only, not executed. Phone
+inline-viewer/paused-adjustment acceptance pending; do not equate build success with visible
+grading or10-bit output. Existing dependencies unchanged. Latest evidence: BUILD_AND_TEST.

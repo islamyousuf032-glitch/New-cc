@@ -1,3 +1,18 @@
+## Inline grading viewer APK PUBLISHED (2026-10-25)
+
+[Download inline viewer + relative wheel APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/fresh-install-40202669644/owncut-fresh-install-debug.apk).
+Source168a1069e4f0722aa854f87d6726fe5ebbbdb46b; Android40202669644 and Portable40202669634 PASS.
+APK assembly, lint, device-test source compilation, identity/alignment and publication PASS.
+Release API reports8,063,583bytes and SHA256
+`fc78dbf91618939af1f0bcb65a427c8678f97a7a8d67c59fecab2b4c58bb933b`.
+Local Make6, actual JVM/JNI + pinned Kotlin -Werror (including fresh-frame/no-drift bounds),
+335 bilingual/3theme/17label checks and27 Python policy tests PASS. No local binary rehash:
+release-asset download is restricted in this workspace; size/digest above are GitHub release API evidence.
+UI regressions compile but were not executed; phone/emulator/10-bit output acceptance remains pending.
+User confirms previous de4bad3 Play draft works; this new inline fallback is not yet phone-proven.
+Back up before any required uninstall; temporary debug signer, no update-continuity promise.
+ADR0033; normal graded timeline/export still guarded. Readiness25%/75% unchanged.
+
 ## Inline viewer / relative wheel candidate (2026-10-25)
 
 User phone evidence: previous Play draft works and UI improved; editor still remains
