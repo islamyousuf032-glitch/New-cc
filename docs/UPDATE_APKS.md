@@ -1,5 +1,12 @@
 # Install-over APK patches: signing and verification
 
+## Current no-slider wheel candidate (2026-10-25)
+
+fresh-install-40199335976 atde4bad3 published after actual Android build/identity/alignment
+checks. It remains temporary debug signed; back up before any required uninstall. Stable
+update compatibility and actual phone/4K10-bit acceptance NOT asserted. See ADR0032.
+
+
 ## Current precision-workspace test candidate (2026-10-25)
 
 fresh-install-40165432408 at57879db published after build/identity/alignment checks.

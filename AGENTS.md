@@ -100,3 +100,7 @@
   grading algorithms. HDR presence ignores only absent/exact25-byte all-zero padding;
   malformed/nonzero still blocks. Never infer HDR from bit depth or claim10-bit output
   from8-bit proxy tests. User's exact HDR payload is still unmeasured.
+
+- Current wheel candidate fresh-install-40199335976 atde4bad3 is built/published. Native/
+  actual JNI policy tests pass; UI tests compile only. Do not infer user's raw HDR payload
+  or10-bit output acceptance. Keep live error details separate from bounded player status.

@@ -1,6 +1,6 @@
 # ADR0032: Native wheel input, no slider UI, conservative HDR-placeholder policy
 
-Date: 2026-10-25. Status: implemented source/native test pass; Android/phone pending.
+Date: 2026-10-25. Status: APK published, native/JNI policies pass; phone acceptance pending.
 
 User chose original lawful implementation, explicitly rejects sliders, reports4K10-bit.
 Do not use downloaded decompiled NodeVideo code/assets. No such material is imported.
@@ -45,3 +45,17 @@ prior color regressions.331strings/3themes/17labels and whitespace pass. Added a
 host-test source and Android transport/UI regression source (no sliders/4wheels/numeric
 Apply/reference/fine steps); not run yet. Android compile/publication and phone execution
 pending;25%/75%. Exact metadata classification/device behavior remains acceptance gate.
+
+## Executed checkpoint
+
+Android40199335976 and Portable40199335868 atde4bad3 PASS; actual fresh-install prerelease
+fresh-install-40199335976 verified8,045,179byte APK SHA256
+97627b9f8eb07049fe8cfd3f80b5e2dc58eb5ff450452620f201e65ae6f3787b.
+Make6/color ASan+UBSan, strict production JNI build (-Wconversion/-Wsign-conversion), real
+JVM/JNI and pinned Kotlin2.3.21 -Werror checks PASS including new wheel/native HDR policy
+and prior buffers/settings/plan/gates. Host tools reused reviewed jdk4py25.0.2.1/JPype1.7.1,
+OpenJDK17u JNI headers and compiler archive SHA512 verified outside Git. UI regressions
+compiled, no phone/emulator run. Live failures are now compact with selectable Details;
+wheel shaders/unchanged labels cached, not a measured performance claim.4K10-bit source
+not independently inspected;8-bit proxy does not preserve/prove10-bit output. Only docs
+changed after artifact commit. The initial3226a94 Android run was cancelled by final retry.

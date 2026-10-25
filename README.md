@@ -1,5 +1,21 @@
 > **Historical user-approved phone-tested APK:** [Quiet editor + three themes](https://github.com/islamyousuf032-glitch/New-cc/releases/download/phone-test-39777165014/app-debug.apk)
 
+## Native wheel workspace APK PUBLISHED (2026-10-25)
+
+[Download wheel workspace APK](https://github.com/islamyousuf032-glitch/New-cc/releases/download/fresh-install-40199335976/owncut-fresh-install-debug.apk).
+Source de4bad3; Android40199335976 and Portable40199335868 PASS. Actual APK assembly/lint/
+instrumentation-source compilation/identity/alignment/publication complete.8,045,179bytes;
+SHA25697627b9f8eb07049fe8cfd3f80b5e2dc58eb5ff450452620f201e65ae6f3787b.
+Local Make6, color ASan+UBSan, strict production JNI compile and real JVM/JNI + pinned
+Kotlin2.3.21 -Werror adapters pass wheel/placeholder and prior regressions.332strings/
+3themes/17labels and8fresh/9signing/7metadata/3install-over policy checks pass.
+UI/device tests compile, not executed. Four original wheels/drag values replace sliders;
+8-bit proxy is NOT10-bit end-to-end proof. User's exact4K/10-bit source/HDR payload/live
+behavior remains unmeasured; placeholder fix not blanket HDR support. Normal graded
+playback/export still guarded. Fresh install may require uninstall after backup; no
+stable signer continuity. No proprietary code/assets or readiness credit;25%/75% (ADR0032).
+
+
 ## Original wheels and HDR-placeholder mitigation (2026-10-25)
 
 Color editor now uses four native-mapped wheels plus Primary/Channels drag values; no visual

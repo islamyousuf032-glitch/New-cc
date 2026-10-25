@@ -41,3 +41,9 @@ No readiness/export/phone-parity credit until those gates pass.
 Implemented at57879db. Android40165432408 and Portable40165432394 PASS; fresh-install
 candidate40165432408 published. Tests compile, device execution pending. See ADR0031 and
 PROGRESS.md for artifact/source/digest and explicit reference/graded-state limitations.
+
+## Superseding interaction choice (2026-10-25)
+
+User explicitly rejects sliders. ADR0032 supersedes ruler design with four original
+native-mapped wheels and relative drag-number controls. Candidate40199335976 is published;
+UI regression compiles, phone acceptance pending. No third-party decompiled material used.
